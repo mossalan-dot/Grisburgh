@@ -42,41 +42,41 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [x] **Dobbelpaneel** (ALL) — het formulier-invoerveld is weg; gooien gaat met de dobbelknoppen *(nagelopen 24 nov 2026: elf knoppen, en `#dice-formula-input` staat dicht achter ▶ Formula)*
 - [ ] **Locaties** (ALL) — type *Winkel* geeft een voorraad met prijzen — koop en verkoop als speler en controleer geld én boedel; een gepinde locatie toont de kaartknop die naar de juiste plek vliegt
 - [ ] **Organisaties** (ALL) — kaartjes, leden die eraan hangen, detailvenster, zichtbaarheid per party
-- [ ] **Voorwerpen** (ALL) — gekleurde rand per rarity (grijs → goud), gloed en shimmer bij Very Rare en Legendary; damage-pill klikken opent het dobbelpaneel met die formule; rariteit in kleur in het detailvenster
+- [x] **Voorwerpen** (ALL) — gekleurde rand per rarity (grijs → goud), gloed en shimmer bij Very Rare en Legendary; damage-pill klikken opent het dobbelpaneel met die formule; rariteit in kleur in het detailvenster *(nagelopen 24 nov 2026: elke rarity heeft zijn eigen kleur op de tegel (common grijs → uncommon #3f9a4e → rare #3a7bd5 → very rare #9b59b6 → legendary #e0962f), alleen Very Rare en Legendary dragen `.kaart-glans--altijd`, de schadepil gooit zijn formule, en de rariteit staat in de ondertitel van het detailvenster in zijn eigen kleur.)*
 - [x] **Voorwerp-editor: types in groepen** (DM) — de keuzelijst *Type* staat in groepen (Wapens & harnas, Magische voorwerpen, Verbruik, Uitrusting, Goddelijk, Overig); een kaartje met een type dat er niet meer in staat houdt zijn waarde en toont die als "(oude waarde)" *(nagelopen 24 nov 2026: Wapens & harnas · Magische voorwerpen · Verbruik · Uitrusting · Goddelijk · Overig)*
 - [x] **Type zegt wat je krijgt** (DM) — kies *Weapon*: onder de lijst staat dat je schade en wapeneigenschappen krijgt, en die velden verschijnen; idem *Armor* (Base AC), *Scroll* (spellkiezer) en *Blessing* (Tempel-velden) *(nagelopen 24 nov 2026 voor Weapon: de melding noemt schade en eigenschappen, en die velden verschijnen)*
 - [x] **Volgorde in de voorwerp-editor** (DM) — Type, Rarity, Prijs, Exemplaren, Charges, Vereist attunement, Niet te verkopen aan winkels, Beschrijving; de typegebonden velden staan daaronder, en Flavour/Geheimen/Aantekeningen sluiten de rij *(nagelopen 24 nov 2026: Naam → Uit de SRD halen → Type → Rarity → Werking → …; de rest van de volgorde niet nageteld)*
-- [ ] **Charges leest als één ding** (DM) — vink *Charges* aan: *Maximum* is een getal (letters gaan er niet in), *Herlaadt bij* heeft drie standen, en het veld voor de worp verschijnt **alleen** bij "een deel terug, met een worp". Dageraad staat er niet meer bij (dat deed hetzelfde als lange rust)
+- [x] **Charges leest als één ding** (DM) — vink *Charges* aan: *Maximum* is een getal (letters gaan er niet in), *Herlaadt bij* heeft drie standen, en het veld voor de worp verschijnt **alleen** bij "een deel terug, met een worp". Dageraad staat er niet meer bij (dat deed hetzelfde als lange rust) *(nagelopen 24 nov 2026: *Maximum* is `type="number"` en slikte "abc" niet, *Herlaadt bij* heeft precies drie standen (lange rust, korte rust, lange rust met een worp) zonder Dageraad, en het worpveld verscheen alleen bij die derde.)*
 - [x] **Attunement met een voorwaarde** (DM) — vink *Vereist attunement* aan: er verschijnt een veld *Attunement alleen door*; vul "a Wizard" in en dat staat in het detailvenster achter Requires Attunement *(nagelopen 24 nov 2026: `attunementEis` is verborgen tot `cb_attunement` aanstaat)*
 - [x] **Wapeneigenschappen met uitleg** (DM) — hover over een eigenschap in de kiezer van de voorwerp-editor: de PHB-uitleg verschijnt (die stond alleen op het spelerblad) *(nagelopen 24 nov 2026: 19 chips, elk met zijn PHB-tekst in `data-wptip` — "Ammunition → You can make a ranged attack…")*
 - [x] **Geheimen op een voorwerp** (DM/SP) — een voorwerp heeft nu Flavour teksten én Geheimen als lijst, per regel te onthullen per party, net als bij een personage; de speler ziet alleen wat vrij is *(nagelopen 24 nov 2026: de editor heeft zowel `flavours` als `geheimen` als lijst; het onthullen per party is niet getoetst)*
-- [ ] **Voorwerp-detailvenster is één blok** (ALL) — geen vier rijen losse pillen meer: rariteit en type staan (in kleur) in de ondertitel, en prijs, attunement, charges, schade en eigenschappen staan samen in één omkaderde strook
-- [ ] **Voorwerp raak je kwijt door het weg te halen** (DM) — bij een voorwerp staat geen knop *Verloren* meer; een kaartje dat de markering al draagt houdt de knop wel, zodat je hem kunt terugdraaien
+- [x] **Voorwerp-detailvenster is één blok** (ALL) — geen vier rijen losse pillen meer: rariteit en type staan (in kleur) in de ondertitel, en prijs, attunement, charges, schade en eigenschappen staan samen in één omkaderde strook *(nagelopen 24 nov 2026: één `.item-kenmerken`, en rariteit + type staan in de ondertitel — "Uncommon" in #3f9a4e tegen de gewone ondertitelkleur.)*
+- [x] **Voorwerp raak je kwijt door het weg te halen** (DM) — bij een voorwerp staat geen knop *Verloren* meer; een kaartje dat de markering al draagt houdt de knop wel, zodat je hem kunt terugdraaien *(nagelopen 24 nov 2026: de knoppen in het venster zijn Informatie · Bezit · Zichtbaar · Verborgen · Bewerken · Verwijderen · Geef aan speler — geen *Verloren*. De tweede helft (een kaartje dat de markering al draagt houdt de knop) is niet te zien: geen enkel kaartje in Grisburgh draagt hem nog.)*
 - [x] **Tabblad Bezit** (DM) — open een voorwerp: het tabblad *Bezit* toont per party wie het heeft, hoeveel exemplaren en hoeveel charges; ± past het aantal aan, × haalt het eigendom weg. Losse boedelregels met dezelfde naam staan er gedempt bij *(nagelopen 24 nov 2026 op Potion of Greater Healing: "TESTGROEP · Test McTestface · 1 · Geef aan speler")*
-- [ ] **Bezit telt over party's heen** (DM) — geef een voorwerp aan iemand in party 2 terwijl je naar party 1 kijkt: hij staat onder party 2 in *Bezit*, en het ophogen of weghalen daar werkt (dat gaf eerder een foutmelding)
+- [x] **Bezit telt over party's heen** (DM) — geef een voorwerp aan iemand in party 2 terwijl je naar party 1 kijkt: hij staat onder party 2 in *Bezit*, en het ophogen of weghalen daar werkt (dat gaf eerder een foutmelding) *(nagelopen 24 nov 2026 vanuit de Testgroep: een proefvoorwerp aan Cleopas Purper gegeven (andere party) stond onder zijn party in *Bezit*; ophogen (×2 → ×3), verlagen en weghalen werkten alle drie. Daarna opgeruimd.)*
 - [ ] **Geven meldt zich** (DM) — schenk een voorwerp vanuit het geef-venster: er verschijnt een korte melding en de teller achter die speler klopt meteen, ook als hij in een andere party zit
-- [ ] **Eén klik te veel terugnemen** (DM) — bij een stapelbaar voorwerp staat in het geef-venster een min-knop achter een speler die het al heeft; klikken haalt er één af (en bij de laatste verdwijnt hij uit de lijst)
+- [x] **Eén klik te veel terugnemen** (DM) — bij een stapelbaar voorwerp staat in het geef-venster een min-knop achter een speler die het al heeft; klikken haalt er één af (en bij de laatste verdwijnt hij uit de lijst) *(nagelopen 24 nov 2026: de min haalt er één af (×3 → ×2) en bij de laatste verdwijnt de regel uit de lijst.)*
 - [x] **Te koop bij** (DM/SP) — zet een voorwerp in de voorraad van een winkel: op het voorwerp-kaartje staat onder *Waar hoort dit bij?* een regel **Te koop** met die winkel erachter, doorklikbaar naar het voorraadtabblad. Haal je hem uit de voorraad, dan verdwijnt de regel (het is afgeleid, niet opgeslagen) *(nagelopen 24 nov 2026: de regel **Te koop** staat in het venster)*
-- [ ] **Geen verzonnen categorie in de filterbalk** (ALL) — in Voorwerpen staat geen chip *Zegeningen & Gunsten* meer; Blessing en Boon zijn gewone chips en staan gewoon in de lijst
+- [x] **Geen verzonnen categorie in de filterbalk** (ALL) — in Voorwerpen staat geen chip *Zegeningen & Gunsten* meer; Blessing en Boon zijn gewone chips en staan gewoon in de lijst *(nagelopen 24 nov 2026: de trechter geeft zeventien chips — Alle, Amulet, Armor, Blessing, Boon, Consumable … — met Blessing en Boon als gewone chips en geen *Zegeningen & Gunsten*. De 78 Blessings en 20 Boons staan gewoon in het raster.)*
 - [ ] **Documentkaartje zonder afbeelding** (ALL) — een document zonder beeld toont geen lege beeldstrook meer; de typebadge is dezelfde paarse pil als bij een kaartje mét beeld (was een balk over de volle breedte)
 - [ ] **DM-knoppen in de documentviewer** (DM) — onderaan staan *Zichtbaar/Vaag zichtbaar/Verborgen*, *Bewerken* en *Verwijderen* met icoon én woord, niet drie naamloze vierkantjes
-- [ ] **Schadepil op het kaartje** (ALL) — een wapen zonder afbeelding toont zijn schadeformule in de kaartbody en die is klikbaar (rolt in het dobbelpaneel); met afbeelding ligt hij als vanouds rechtsboven over het beeld
+- [x] **Schadepil op het kaartje** (ALL) — een wapen zonder afbeelding toont zijn schadeformule in de kaartbody en die is klikbaar (rolt in het dobbelpaneel); met afbeelding ligt hij als vanouds rechtsboven over het beeld *(nagelopen 24 nov 2026 — en dit was stuk: bij de overstap naar tegels ging de AC-pil van een harnas mee en de schadepil van een wapen niet, dus een dolk toonde nergens meer zijn 1d4. Hersteld met `_tegelWorpPillen()`; nu staat hij links boven de naamband, naast de AC-pil rechts, en gooit hij zijn formule.)*
 - [ ] **Geef-knop even groot** (DM) — bij een uniek voorwerp is de hele strook *Geef aan speler* aanklikbaar, net als bij een stapelbaar of gedeeld voorwerp
 - [x] **Werking als eigen secties** (DM) — vink meerdere werkingen aan: elke werking krijgt een eigen omkaderd blok met een kopje (Attack, Defense, Healing, Spell). Met alle vier tegelijk blijft het venster netjes; niets loopt over de rand *(nagelopen 24 nov 2026: elke werking krijgt zijn eigen `data-werking`-blok)*
 - [x] **Werking volgt het type** (DM) — kies *Weapon* op een nieuw kaartje (Attack aan) en daarna *Armor*: het vinkje verspringt naar Defense. Zet je zelf een vinkje om, dan blijft dat staan bij een volgende typekeuze *(nagelopen 24 nov 2026: Weapon → attack, Armor → defense)*
 - [x] **Dex cap alleen bij Other** (DM) — kies *Light* of *Medium* bij "Hoe telt de AC": het veld Dex cap is er niet; bij *Other* wel *(nagelopen 24 nov 2026: bij light verborgen, bij other zichtbaar)*
-- [ ] **Spreuken koppelen** (DM/SP) — vink *Spell* aan en zoek een spreuk: hij komt als chip onder het veld, met een kruisje om los te koppelen. Meerdere mag (Staf van Vuur heeft er twee). In het detailvenster staan ze per niveau en opent een klik het spreukvenster
-- [ ] **De eerste spreuk vult de velden** (DM) — koppel er een aan een leeg kaartje: casting time, range, components en duration worden ingevuld, en de beschrijving alleen als die nog leeg was. Een eigen tekst blijft dus staan
+- [x] **Spreuken koppelen** (DM/SP) — vink *Spell* aan en zoek een spreuk: hij komt als chip onder het veld, met een kruisje om los te koppelen. Meerdere mag (Staf van Vuur heeft er twee). In het detailvenster staan ze per niveau en opent een klik het spreukvenster *(nagelopen 24 nov 2026: de kiezer kent 544 spreuken, een keuze wordt een chip ("Level 3 Fireball") met een kruisje, twee naast elkaar mag, het kruisje koppelt er één los, en in het detailvenster staat hij met zijn niveau ("Lv 1 Magic Missile") als knop naar de spreuk.)*
+- [x] **De eerste spreuk vult wat leeg is** (DM) — koppel er een aan een nieuw kaartje: een lege naam krijgt *Scroll of <spreuk>* en een lege beschrijving de spreuktekst. Staat er al iets, dan blijft dat staan *(herschreven 24 nov 2026: het punt beschreef nog casting time, range, components en duration. Die worden bewust niet meer gekopieerd — ze staan in de spreuk zelf, en die is sinds de koppeling één klik verderop; `_scrollPickSpell` zegt het met zoveel woorden. Nagelopen: lege naam werd "Scroll of Fireball", lege tekst kreeg de spreuktekst, en "ZZ Eigen Staf" met een eigen tekst bleef onaangeroerd.)*
 - [ ] **Proefvoorwerpen** (DM/SP) — in de Testgroep staan zestien kaartjes die met `Proef` beginnen, één per categorie en per werking (los te zoeken op "Proef"). Ze zijn alleen voor de Testgroep zichtbaar; vier ervan liggen in de boedel van Test McTestface. Opnieuw aanmaken of bijwerken kan met `node scripts/testvoorwerpen.js`
-- [ ] **Werking los van type** (DM) — open een Wondrous Item, Ring of Amulet: bij *Werking* vink je Attack, Defense, Healing of Spell aan en de bijbehorende velden verschijnen. Een Ring kan dus AC geven en een Wondrous Item genezen; dat kon eerst niet
+- [x] **Werking los van type** (DM) — open een Wondrous Item, Ring of Amulet: bij *Werking* vink je Attack, Defense, Healing of Spell aan en de bijbehorende velden verschijnen. Een Ring kan dus AC geven en een Wondrous Item genezen; dat kon eerst niet *(nagelopen 24 nov 2026 op een Amulet: vier vinkjes (Attack, Defense, Healing, Spell), en elk liet zijn eigen velden verschijnen — Defense de AC-velden, Healing de genezingsformule, Attack het schadeveld. Een Amulet kan dus AC geven én genezen.)*
 - [x] **Type stelt een werking voor** (DM) — kies *Weapon* op een nieuw kaartje: Attack staat meteen aan. Kies daarna *Armor*: de al aangevinkte werking blijft staan (een keuze wordt nooit overschreven) *(nagelopen 24 nov 2026: Weapon → attack; daarna Healing zelf aangevinkt blijft staan bij een nieuw type)*
-- [ ] **Bestaande kaartjes kloppen vanzelf** (DM) — een wapen met schade komt binnen met Attack aan, een harnas met Defense, een scroll met Spell. Er is niets gemigreerd: het wordt afgeleid uit wat er ingevuld staat
-- [ ] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop
+- [x] **Bestaande kaartjes kloppen vanzelf** (DM) — een wapen met schade komt binnen met Attack aan, een harnas met Defense, een scroll met Spell. Er is niets gemigreerd: het wordt afgeleid uit wat er ingevuld staat *(nagelopen 24 nov 2026: +1 Battleaxe kwam binnen met Attack aan, Armor of Gleaming met Defense, Scroll of Thorn Whip met Spell — zonder dat er iets gemigreerd is.)*
+- [x] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop *(nagelopen 24 nov 2026 met een proefdrankje op 2d4+2: een groene knop met een hartje op het kaartje én in het detailvenster, zonder schadeknop ernaast. **Let op:** geen enkel voorwerp in Grisburgh heeft op dit moment een genezingsformule — ook Potion of Healing niet — dus daar valt nu nergens iets te drinken.)*
 - [x] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving) *(nagelopen 24 nov 2026: Weapon kiezen laat het schadeveld meteen verschijnen)*
-- [ ] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen
+- [x] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen *(nagelopen 24 nov 2026: `<hr class="veld-scheiding">` staat tussen de charges en *Vereist attunement*, met *Niet te verkopen aan winkels* eronder.)*
 - [x] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld *(nagelopen 24 nov 2026: `type=number`)*
-- [ ] **Kenmerken zonder kader** (ALL) — in het detailvenster staan prijs, attunement en charges als losse chips op één regel, zonder omkadering die als invoerveld leest
-- [ ] **Verwijderen zegt wie** (DM) — de bevestiging luidt "<voorwerp> verwijderen uit de inventaris van <speler>?"
+- [x] **Kenmerken zonder kader** (ALL) — in het detailvenster staan prijs, attunement en charges als losse chips op één regel, zonder omkadering die als invoerveld leest *(nagelopen 24 nov 2026: de strook heeft rand 0px en een doorzichtige achtergrond — hij leest niet als invoerveld.)*
+- [x] **Verwijderen zegt wie** (DM) — de bevestiging luidt "<voorwerp> verwijderen uit de inventaris van <speler>?" *(nagelopen 24 nov 2026 in de code: `${_item} verwijderen uit de inventaris van ${_naam}?`, op beide plekken waar het kan.)*
 - [ ] **Documenten** (ALL) — eigen editor en viewer (niet het detailvenster van de andere tabs); markdown met `[[links]]`; per party vrijgeven en weer verbergen
 - [x] **Bestiarium** (DM) — kaartjes, statblock-modal met acties en eigenschappen, eigen editor in de Meesterkamer; spelers zien deze tab niet *(nagelopen 24 nov 2026: 44 wezens met de niveauknoppen erop)*
 - [ ] **Spreuken** (ALL) — filters op niveau en klasse, zoeken, detailvenster met casting time, range, components en duration; afbeelding kiezen en focuspunt zetten; glossary-tooltips op D&D-termen
@@ -2622,3 +2622,46 @@ In de **Test**-campagne staan nog 24 voorwerpen (`st_vw0`…`st_vw23`, uit de
 stresstest van 1 okt) met hun prijs als JSON-object in plaats van als bedrag —
 die zijn daar dus gratis. Fixtures van een script dat niet meer bestaat; blijft
 liggen tot iemand ze nodig heeft.
+
+## Veertiende ronde (24 nov 2026) — de voorwerpen in het archief
+
+Zestien punten uit blok 2 nagelopen, allemaal op de echte campagne (288
+voorwerpen, alle vijf de rariteiten vertegenwoordigd). Eén echte fout, één punt
+dat de app allang anders doet dan de lijst beweerde.
+
+### Wat eruit kwam: de schadepil verdween met de tegels
+
+Toen de archieftabbladen tegels werden (4 nov) ging de AC-pil van een harnas mee
+— die kreeg zelfs een eigen plek, `.tegel-ac` — en de schadepil van een wapen
+niet. De code stond er nog, maar in de **oude** `.entity-card`-renderer, die
+voor dit tabblad niet meer draait. Gevolg: een Dagger toonde nergens meer zijn
+1d4, en de knop die hem gooide was weg.
+
+`_tegelWorpPillen()` tekent nu dezelfde twee pillen op de tegel: schade in het
+rood, genezing in het groen met een hartje. Ze liggen linksonder boven de
+naamband, tegenover de AC-pil rechts, zodat ze elkaar niet raken. Nagemeten op
+een wapen zonder plaat (1d4), een wapen mét plaat (1d8 slashing over het beeld)
+en een harnas (AC 14+Dex blijft waar hij lag).
+
+### Een punt dat de oude werking beschreef
+
+*"De eerste spreuk vult de velden"* verwachtte dat casting time, range,
+components en duration van de spreuk op het voorwerp werden gekopieerd. Dat doet
+de app bewust niet meer — `_scrollPickSpell` legt uit waarom: die staan in de
+spreuk zelf, en sinds de koppeling een chip met een knop is, is dat één klik
+verderop. Wat er wél gebeurt is bescheidener en beter: een **lege** naam en een
+**lege** beschrijving krijgen een voorzet. Het punt is herschreven naar wat er
+staat, en nagelopen.
+
+### Twee dingen om te weten over de data
+
+- **Geen enkel voorwerp in Grisburgh heeft een genezingsformule** — nul van de
+  288, en de dertien Potions ook niet. *Potion of Healing* en *Potion of Greater
+  Healing* zijn dus niet te drinken in de app: `POST /items/:id/gebruik` heeft
+  niets om te rollen. De machinerie werkt (getoetst met een proefdrankje op
+  2d4+2), er staat alleen nergens een getal.
+- **Geen kaartje draagt nog de markering *verloren***, dus de helft van dat
+  testpunt (een kaartje dat hem al heeft houdt zijn knop) is niet te zien.
+
+Alle proefkaartjes zijn weer weg; het aantal voorwerpen staat op 288, net als
+ervoor.

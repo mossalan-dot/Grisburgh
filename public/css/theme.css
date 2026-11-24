@@ -35188,3 +35188,26 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
   overflow: hidden;
   text-overflow: ellipsis;
 }
+
+/* ── De worp op een voorwerp-tegel ──────────────────────────────────────────
+   Schade en genezing stonden op de oude kaart als pil rechtsboven over het
+   beeld; bij de overstap naar tegels ging alleen de AC-pil mee. Ze liggen hier
+   linksonder, naast de AC-pil die rechts hangt, zodat ze elkaar niet raken —
+   en boven de naamband, die de onderste 40 px vult. */
+.tegel .tegel-worpen {
+  position: absolute;
+  left: 8px;
+  bottom: 46px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 3px;
+  pointer-events: none;          /* alleen de pillen zelf vangen de klik */
+}
+.tegel .tegel-worpen .card-damage-pill {
+  position: static;
+  pointer-events: auto;
+}
+/* Een tegel zonder beeld heeft geen donkere plaat om tegen af te steken; daar
+   moet de pil het van zijn eigen vlak hebben, en dat heeft hij al. */

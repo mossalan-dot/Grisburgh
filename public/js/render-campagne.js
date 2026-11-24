@@ -4878,6 +4878,27 @@ function _tegelPerkament(type, e) {
     <span>${titel}</span></div>`;
 }
 
+// **De worp hoort op de tegel, net als de AC.** Toen de archieftabs tegels
+// werden ging de AC-pil van een harnas mee (`tegel-ac`) en de schadepil van een
+// wapen niet: een dolk toonde nergens meer zijn 1d4, en de knop die hem gooide
+// was weg. Dezelfde twee pillen als op de oude kaart, uit één plek — ook de
+// Boedel gebruikt ze (`window._itemWorpPillen`), maar die zet ze in een rij en
+// hier liggen ze over het beeld.
+function _tegelWorpPillen(type, e) {
+  if (type !== 'voorwerpen') return '';
+  const d = String(e.data?.damage || '').trim();
+  const isHeal = d && /heal|genez/i.test(d);
+  const h = String(e.data?.healing || '').trim() || (isHeal ? d : '');
+  const uit = [];
+  if (d && !isHeal) uit.push(`<button class="card-damage-pill tegel-worp"
+    onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(d)}','${escArg(e.name)}')"
+    title="Gooi ${escJS(d)}">${icon('dice', { cls: 'icon-gi' })} ${esc(d)}</button>`);
+  if (h) uit.push(`<button class="card-damage-pill card-damage-pill--heal tegel-worp"
+    onclick="event.stopPropagation();window.dice?.rollFlash('${escArg(h)}','${escArg(e.name)}','heal')"
+    title="Gooi ${escJS(h)}">${icon('heart', { cls: 'icon-gi' })} ${esc(h)}</button>`);
+  return uit.length ? `<div class="tegel-worpen">${uit.join('')}</div>` : '';
+}
+
 function _tegelKlassen(type, e, extra = '') {
   const vis = e._visibility || 'visible';
   return ['entity-card', 'tegel', extra,
@@ -5027,6 +5048,7 @@ function _tegelHtml(type, e, { fav = false } = {}) {
       ${perk || _tegelBeeld(e)}
       ${e._gevangen ? `<span class="tegel-tralies" title="Gevangene van de party" aria-hidden="true"></span>` : ''}
       ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
+      ${_tegelWorpPillen(type, e)}
       <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
       ${_tegelSter(type, e, fav)}
       ${_tegelDmKnoppen(type, e)}
