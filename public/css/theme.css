@@ -35211,3 +35211,19 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 }
 /* Een tegel zonder beeld heeft geen donkere plaat om tegen af te steken; daar
    moet de pil het van zijn eigen vlak hebben, en dat heeft hij al. */
+
+/* ── Een onthuld geheim op een tegel ────────────────────────────────────────
+   Rechtsboven, waar bij de DM zijn knoppen staan — die zijn er voor een speler
+   niet. Altijd zichtbaar (anders is het geen signaal) en in hetzelfde goud als
+   de oude `.card-geheim-pill`, maar zonder het woord erbij: op 150 px is een
+   penning met een oog genoeg, en de tooltip zegt de rest. */
+.tegel .tegel-geheim {
+  position: absolute; top: 6px; right: 6px; z-index: 7;
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 24px; height: 24px; border-radius: 50%;
+  background: rgba(196,148,10,0.92);
+  border: 1px solid rgba(230,190,80,0.75);
+  color: #2a1a08;
+  box-shadow: 0 1px 4px rgba(20,12,4,0.35);
+}
+.tegel .tegel-geheim .icon { width: 13px; height: 13px; }

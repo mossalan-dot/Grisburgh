@@ -1355,6 +1355,15 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > Dit is ook de opstap naar het afleiden van `entity.links` uit de teksten (nog
 > te doen; zie de valkuil bij de Verbindingen-tab hieronder).
 
+> **Wat een tegel laat zien is een eigen keuze — kijk wat de kaart had.**
+> Bij de overstap naar tegels (4 nov 2026) zijn twee signalen stil
+> achtergebleven in de oude `.entity-card`-renderer: de **schadepil** van een
+> wapen (de AC-pil van een harnas ging wél mee) en de pil **Geheim onthuld**
+> die een speler laat zien bij wélk kaartje iets nieuws staat. Allebei op
+> 24 nov 2026 hersteld als `_tegelWorpPillen()` en `_tegelGeheimMerk()`.
+> Komt er weer zo'n overstap, loop dan de oude renderer regel voor regel na:
+> wat daar op het beeld lag hoort ergens op de tegel terug.
+>
 > **Zichtbaarheid zit op het kaartje en geldt voor de actieve party.** Dat is de
 > regel in de hele app, en een dungeon week ervan af: die had een venster met
 > een tabel van álle party's, achter een knop tussen de tekengereedschappen. Nu

@@ -37,7 +37,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 `public/js/render-campagne.js` · `render-bestiarium.js` · `render-statblock.js` · `render-spreuken.js`
 
-- [ ] **Personages** (ALL) — kaartjes met portret; filter op subtype (speler, NPC, dier), zoeken op naam én op tekst; klik opent het detailvenster met portret, stats en beschrijving; `[[Naam]]` in een tekst is klikbaar en springt naar dat kaartje
+- [x] **Personages** (ALL) — kaartjes met portret; filter op subtype (speler, NPC, dier), zoeken op naam én op tekst; klik opent het detailvenster met portret, stats en beschrijving; `[[Naam]]` in een tekst is klikbaar en springt naar dat kaartje *(nagelopen 24 nov 2026: 169 kaartjes waarvan 164 met portret, chips voor dier · god · NPC · speler (speler filtert terug tot 11), en `[[Hugo Grisburgh]]` in de tekst van Ārslän is een knop die naar dat kaartje springt.)*
 - [ ] **Personage-editor** (DM) — alle velden bewaren; portret uit de mediabibliotheek met versleepbaar focuspunt; extra afbeeldingen; **filmpje via dezelfde mediabibliotheek** (kiezen uit wat er staat of nieuw uploaden); zichtbaarheid per party; van party wisselen waarschuwt eerst — maar bij één party mag die waarschuwing níét komen
 - [x] **Dobbelpaneel** (ALL) — het formulier-invoerveld is weg; gooien gaat met de dobbelknoppen *(nagelopen 24 nov 2026: elf knoppen, en `#dice-formula-input` staat dicht achter ▶ Formula)*
 - [ ] **Locaties** (ALL) — type *Winkel* geeft een voorraad met prijzen — koop en verkoop als speler en controleer geld én boedel; een gepinde locatie toont de kaartknop die naar de juiste plek vliegt
@@ -82,8 +82,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [x] **Spreuken** (ALL) — filters op niveau en klasse, zoeken, detailvenster met casting time, range, components en duration; afbeelding kiezen en focuspunt zetten; glossary-tooltips op D&D-termen *(nagelopen 24 nov 2026: 523 spreuken in beeld, zoeken op een school ("necromancy" → 45), op twee woorden ("wall of fire") en op een eigenschap ("ritual" → 34) geeft alle drie resultaten; het detailvenster toont Casting Time, Range, Components en Duration en de D&D-termen dragen het lexicon (Action, V, S, Instantaneous, force).)*
 - [x] **Verwijzing naar een andere spreuk** (ALL) — in een spreuktekst met `[[Wall of Force]]` staat die naam als klikbare verwijzing (opent die spreuk), niet als tekst met dubbele haken *(nagelopen 24 nov 2026 op Antimagic Field: `[[Dispel Magic]]` staat er als `a.spreuk-verwijzing`, nergens een rauwe dubbele haak, en klikken opende Dispel Magic.)*
 - [ ] **Eigen spreukbeschrijving** (DM) — uitklap in het spreukdetail: schrijf een tekst, sla op, herlaad — hij blijft en vervangt de bron; leeg opslaan zet hem terug
-- [ ] **Overleden markeren** (DM) — kaartje markeren; de speler ziet het meteen (`entity:deceased`), party en archief tonen hem als overleden
-- [ ] **Geheimen onthullen** (DM) — een geheim vrijgeven komt live binnen bij de speler (`entity:secret`) zonder herladen; terugdraaien verbergt het weer
+- [x] **Overleden markeren** (DM) — kaartje markeren; de speler ziet het meteen (`entity:deceased`), party en archief tonen hem als overleden *(nagelopen 24 nov 2026 met twee sessies tegelijk (speler en DM): de speler kreeg `entity:updated {deceased:true}` en `entity:deceased {name:"Dummy Drakenbaard"}` binnen zonder te herladen, en het terugdraaien net zo.)*
+- [x] **Geheimen onthullen** (DM) — een geheim vrijgeven komt live binnen bij de speler (`entity:secret`) zonder herladen; terugdraaien verbergt het weer *(nagelopen 24 nov 2026 met twee sessies tegelijk: op t+19s onthulde de DM een geheim van Ārslän en bij de speler verscheen het merkteken op de tegel (plus de toast *Geheim van Ārslän onthuld*); op t+49s draaide de DM het terug en verdween het weer — beide keren zonder herladen. **Hier zat wel een gat:** de tegel had helemaal geen merkteken meer; zie het verslag hieronder.)*
 - [ ] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret) en blijft na herladen. Terugvinden kan op twee plekken: open het zoekvenster en typ niets — je bladwijzers staan er onder *Jouw bladwijzers* — en in het tabblad zelf staat een chip **★ Bladwijzers** in de filterbalk die de lijst terugbrengt tot wat je gemarkeerd hebt
 - [x] **Korte zoekterm** (ALL) — typ één letter: je krijgt alleen kaartjes waarvan de naam daarmee begint, niet de halve campagne. Vanaf twee letters telt de hele naam mee, vanaf drie ook de teksten *(nagelopen 24 nov 2026 op 169 personages: "b" gaf er 21 — twaalf waarvan de naam ermee begint en negen waarvan een wóórd erin ermee begint (Alfira en Ramella **B**leekhamer), en niets anders. "elf" gaf er 47, dus daar tellen rol, volk en class mee; "smid" vond kaartjes die het woord alleen in hun tekst hebben.)*
 - [x] **Globaal zoeken** — sneltoets of vergrootglas; het venster is perkament (niet donker); resultaten uit alle types door elkaar, klikken opent het juiste kaartje; als speler zie je alleen wat vrijgegeven is *(nagelopen 24 nov 2026: het venster is perkament (#f8f0de), resultaten staan per soort onder elkaar en elke regel draagt een `onclick` naar het juiste kaartje. Wat een **speler** er ziet is niet meegemeten — dat vraagt een tweede sessie.)*
@@ -275,7 +275,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Winkel-tab volgt het vinkje** (DM) — vink *verkoper* aan: het tabblad Winkel verschijnt meteen, zonder opnieuw openen; uitvinken laat het verdwijnen en springt terug naar Informatie als je erop stond. Hetzelfde bij een locatie die je op type *Winkel* zet
 - [ ] **DM-velden herkenbaar** (DM) — aantekeningen en geheimen staan in een koele tint met "alleen jij" ernaast — je ziet meteen dat spelers dit niet lezen
 - [ ] **Afbeeldingen en banner** (DM) — één knop voegt toe, de ster maakt er de banner van, het kruisje koppelt los (bestand blijft in de bibliotheek); het focuspunt zit op de banner
-- [ ] **Ras, klasse, alignment** (DM) — keuzelijst in perkament: typen filtert, pijltjes en Enter werken, en iets intikken wat er niet in staat mag ook
+- [x] **Ras, klasse, alignment** (DM) — keuzelijst in perkament: typen filtert, pijltjes en Enter werken, en iets intikken wat er niet in staat mag ook *(nagelopen 24 nov 2026: alle drie een eigen keuzelijst in perkament (59 volken, 14 classes, 10 alignments); typen filtert ("dwa" → Dwarf, "wiz" → Wizard, "chao" → drie regels), pijltje omlaag + Enter kiest, en "Iets Eigens" intikken mag. Na sluiten zonder opslaan was er niets veranderd.)*
 - [ ] **Meerdere geheimen** (DM/SP) — twee geheimen op één kaartje, één onthullen: de speler ziet alleen dat ene, de kaart toont 1/2
 - [ ] **Roddel met de hand vertellen** (DM/SP) — knop op de rol perkament in het detailvenster; daarna ziet de speler die roddel, en terugdraaien kan
 - [ ] **Rollen en kant** (DM) — verkoper aanvinken zet de voorraad aan, antagonist geeft de badge, en de kant bepaalt waar hij in het gevecht bovenaan staat
@@ -2732,3 +2732,40 @@ De twee stappen waarmee een spreuknaam in een statblok een knop wordt
 (markeren bij het renderen, pas later koppelen als de bibliotheek geladen is)
 doen wat ze moeten: bij de Druid staan drie lijstjes met zes namen als knop, en
 **buiten** zo'n lijstje staat er geen enkele — "Shield" blijft daar een schild.
+
+## Zestiende ronde (24 nov 2026) — wat de speler live ziet
+
+Met **twee sessies tegelijk** gemeten: een spelersbrowser die naar het archief
+kijkt en een DM-browser die er intussen iets verandert. Dat is de enige manier
+om "komt live binnen zonder herladen" echt te toetsen, en het leverde meteen een
+gat op.
+
+### Wat eruit kwam: de speler zag niet meer dát er een geheim open stond
+
+Op de oude kaart stond voor een speler een pil **Geheim onthuld**. Bij de
+overstap naar tegels bleef die in de oude renderer achter — net als de
+schadepil. Het geheim zelf stond er nog wél (op het blad *Geheimen* ín de
+tegel), maar met 169 personages kun je niet elke tegel openklappen om te
+ontdekken dat er iets nieuws is. En juist dáárvoor was dat merkteken er.
+
+`_tegelGeheimMerk()` zet nu een gouden penning met een oog rechtsboven op de
+tegel — alleen voor de speler, want de DM heeft daar zijn eigen oogjes. Geen
+woord erbij: op 150 px is de penning genoeg en de tooltip zegt de rest.
+
+Nagemeten in twee richtingen: op t+19s onthulde de DM het geheim en bij de
+speler verscheen het merkteken (plus de toast); op t+49s draaide hij het terug
+en verdween het. Beide keren zonder herladen, en een kaartje zonder onthuld
+geheim heeft het merkteken niet.
+
+> **Voor wie dit nadoet:** twee kijkfout-processen tegelijk starten werkt, maar
+> reken de tijdlijnen uit vóór je iets concludeert. Een browser heeft ~10 s
+> nodig om te starten en in te loggen, dus "de DM doet het op t+9s" betekent in
+> de speelbrowser eerder t+19s. Twee van mijn eerste metingen leken een fout te
+> tonen terwijl ik simpelweg te vroeg keek.
+
+### En wat verder klopte
+
+De keuzelijsten voor **Origin, Class en Alignment** zijn geen datalist maar een
+eigen lijst in perkament: 59 volken, 14 classes, 10 alignments; typen filtert
+("dwa" → alleen Dwarf), pijltje omlaag en Enter kiezen, en iets intikken wat er
+niet in staat mag — precies wat een campagne met eigen volken nodig heeft.

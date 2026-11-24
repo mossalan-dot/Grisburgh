@@ -5009,6 +5009,18 @@ function _tegelHoudingKnop(type, e) {
   </div>`;
 }
 
+// **Een onthuld geheim moet je van buiten zien.** Op de oude kaart stond er
+// voor een speler een pil *Geheim onthuld* op; bij de overstap naar tegels bleef
+// die in de oude renderer achter. Het geheim staat nog wél op een blad ín de
+// tegel, maar met 169 personages kun je niet elke tegel openklappen om te
+// ontdekken dat er iets nieuws is — en dat is precies waar dit merkteken voor
+// is. Alleen voor de speler: de DM ziet zijn eigen oogjes al.
+function _tegelGeheimMerk(e) {
+  if (isDM() || !e?._secretReveal) return '';
+  return `<span class="tegel-geheim" title="Er is een geheim over dit kaartje onthuld"
+    aria-label="Geheim onthuld">${icon('eye')}</span>`;
+}
+
 function _tegelSter(type, e, fav) {
   if (isDM() || !window.app?.state?.characterId) return '';
   return `<button class="tegel-ster${fav ? ' is-aan' : ''}" title="${fav ? 'Uit je favorieten' : 'Bij je favorieten'}"
@@ -5049,6 +5061,7 @@ function _tegelHtml(type, e, { fav = false } = {}) {
       ${e._gevangen ? `<span class="tegel-tralies" title="Gevangene van de party" aria-hidden="true"></span>` : ''}
       ${acr ? `<span class="card-armor-ac-pill tegel-ac" title="${esc(acr.tooltip)}">${esc(acr.pill)}</span>` : ''}
       ${_tegelWorpPillen(type, e)}
+      ${_tegelGeheimMerk(e)}
       <div class="tegel-naamband">${type === 'locaties' ? `<span class="tegel-merk" title="${esc(e.data?.locType || '')}">${_tegelIcoon(type, e)}</span>` : ''}<span class="card-name" data-fittext>${esc(e.name)}${e._deceased && type === 'personages' ? '<span class="card-name-dagger">†</span>' : ''}</span></div>
       ${_tegelSter(type, e, fav)}
       ${_tegelDmKnoppen(type, e)}
