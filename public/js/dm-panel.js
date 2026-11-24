@@ -209,7 +209,16 @@ function escJS(s) {
 }
 
 export function initDmPanel() {
-  window.dmPanel = {
+  // **Aanvullen, niet vervangen.** Vijf handlers hangen zichzelf op
+  // modulehoogte aan `window.dmPanel` (regel ~7323 zet daarvoor een leeg
+  // object klaar): beursToggle, beursOpslaan, marktGebiedenOpslaan,
+  // marktGebiedenLeeg en conceptBesluit. Die draaien bij het importeren,
+  // dus vóór deze functie — en een kale toewijzing hier gooide ze alle vijf
+  // weg. De knoppen die ze aanroepen deden daarna niets: de gedeelde beurs
+  // was niet aan te zetten, de gebieden van de Markt niet te bewaren en een
+  // personage-concept niet goed te keuren. Geen foutmelding, want een
+  // inline `onclick` die struikelt schrijft alleen in de console.
+  window.dmPanel = Object.assign(window.dmPanel || {}, {
     heldenboekZichtbaarheidOpslaan: _heldenboekZichtbaarheidOpslaan,
     switchTab(tab) { _switchTab(tab); },
     // Waar sta je nu? Het meldtabje vult daarmee zijn eerste regel in, zodat een
@@ -842,7 +851,7 @@ export function initDmPanel() {
     refreshCombatOverlay() {
       if (_combat) _renderCombatOverlay(_combat);
     },
-  };
+  });
 
   // Load initial combat state
   api.getCombat().then(c => {

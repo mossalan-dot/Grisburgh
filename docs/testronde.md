@@ -790,9 +790,9 @@ fout-uitvoert.
 - [x] **Media** (DM) — bibliotheek met weergavenaam, live berekend gebruik, uploaden via de picker, verwijderen *(nagelopen 24 nov 2026: 1798 bestanden, waarvan 217 ongebruikt — dat getal wordt live berekend)*
 - [ ] **Berichten** (DM) — bericht of brief sturen, per speler of party, sjablonen bewaren en hergebruiken, cinematic aanzetten
 - [ ] **Instellingen — titel** (DM) — campagnetitel, ondertitel en embleem; ze werken meteen door in kop en landingspagina
-- [ ] **Instellingen — munten** (DM) — namen hernoemen (gp/sp/cp, plus electrum en platinum); de verhouding blijft 1 : 10 : 100
-- [ ] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt
-- [ ] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party
+- [x] **Instellingen — munten** (DM) — namen hernoemen (gp/sp/cp, plus electrum en platinum); de verhouding blijft 1 : 10 : 100 *(nagelopen 24 nov 2026: vijf velden — `inst-munt-fl/kn/cl/ep/pp` — dus ook electrum en platinum zijn te hernoemen. De verhouding zelf staat vast in de code (1 : 10 : 100) en is dezelfde dag uitvoerig nagemeten bij `parsePrijs`.)*
+- [x] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt *(nagelopen 24 nov 2026 met een wegwerp-party: aanmaken zet hem meteen in de lijst ("ZZ Proefparty · 0 personages"), het kaartje heeft een Naam-veld, en verwijderen gaf 200. De drie echte party's bleven ongemoeid.)*
+- [x] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party *(nagelopen 24 nov 2026: het venster toont Naam, Groepswachtwoord, **Personages**, **Waarvan actief** (alleen als er leden zijn) en **Gedeelde beurs** van díé party — met de muntvelden op `beurs-fl-<groepid>`, dus per party apart. Let op: het kopje heet *Waarvan actief*, niet *Speelt vanavond* zoals dit punt en CLAUDE.md beweerden.)*
 - [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
 - [ ] **Begroeting per dienst** (DM) — herberg, gokhuis en magizoöloog hebben hetzelfde veld: kop *Begroeting*, een tekstvak van twee regels met een voorbeeld erin, en geen uitleg meer eronder of in de kop
 - [ ] **Herberg aan een locatiekaartje** (DM) — koppel de herberg aan een locatie; opslaan bewaart het, en het veld toont de naam weer bij het heropenen
@@ -832,20 +832,20 @@ fout-uitvoert.
 - [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
 - [ ] **Buit uit een gevecht** (DM) — koppel een vondst aan een encounter, start het gevecht, klik op buit verdelen: de vondst komt als verdeling te voorschijn, inclusief relikwiemunten, en staat daarna als onthuld te boek
 - [x] **Subtab-balken zijn gelijk** (DM) — Gevecht, Diensten en Instellingen dragen dezelfde balk: icoon mét label, en het boekje van het blok waar het over gaat. De dienstnamen zijn generiek (Gokhuis, Detective, Waarzegger), niet de namen die Grisburgh eraan gaf *(nagelopen 24 nov 2026: Gevecht 3, Diensten 10 en Instellingen 3 knoppen, alle drie icoon mét label)*
-- [ ] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Speelt vanavond*
-- [ ] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne
-- [ ] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg
-- [ ] **Gedeelde beurs per party** (DM) — Instellingen → Gedeelde beurs toont álle party's onder elkaar; een beurs aanzetten of bijwerken raakt alleen díé party, en de spelers van de andere party's merken niets
+- [x] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Speelt vanavond* *(nagelopen 24 nov 2026: ZZ Proefheld gekoppeld via het veld *Personage koppelen…*; hij stond daarna als chip in het kaartje en droeg `data.groep` van die party.)*
+- [x] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne *(nagelopen 24 nov 2026: het kruisje vroeg "ZZ Proefheld losmaken van ZZ Proefparty? Hij houdt zijn eigen blad, boedelregels en beurs, maar hoort daarna bij géén party — en ziet dus niets meer van deze campagne. Wat bij ZZ Proefparty blijft staan: · 1 voorwerpkaartje op zijn naam (2 stuks) · wat de party weet". Daarna stond `data.groep` leeg.)*
+- [x] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg *(nagelopen 24 nov 2026: een wachtwoord zetten gaf `hasPassword: true` en sloot het slotje in de lijst; leeg opslaan zette hem weer op `false`.)*
+- [x] **Gedeelde beurs per party** (DM) — de beurs staat in het kaartje van elke party zelf; aanzetten of bijwerken raakt alleen díé party en de andere party's merken er niets van *(herschreven 24 nov 2026: het punt beschreef nog een lijst van álle party's onder elkaar in Instellingen. Sinds de party-kaartjes hoort de beurs bij de party waar hij over gaat. Nagemeten op een wegwerp-party: aan, 12 fl 5 kn, weer uit — en de drie echte party's stonden er voor en na byte-voor-byte hetzelfde bij.)*
 - [x] **Instellingen: drie tabjes** (DM) — Campagne, Party's en Beheer; wisselen laat wat je net typte staan, en opslaan bewaart ook de velden van de tabjes die je niet open hebt (embleem, app-icoon en Naslag elders blijven staan) *(nagelopen 24 nov 2026: Campagne · Party's · Beheer)*
 - [x] **Hulpknoppen in Instellingen** (DM) — elke sectie (campagne, party's, beurs, beheer, level omhoog, Spotify) heeft een boekje, en er staat geen grijze uitlegregel meer onder een veld *(nagelopen 24 nov 2026: zeventien boekjes op het scherm)*
-- [ ] **App-icoon versus embleem** (DM) — de hulptekst bij *Campagne* legt het verschil uit; het embleem verschijnt in de kop, het app-icoon op het beginscherm na opnieuw toevoegen
-- [ ] **Level omhoog: de woorden** (DM/SPELER) — Instellingen zegt *XP* en *Milestone*, en de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien — bij de DM én in het level-up-venster van de speler
+- [x] **App-icoon versus embleem** (DM) — de hulptekst bij *Campagne* legt het verschil uit; het embleem verschijnt in de kop, het app-icoon op het beginscherm na opnieuw toevoegen *(nagelopen 24 nov 2026: beide velden staan er (`inst-embleem` en `inst-appicon`) en de hulptekst bij Campagne legt het verschil uit. Wat het besturingssysteem na opnieuw toevoegen op het beginscherm zet, blijft handwerk.)*
+- [x] **Level omhoog: de woorden** (DM/SPELER) — Instellingen zegt *XP* en *Milestone*, en de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien — bij de DM én in het level-up-venster van de speler *(nagelopen 24 nov 2026 bij de DM: Instellingen zegt *XP* en *Milestone* en nergens "ervaringspunten" of "mijlpaal"; de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien. Het level-up-venster van de speler is niet meegemeten.)*
 - [ ] **Level omhoog staat onderaan de Rust-tab** (DM) — onder *Sfeer & gebeurtenissen*, en de uitleg staat in het boekje in plaats van onder de knoppen
 - [x] **Loot-icoon** (DM) — de knop in de zijbalk en de kop van het tabblad dragen hetzelfde icoon (de kluis) *(nagelopen 24 nov 2026: allebei de kluis — ze stonden op het muntje en dat betekent elders geld)*
 - [x] **Willekeur: seizoensknoppen** (DM) — het gekozen seizoen is een gewone gouden knop en leesbaar op het perkament; onder *Namen* staat één scheidingslijn, geen dubbele *(nagelopen 24 nov 2026: Lente · Zomer · Herfst · Winter als knop, geen aparte dobbelknop meer)*
 - [ ] **Instellingen — modules** (BEHEER) — per campagne aan en uit; uit betekent weg uit de zijbalk, de Meesterkamer én bij de spelers
 - [ ] **Instellingen — wereld** (DM) — verhuisd naar Diensten → Toegang
-- [ ] **Instellingen — gedeelde beurs** (DM) — aanzetten, saldo bijwerken, uitzetten; de spelers zien het verschil in hun beurs
+- [x] **Instellingen — gedeelde beurs** (DM) — aanzetten, saldo bijwerken, uitzetten; de spelers zien het verschil in hun beurs *(nagelopen 24 nov 2026 — **hier zat een echte fout**, zie het verslag hieronder. Na de reparatie: één klik zet de beurs aan, er verschijnen drie muntvelden, *Bijwerken* bewaart 12 fl 5 kn met de melding "✓ Saldo bijgewerkt", en nog een klik zet hem weer uit.)*
 - [ ] **Campagnes** (BEHEER) — lijst, aanmaken met wachtwoord, openen, en aanwijzen als standaard
 - [ ] **Instellingen — één opslaanknop** (DM) — campagne, munten en beheer in één keer; party's bewaren zichzelf
 - [ ] **Instellingen — beheerblok** (DM) — DM-wachtwoord, openingspagina, tafelscherm, campagnes en modules
@@ -2769,3 +2769,44 @@ De keuzelijsten voor **Origin, Class en Alignment** zijn geen datalist maar een
 eigen lijst in perkament: 59 volken, 14 classes, 10 alignments; typen filtert
 ("dwa" → alleen Dwarf), pijltje omlaag en Enter kiezen, en iets intikken wat er
 niet in staat mag — precies wat een campagne met eigen volken nodig heeft.
+
+## Zeventiende ronde (24 nov 2026) — Instellingen, en vijf knoppen die niets deden
+
+### Wat eruit kwam: `initDmPanel()` gooide vijf handlers weg
+
+De gedeelde beurs van een party was **niet aan te zetten**. De knop stond er, de
+`onclick` klopte, de routes deden het (rechtstreeks aangeroepen: 200, en het
+saldo kwam netjes aan) — maar klikken deed niets, zonder enige foutmelding.
+
+De oorzaak zit in de opbouw van `dm-panel.js`. Vijf handlers hangen zichzelf op
+**modulehoogte** aan `window.dmPanel` (regel 7323 zet daarvoor een leeg object
+klaar), en die regels draaien bij het importeren. `initDmPanel()` draait later
+en deed `window.dmPanel = { … }` — een kále toewijzing, die alle vijf weggooide:
+
+| handler | welke knop |
+|---|---|
+| `beursToggle`, `beursOpslaan` | de gedeelde beurs aan/uit en het saldo bijwerken |
+| `marktGebiedenOpslaan`, `marktGebiedenLeeg` | welke gebieden de Markt toont |
+| `conceptBesluit` | een personage-concept goedkeuren of afwijzen |
+
+Je zag er niets van: een inline `onclick` die struikelt op een functie die niet
+bestaat schrijft alleen in de console. `initDmPanel()` vult het object nu aan
+(`Object.assign`) in plaats van het te vervangen.
+
+Bewaakt door twee toetsen in `tests/frontend-imports.test.js` (*window.dmPanel
+overleeft initDmPanel*): de eerste eist `Object.assign` zolang er handlers
+buiten de init worden gezet — met de kale toewijzing erin valt hij om — en de
+tweede controleert dat élke `window.dmPanel.x()` uit de markup ook echt bestaat.
+
+### En wat verder klopte
+
+Alles rond de party-kaartjes, gemeten op een wegwerp-party die daarna weer weg
+is: aanmaken, koppelen, losmaken (met een vraag die precies opsomt wat er op
+zijn naam staat en wat bij de party blijft), een wachtwoord zetten en weghalen
+(het slotje in de lijst gaat mee), en de beurs per party — waarbij de drie echte
+party's er voor en na byte-voor-byte hetzelfde bij stonden.
+
+> **Twee namen die uit elkaar lopen.** Het kopje in het party-kaartje heet
+> *Waarvan actief*, terwijl dit document én CLAUDE.md *Speelt vanavond* zeggen
+> (en daarvóór *Actieve spelers*, en daarvóór *momenteel actief*). Een naam die
+> vier keer verschoven is, is het bespreken waard — welke het wordt is aan de DM.

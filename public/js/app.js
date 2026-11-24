@@ -13,7 +13,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=220';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=112";
-import { initDmPanel } from "./dm-panel.js?v=439";
+import { initDmPanel } from "./dm-panel.js?v=440";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=7';
 import './media-picker.js?v=21';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.

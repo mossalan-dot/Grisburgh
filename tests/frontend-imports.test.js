@@ -179,6 +179,46 @@ describe('Een ontbrekend bestand geeft 404, geen HTML', () => {
 // bestond nergens), vroeg de woekeraar om een bedrag "in de kleinste munt"
 // omdat `_bedragVeldHtml` niet aankwam, en zei hij "10000 cl" omdat
 // `formatCl` dat ook niet deed. Deze test vangt de hele soort in één keer.
+// ── Wat `initDmPanel()` oplevert ────────────────────────────────────────────
+// `dm-panel.js` hangt vijf handlers op modulehoogte aan `window.dmPanel`
+// (beursToggle, beursOpslaan, marktGebiedenOpslaan, marktGebiedenLeeg,
+// conceptBesluit) — die draaien bij het importeren. `initDmPanel()` draait
+// later, en zolang die een kále toewijzing deed (`window.dmPanel = { … }`)
+// gooide hij ze alle vijf weg. De knoppen die ze aanroepen deden daarna niets,
+// zonder foutmelding: een inline `onclick` die struikelt schrijft alleen in de
+// console. Gevonden op 24 nov 2026 bij de gedeelde beurs.
+describe('window.dmPanel overleeft initDmPanel', () => {
+  const bron = () => fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'dm-panel.js'), 'utf8');
+
+  it('vult initDmPanel het object aan in plaats van het te vervangen', () => {
+    const code = bron();
+    const opModulehoogte = [...code.matchAll(/^window\.dmPanel\.([A-Za-z_$][\w$]*)\s*=/gm)].map(m => m[1]);
+    if (!opModulehoogte.length) return;   // niemand hangt er meer iets buiten de init aan
+    assert.match(code, /window\.dmPanel\s*=\s*Object\.assign\(\s*window\.dmPanel/,
+      `${opModulehoogte.join(', ')} worden buiten initDmPanel gezet; die functie moet het object `
+      + 'aanvullen (Object.assign) en niet overschrijven, anders zijn ze weg zodra het paneel start');
+  });
+
+  it('bestaat elke window.dmPanel.x() die vanuit de markup wordt aangeroepen', () => {
+    const code = bron();
+    const gezet = new Set([...code.matchAll(/^window\.dmPanel\.([A-Za-z_$][\w$]*)\s*=/gm)].map(m => m[1]));
+    // De sleutels van het object-literal in initDmPanel: `naam:` of `naam(` op
+    // twee spaties inspringing, binnen die functie.
+    const start = code.indexOf('window.dmPanel = Object.assign');
+    const stuk = start >= 0 ? code.slice(start, code.indexOf('\n  });', start)) : '';
+    // Sleutels in het literal: `naam:`, `naam(` en `async naam(` — alle drie
+    // komen voor, en de inspringing verschilt per blok.
+    for (const m of stuk.matchAll(/^\s+(?:async\s+)?([A-Za-z_$][\w$]*)\s*[:(]/gm)) gezet.add(m[1]);
+
+    const mis = new Set();
+    for (const m of code.matchAll(/window\.dmPanel\??\.([A-Za-z_$][\w$]*)\s*\(/g)) {
+      if (!gezet.has(m[1])) mis.add(m[1]);
+    }
+    assert.deepEqual([...mis], [],
+      `deze worden aangeroepen maar staan niet op window.dmPanel: ${[...mis].join(', ')}`);
+  });
+});
+
 describe('Gedeelde window-helpers', () => {
   // Wat de browser zelf levert. Alles daarbuiten moeten wij ergens zetten.
   const BROWSER = new Set([
