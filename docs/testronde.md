@@ -785,7 +785,7 @@ fout-uitvoert.
 ## Blok 7 — Meesterkamer: sfeer en beheer
 
 - [ ] **Geluiden** (DM/TAB) — bibliotheek, sfeerloop per dienst, emotes, en het moment-geluid bij loot reveal
-- [ ] **Tafels** (DM) — willekeurige tabellen, weighted rijen, valuta-tokens `{+3kn}`, rollen en het resultaat tonen
+- [x] **Tafels** (DM) — willekeurige tabellen, weighted rijen, valuta-tokens `{+3kn}`, rollen en het resultaat tonen *(nagelopen 24 nov 2026: tien tafels in de campagne (simple, weighted en combined), een gewogen tafel rolde d100 → 36 → "Potion of Healing", en er staan valuta-tokens in (`{+2kn}` in de rusttabel). Met een proeftafel (d6, 1-3 / 4-6) gaf twaalf worpen alleen regels uit díé tafel, verdeeld 4 om 8. Daarna opgeruimd.)*
 - [x] **Dobbelstenen** (ALL) — formules, voordeel en nadeel, de DM-variant, en klikbare dice in spreukteksten *(nagelopen 24 nov 2026: d4 d6 d8 d12 d20 d%, Advantage, Disadvantage en ▶ Formula)*
 - [x] **Media** (DM) — bibliotheek met weergavenaam, live berekend gebruik, uploaden via de picker, verwijderen *(nagelopen 24 nov 2026: 1798 bestanden, waarvan 217 ongebruikt — dat getal wordt live berekend)*
 - [ ] **Berichten** (DM) — bericht of brief sturen, per speler of party, sjablonen bewaren en hergebruiken, cinematic aanzetten
@@ -808,10 +808,10 @@ fout-uitvoert.
 - [ ] **Geluiden: uitlijning** (DM) — in alle drie de tabjes beginnen de knoppen van elke regel op dezelfde plek, ook bij de spelers (kop, beurtgeluid en emotes)
 - [ ] **Rust: gebeurtenissen-tabel** (DM) — de kiezer toont nu ook gewone lijsten, niet alleen gewogen tabellen; een lange rust trekt daar een regel uit en een valuta-token erin wordt gewoon verrekend
 - [ ] **Rust: indeling** (DM) — *Level omhoog* springt niet meer in (stond binnen de vorige sectie), de opslaanknop draagt zijn naam en de uitleg onder de tabellen is weg
-- [ ] **Combinatietafel** (DM) — maak een tafel van het soort *Combinatie*, kies twee of meer bestaande tafels als delen; gooien plakt hun uitkomsten achter elkaar. Een oude namengenerator (voor-/achternaam) blijft werken zolang er geen delen gekozen zijn
+- [x] **Combinatietafel** (DM) — maak een tafel van het soort *Combinatie*, kies twee of meer bestaande tafels als delen; gooien plakt hun uitkomsten achter elkaar. Een oude namengenerator (voor-/achternaam) blijft werken zolang er geen delen gekozen zijn *(nagelopen 24 nov 2026 met drie proeftafels: een *combined* met twee delen gaf "Mila Doorn", "Joris Vlasbaard", "Bram Vlasbaard" — de uitkomsten van zijn delen achter elkaar. Een oude namengenerator met `first`/`last` en zónder delen bleef gewoon werken.)*
 - [x] **Tabellen: knoppen** (DM) — Gooien, Bewerken, Verwijderen en Nieuwe tafel staan op één rij met hun naam erbij, en de Namen-sectie is niet hoger dan de rest zolang er geen naam getrokken is *(nagelopen 24 nov 2026: Gooien · Bewerken · Verwijderen dragen hun naam)*
 - [ ] **Geluiden: momenten** (DM) — *Loot onthullen* en *Level omhoog* staan onder Vaste geluiden (tabje Standaardgeluiden); bij Decors blijft de rust staan als loop
-- [ ] **Willekeur** (DM) — een seizoen aanklikken gooit meteen het weer (geen aparte dobbelknop meer); nog eens klikken geeft een nieuwe worp. De naamknoppen dragen hun woord
+- [x] **Willekeur** (DM) — een seizoen aanklikken gooit meteen het weer (geen aparte dobbelknop meer); nog eens klikken geeft een nieuwe worp. De naamknoppen dragen hun woord *(nagelopen 24 nov 2026: Lente · Zomer · Herfst · Winter staan er als knop, klikken gooit meteen (de uitslag veranderde) en er is geen losse dobbelknop meer; de naamknoppen heten *Mannennaam* en *Vrouwennaam*.)*
 - [x] **Geluiden: drie tabjes** (DM) — Decors (decors, momenten, diensten en facties), Standaardgeluiden (vaste geluiden + alle 36 condities) en Spelers (beurtgeluid + emotes). Wisselen laat een openstaand spelerspaneel staan *(nagelopen 24 nov 2026: Decors · Standaardgeluiden · Spelers)*
 - [ ] **Geluiden: rust bij de momenten** (DM) — de drie rustloops staan onder *Momenten*, met een eigen kopje omdat ze lopen in plaats van één keer klinken
 - [ ] **Vondst: mimic** (DM) — vink *Dit is een mimic* aan bij een vondst; de app zet zelf een Mimic-gevecht klaar (SRD-statblok, niet in het Bestiarium) en gebruikt daarna steeds dat ene. Onthullen geeft geen buit maar de kist-ontknoping op het tafelscherm en de vraag of het gevecht start
