@@ -586,10 +586,10 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 - [ ] **Level en class zet de DM** (SP/DM) — als speler staan level, class en een gekozen subclass als tekst op je Personage-tab, zonder multiclassknop; is je subclass nog leeg, dan kies je hem één keer (met bevestiging) en daarna staat hij vast. De DM ziet op hetzelfde blad gewoon de keuzelijsten. Langs de UI om geeft de route 403
 - [ ] **Party** (SP) — medespelers met portret en HP-balk, ontdekkingsteller per categorie, en wie er vanavond meespeelt
-- [ ] **De kop: portret · naam · level** (SP) — de drie staan gecentreerd op één rij, de twee penningen even groot. De rechter toont je level; staat er een level-up klaar, dan gloeit hij goud, staat er "Level 12 → 13" onder en opent klikken het level-up-venster. Hij staat boven élk subtabblad, dus ook als je in je Boedel of je Berichten zit
+- [x] **De kop: portret · naam · level** (SP) — de drie staan gecentreerd op één rij, de twee penningen even groot. De rechter toont je level; staat er een level-up klaar, dan gloeit hij goud, staat er "Level 12 → 13" onder en opent klikken het level-up-venster. Hij staat boven élk subtabblad, dus ook als je in je Boedel of je Berichten zit *(nagelopen 24 nov 2026: één rij, allebei 140 px)*
 - [ ] **Level-penning op XP** (SP) — speelt de campagne op XP en staat er geen level-up klaar, dan loopt de ring om de penning mee met hoe ver je bent en staat eronder "nog N XP". Op milestone is de ring leeg (er valt niets te vullen) en staat er "je huidige level". Ligt je XP onder de drempel van je eigen level, dan zegt de regel op het Personage-tabblad waar hij wél zou moeten staan
 - [ ] **De kop op een telefoon** (SP) — de drie blijven op één rij (portret 76px, penning 64px, geen regel eronder); de kop is ongeveer 100px hoog, dus je HP staat meteen in beeld. Niets schuift opzij
-- [ ] **De orde van het Personage-tabblad** (SP) — van boven naar beneden: HP en Actieve statussen naast elkaar, dan je krachten (Rage · klassekracht · dagkeuze · Wild Magic), dan Weapons, Ability Scores, Skills, Proficiencies, Languages & Senses, Aan de tap, Emotes, en als laatste het dichtgeklapte *Wie je bent*. Dus: wat elke ronde verandert bovenaan, wat je één keer invult onderaan
+- [x] **De orde van het Personage-tabblad** (SP) — van boven naar beneden: HP en Actieve statussen naast elkaar, dan je krachten (Rage · klassekracht · dagkeuze · Wild Magic), dan Weapons, Ability Scores, Skills, Proficiencies, Languages & Senses, Aan de tap, Emotes, en als laatste het dichtgeklapte *Wie je bent*. Dus: wat elke ronde verandert bovenaan, wat je één keer invult onderaan *(nagelopen 24 nov 2026: HP → klassekracht → Gevechtswaarden → Weapons → Ability Scores → Skills → Proficiencies)*
 - [ ] **Personage** (SP) — stats en modifiers, saves, skills met proficiency, AC, snelheid, conditions met iconen, inspiration, buffs en vloek
 - [ ] **HP en Hit Dice** (SP/DM) — DM past HP aan → speler ziet het meteen; Hit Dice afgeleid uit klasse en level (ook multiklasse), getoond als bolletjes
 - [ ] **Medestanders** (SP) — een gekoppeld dier of NPC verschijnt bij de party met een melding, en verdwijnt bij ontkoppelen
@@ -603,7 +603,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Spreukenboek** (SP) — eigen lijst, slots per niveau, voorbereid-stempel, glossary-tooltips, spreuken toevoegen vanuit de bibliotheek
 - [ ] **Berichten** (SP) — ongelezen-badge, brieven van de DM, cinematische reveal: verzegelde envelop → klik op het lakzegel → de brief vouwt open
 - [ ] **Notities** (SP) — blijven per speler bewaard en zijn voor niemand anders zichtbaar
-- [ ] **Subtabs onthouden** (SP) — wissel van subtab, ga naar een andere sectie en terug — je staat weer op dezelfde subtab
+- [x] **Subtabs onthouden** (SP) — wissel van subtab, ga naar een andere sectie en terug — je staat weer op dezelfde subtab *(nagelopen 24 nov 2026: Boedel → Personages → terug = Boedel)*
 - [ ] **Conditie-uitleg** (SP) — tik op een conditie-icoon voor de uitleg
 - [ ] **Inspiration** (SP/DM) — de DM geeft inspiration, de speler ziet het meteen en kan het inzetten
 - [ ] **Vloek en buffs** (SP/DM) — toekennen en weghalen; de speler ziet het verschil in zijn stats
@@ -620,7 +620,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Rage en rust** (DM) — verbruik alle uses: de knop gaat grijs; een korte rust geeft er één terug, een lange rust alles en dooft een lopende Rage
 - [ ] **Relentless Rage** (SP) — een Barbarian van level 11 in Rage op 0 HP: het blok toont *DC 10 Constitution Saving Throw*; *Gelukt* zet je op 2× je level aan HP en de volgende keer staat er DC 15; *Mislukt* dooft de Rage
 - [ ] **Persistent Rage** (SP) — level 15, in een gevecht, met een verbruikte use: de knop *Persistent Rage* geeft alles terug en is daarna weg tot de volgende lange rust
-- [ ] **Klassekracht: alleen wat je klasse heeft** (SP) — log in als een Wizard, een Fighter en een Rogue; elk ziet bovenaan Personage zijn eigen blok (Arcane Recovery, Second Wind/Action Surge, Sneak Attack), en een klasse zonder kracht op dit level (een Artificer onder 7) ziet niets
+- [x] **Klassekracht: alleen wat je klasse heeft** (SP) — log in als een Wizard, een Fighter en een Rogue; elk ziet bovenaan Personage zijn eigen blok (Arcane Recovery, Second Wind/Action Surge, Sneak Attack), en een klasse zonder kracht op dit level (een Artificer onder 7) ziet niets *(nagelopen 24 nov 2026 voor de Wizard: Arcane Recovery staat er, het Rage-blok is leeg)*
 - [ ] **Genezen** (SP) — Fighter: *Second Wind* rolt 1d10 + level en je HP gaat omhoog (afgetopt op je maximum); Paladin: *Lay on Hands* op een partylid met een gekozen bedrag haalt dat van de voorraad af en weigert meer dan er is
 - [ ] **Genezen op volle HP** (SP) — zet een Fighter op volle HP en druk *Second Wind*: er komt een vraag "Je hebt al volle HP … toch gebruiken?"; *Annuleren* laat de teller staan, *OK* verbruikt er één. Zelfde met *Lay on Hands* op een partylid met volle HP: de vraag noemt zijn naam
 - [ ] **Bardic Inspiration** (SP) — de Bard inspireert iemand: bij díé speler staat bovenaan een paars kaartje met de die; *Gebruiken* rolt hem, het kaartje verdwijnt, en een tweede inspiratie op dezelfde persoon wordt geweigerd zolang hij er een heeft
@@ -663,21 +663,21 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Heeren van de Nacht** (SP/DM) — rangen, klussen genereren, advocaat inschakelen, betalen, uitslag verwerken
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst versturen; de speler krijgt de tweetraps reveal met lakzegel
 - [ ] **Toegang per groep** (DM) — per dienst en per party zichtbaar/beschikbaar zetten; de speler ziet het verschil meteen
-- [ ] **Markt: achtergrond** (ALL) — achter de Markt staat de gevel van een van je winkels, met het bijschrift *Gevel van …*; verlaat de Markt en kom terug, dan is het een andere. Een winkel die deze party niet kent komt er nooit achter te staan
+- [x] **Markt: achtergrond** (ALL) — achter de Markt staat de gevel van een van je winkels, met het bijschrift *Gevel van …*; verlaat de Markt en kom terug, dan is het een andere. Een winkel die deze party niet kent komt er nooit achter te staan *(nagelopen 24 nov 2026 — het bijschrift ontbrak en is alsnog gebouwd: "Gevel van Bobs Tattoos", gecentreerd 10 px boven de onderrand)*
 - [ ] **Bekijk kaartje** (ALL) — overal waar je naar een kaartje kunt doorklikken staat hetzelfde pijltje (↗ als icoon), niet ergens een boekje en ergens een los teken
 - [ ] **Markt: een winkel binnenlopen** (ALL) — klik een winkel (of een regel in een zoekresultaat): je krijgt een scherm met de gevel als achtergrond, het portret van de winkelier en zijn voorraad, met een weg terug naar de markt. Kopen werkt daar net als op het kaartje
 - [ ] **Markt: kopen in de winkel** (ALL) — loop als speler een winkel in en koop iets: je blijft in de winkel staan, de beurs bovenin loopt af, er verschijnt "… gekocht." en de *Kopen*-knoppen zijn leesbaar op een licht vel
 - [ ] **Markt: winkel zonder winkelier** (ALL) — een winkel zonder bekende winkelier toont het icoon van zijn type (een kraampje), geen losse tekens
-- [ ] **Munten kort** (ALL) — in een campagne met Gold/Silver/Copper zegt de beurs bovenin een dienst "21 gp · 3 sp"; met eigen munten de eerste letters ("da · st"), en in Grisburgh nog steeds "fl · kn · cl"
+- [x] **Munten kort** (ALL) — in een campagne met Gold/Silver/Copper zegt de beurs bovenin een dienst "21 gp · 3 sp"; met eigen munten de eerste letters ("da · st"), en in Grisburgh nog steeds "fl · kn · cl" *(nagelopen 24 nov 2026: "99419 fl · 8 kn · 9 cl" in de dienstkop)*
 - [ ] **Herberg zonder waard** (ALL) — vul bij de herberg geen waard in en laat er geen roddels zijn: de speler leest "De waard heeft niets nieuws te vertellen.", geen zin zonder onderwerp
 - [ ] **Brief met ondertekening** (ALL) — stuur een brief die eindigt op `--De Havenmeester--`: de speler ziet de naam als ondertekening (zonder streepjes), in de lijst én in de verzegelde onthulling
-- [ ] **Markt: winkelier op het kaartje** (ALL) — op het overzicht staat het portret van de winkelier met zijn naam eronder; kent je party hem niet, dan staat er het icoon van het locatietype
-- [ ] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad
-- [ ] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst*
+- [x] **Markt: winkelier op het kaartje** (ALL) — op het overzicht staat het portret van de winkelier met zijn naam eronder; kent je party hem niet, dan staat er het icoon van het locatietype *(nagelopen 24 nov 2026: alle negen winkels met portret en naam)*
+- [x] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad *(nagelopen 24 nov 2026: negen winkels voor de Testgroep)*
+- [x] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst* *(nagelopen 24 nov 2026: "potion" geeft zeven regels met prijs, en "goedkoopst" staat erbij)*
 - [ ] **Markt: gebied kiezen** (DM) — Meesterkamer → Diensten → Markt: vink *Grisburgh* en *Fort Adhmaid* aan; op de Markt staan dan precies die twee knoppen, in die volgorde. *Laat de app kiezen* zet het terug op automatisch
 - [ ] **Markt: gebied** (ALL) — de chip *Grisburgh* toont ook de winkels in Luimpoort en Kalkwijk; *Overal* zet het filter uit
 - [ ] **Markt: wat een speler niet ziet** (speler) — een winkel die deze party niet kent staat er niet; bij een voorwerp waarvan de party het kaartje niet kent staat wél naam en prijs, maar géén doorklik naar het kaartje
-- [ ] **Markt: wisselend assortiment** (speler) — een roterende winkel die je nog niet bezocht hebt zegt "kom langs om te zien wat er ligt" en stuurt geen voorraad mee (netwerktab)
+- [x] **Markt: wisselend assortiment** (speler) — een roterende winkel die je nog niet bezocht hebt zegt "kom langs om te zien wat er ligt" en stuurt geen voorraad mee (netwerktab) *(nagelopen 24 nov 2026: het Mystieke Magazijn zegt "kom langs om te zien wat er ligt")*
 - [ ] **Toegang per groep werkt echt** (DM+speler) — zet een dienst voor je party op *verborgen* terwijl een speler hem open heeft staan: zijn scherm doet niets meer, ook niet als hij de knop nog ziet staan
 - [ ] **Arena-uitslag** (DM) — *Overwinning* betaalt het prijzengeld uit en sluit de partij; *Nederlaag* doet dat niet. Er is geen derde uitkomst meer die stilletjes als verlies telt
 - [ ] **Spreukenboek alleen waar het hoort** (speler) — een Fighter zonder spreuken heeft géén Spreukenboek-tab; geef hem één cantrip uit een feat en de tab staat er weer. Een Wizard van level 1 met een leeg boek houdt hem altijd
@@ -2188,9 +2188,11 @@ bladen, en de Meesterkamer wordt een pictogramrail met het paneel ernaast.
 
 Twee dingen die als fout oogden maar het niet zijn: de tempel heeft ruim drie
 seconden nodig om dertien goden te tekenen (daarvóór staat er *Laden…*), en
-`switchSection('facties')` kaatst terug naar het spelerstabblad terwijl de
-menuknop het gewoon doet — dat laatste is een eigenaardigheid van het
-programmatisch navigeren, niet van de app.
+`switchSection(...)` kaatst terug naar het spelerstabblad. Dat laatste is
+inmiddels verklaard: het spelersdashboard rendert na het inloggen nog een paar
+seconden door en zet de sectie opnieuw. Wacht je negen seconden voordat je
+omschakelt, dan blijft elke sectie staan. Een lezer merkt er niets van (die
+klikt), maar een testscript wel.
 
 **Niet te toetsen zonder een echt toestel:** PWA installeren, het portretfilmpje
 en alles wat met aanraken te maken heeft (vegen, knijpen).
@@ -2209,3 +2211,18 @@ Wat er verder uit kwam:
 - Het signaal bij een ontbrekende tekst is **discriminerend**, en dat is het
   punt: Sentinel (nul tekens, niet in de SRD) draagt het boekje-knopje naar
   buiten, Second Wind (wél SRD-tekst) niet.
+
+## Markt en spelersblad nagelopen (24 nov 2026)
+
+Tien punten afgevinkt (zie hierboven), met één reparatie onderweg.
+
+- **De Markt zei niet van wie de gevel was.** Hij leent bij elk bezoek de gevel
+  van een winkel die je party kent — dat stond ook zo in de aantekeningen, "met
+  een bijschrift eronder" — maar dat bijschrift was er nooit gekomen. Nu staat
+  er *Gevel van Bobs Tattoos* onderaan, klein en cursief, als een fotobijschrift.
+
+**Voor wie hierna test:** het spelersdashboard rendert na het inloggen nog een
+paar seconden door en zet de sectie dan opnieuw op *Personage*. Een script dat
+meteen `switchSection('markt')` doet, meet een scherm dat wel gerenderd is maar
+niet zichtbaar — en dan lijkt alles 0 × 0. Negen seconden wachten lost het op.
+Met de muis merk je er niets van.

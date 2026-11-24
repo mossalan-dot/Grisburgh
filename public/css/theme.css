@@ -35165,3 +35165,26 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 @media (max-width: 560px) {
   .discovery-chip { display: none !important; }
 }
+
+/* Het bijschrift onder de geleende gevel van de Markt: een fotobijschrift, dus
+   klein, cursief en uit de weg — het gaat over de achtergrond, niet over wat
+   je er doet. */
+.markt-gevel-bij {
+  position: absolute;
+  left: 50%;
+  bottom: 10px;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 3px 12px;
+  border-radius: 12px;
+  background: rgba(20, 12, 4, 0.42);
+  color: rgba(255, 248, 232, 0.82);
+  font-family: 'IM Fell English', Georgia, serif;
+  font-style: italic;
+  font-size: .78rem;
+  pointer-events: none;
+  white-space: nowrap;
+  max-width: 90%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}

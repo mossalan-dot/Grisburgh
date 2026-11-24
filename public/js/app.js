@@ -13502,6 +13502,12 @@ function _marktTeken() {
           return q ? _marktTreffers(zicht, q) : _marktWinkels(zicht);
         })()}
       </div>
+      <!-- **Zeggen van wie de gevel is.** De Markt heeft geen eigen gebouw en
+           leent daarom bij elk bezoek de gevel van een winkel die deze party
+           kent. Dat stond zo in de aantekeningen ("met een bijschrift
+           eronder") maar was er nooit gekomen: je keek naar een pand zonder
+           te weten welk. -->
+      ${_marktGevel?.naam ? `<div class="markt-gevel-bij">${esc('Gevel van ' + _marktGevel.naam)}</div>` : ''}
     </div>`;
 
   const inp = document.getElementById('markt-zoek');
