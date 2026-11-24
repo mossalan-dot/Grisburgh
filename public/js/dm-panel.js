@@ -909,7 +909,10 @@ const _DM_TABS = [
   // Eén icoon voor het hele onderwerp: het muntje. Dat staat al op een kamer
   // met een vondst en in de regie-balk, dus de tab hoort hetzelfde te dragen —
   // en het leest prettiger dan de kluis.
-  { id: 'loot',      groep: 'klaar',     label: 'Loot',      icoon: 'coins',           title: 'Loot — vondsten &amp; verdeling' },
+  // Buit draagt overal de kluis — zo staat het ook in de akteschrijver, op vijf
+  // plekken. Alleen deze tab had het muntje, en dat betekent in de rest van de
+  // app geld (de Geldschieter, een bedrag, de beurs).
+  { id: 'loot',      groep: 'klaar',     label: 'Loot',      icoon: 'vault',           title: 'Loot — vondsten &amp; verdeling' },
 
   // ── Standaard ──
   { id: 'diensten',  groep: 'standaard', label: 'Diensten',  icoon: 'building',                        title: 'Diensten' },
@@ -2625,7 +2628,7 @@ function _renderRegieBalkItem(item) {
   } else if (item.type === 'brief') {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-brief">${icon('mail')}</div>`;
   } else if (item.type === 'loot') {
-    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-loot">${icon('coins')}</div>`;
+    thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-loot">${icon('vault')}</div>`;
   } else if (item.type === 'muziek') {
     thumbHtml = `<div class="dm-rb-item-entity-thumb dm-rb-entity-muziek">${icon('music')}</div>`;
   } else {
@@ -2660,7 +2663,7 @@ function _renderRegieBalkItem(item) {
   } else if (item.type === 'loot') {
     // Vondst-stap: bouwt de verdeling en opent het lootvenster. Blijft klikbaar —
     // een kamer kan twee keer bezocht worden.
-    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkLoot('${escArg(item.id)}')" title="Vondst onthullen">${icon('coins')}</button>`;
+    actions = `<button class="dm-rb-reveal-btn" onclick="window.dmPanel.regieBalkLoot('${escArg(item.id)}')" title="Vondst onthullen">${icon('vault')}</button>`;
   } else if (item.type === 'muziek') {
     // Muziek-stap: druk op play bij Spotify. Blijft klikbaar — dezelfde sfeer kan
     // later in de akte terugkomen, en na een pauze wil je 'm opnieuw starten.
@@ -4938,7 +4941,7 @@ function _renderEncounterEditor(el) {
            munten, een mimic en de koppeling aan een dungeonkamer), en kun je
            dezelfde vondst ook los onthullen. -->
       <div class="dm-form-row">
-        <label class="dm-form-label">${icon('coins')} Buit</label>
+        <label class="dm-form-label">${icon('vault')} Buit</label>
         <input id="dm-enc-loot-zoek" class="dm-input" list="dm-enc-loot-dl" autocomplete="off"
           placeholder="Zoek een vondst… (leeg laten = geen buit)"
           value="${esc((_encLootLijst.find(e => e.id === _encLootId) || {}).naam || '')}"
@@ -5169,7 +5172,7 @@ function _encLootKies(veld) {
 // munten en de koppeling aan een dungeonkamer. Een tweede editor hier zou
 // daarvan een slap aftreksel zijn.
 function _encLootNieuw() {
-  _showToast(`${icon('coins')} Maak de vondst in de Loot-tab; kom daarna hier terug om hem te koppelen`);
+  _showToast(`${icon('vault')} Maak de vondst in de Loot-tab; kom daarna hier terug om hem te koppelen`);
   _switchTab('loot');
 }
 
@@ -10026,7 +10029,7 @@ function _renderLootInner() {
 
   const n = _lootSelectie.size;
   el.innerHTML = `
-    ${_dmTabHead({ icon: 'coins', title: 'Loot', actions: helpBtn('dm_loot') })}
+    ${_dmTabHead({ icon: 'vault', title: 'Loot', actions: helpBtn('dm_loot') })}
     <div class="dm-feature-section">
       <div class="dm-feature-row" style="justify-content:space-between;align-items:center;margin-bottom:8px">
         <span class="dm-section-label" style="margin-bottom:0">Vondsten</span>

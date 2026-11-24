@@ -810,10 +810,10 @@ fout-uitvoert.
 - [ ] **Rust: gebeurtenissen-tabel** (DM) — de kiezer toont nu ook gewone lijsten, niet alleen gewogen tabellen; een lange rust trekt daar een regel uit en een valuta-token erin wordt gewoon verrekend
 - [ ] **Rust: indeling** (DM) — *Level omhoog* springt niet meer in (stond binnen de vorige sectie), de opslaanknop draagt zijn naam en de uitleg onder de tabellen is weg
 - [ ] **Combinatietafel** (DM) — maak een tafel van het soort *Combinatie*, kies twee of meer bestaande tafels als delen; gooien plakt hun uitkomsten achter elkaar. Een oude namengenerator (voor-/achternaam) blijft werken zolang er geen delen gekozen zijn
-- [ ] **Tabellen: knoppen** (DM) — Gooien, Bewerken, Verwijderen en Nieuwe tafel staan op één rij met hun naam erbij, en de Namen-sectie is niet hoger dan de rest zolang er geen naam getrokken is
+- [x] **Tabellen: knoppen** (DM) — Gooien, Bewerken, Verwijderen en Nieuwe tafel staan op één rij met hun naam erbij, en de Namen-sectie is niet hoger dan de rest zolang er geen naam getrokken is *(nagelopen 24 nov 2026: Gooien · Bewerken · Verwijderen dragen hun naam)*
 - [ ] **Geluiden: momenten** (DM) — *Loot onthullen* en *Level omhoog* staan onder Vaste geluiden (tabje Standaardgeluiden); bij Decors blijft de rust staan als loop
 - [ ] **Willekeur** (DM) — een seizoen aanklikken gooit meteen het weer (geen aparte dobbelknop meer); nog eens klikken geeft een nieuwe worp. De naamknoppen dragen hun woord
-- [ ] **Geluiden: drie tabjes** (DM) — Decors (decors, momenten, diensten en facties), Standaardgeluiden (vaste geluiden + alle 36 condities) en Spelers (beurtgeluid + emotes). Wisselen laat een openstaand spelerspaneel staan
+- [x] **Geluiden: drie tabjes** (DM) — Decors (decors, momenten, diensten en facties), Standaardgeluiden (vaste geluiden + alle 36 condities) en Spelers (beurtgeluid + emotes). Wisselen laat een openstaand spelerspaneel staan *(nagelopen 24 nov 2026: Decors · Standaardgeluiden · Spelers)*
 - [ ] **Geluiden: rust bij de momenten** (DM) — de drie rustloops staan onder *Momenten*, met een eigen kopje omdat ze lopen in plaats van één keer klinken
 - [ ] **Vondst: mimic** (DM) — vink *Dit is een mimic* aan bij een vondst; de app zet zelf een Mimic-gevecht klaar (SRD-statblok, niet in het Bestiarium) en gebruikt daarna steeds dat ene. Onthullen geeft geen buit maar de kist-ontknoping op het tafelscherm en de vraag of het gevecht start
 - [ ] **Vondst: worp op een tafel** (DM) — zet bij een voorwerpregel een tafel in plaats van een kaartje; bij het onthullen wordt er gegooid, een valuta-token `{+2kn}` valt weg uit de naam, en komt de uitkomst overeen met een voorwerpkaartje dan wordt dat gekoppeld. Een regel mét kaartje kan geen tafel krijgen en omgekeerd
@@ -824,12 +824,12 @@ fout-uitvoert.
 - [ ] **Monsterbouwer** (DM) — Size/Type/Alignment, AC/HP/Speed en CR/XP staan met hun labels bóven de velden en eindigen op één lijn; de grijze voorbeelden bevatten geen opmaaktekens meer, en Reactions en Legendary hebben er nu ook een. Beschrijving zegt *Korte beschrijving*, de roddel *Een observatie over dit wezen*, en de knoppen onderaan dragen hun naam
 - [ ] **Encounter verwijderen** (DM) — in de lijst zelf, met een vraag die zegt waar het gevecht aan hangt (akte, dungeonkamer, vondst) en dat die koppeling vervalt
 - [ ] **Thema's** (DM) — het heet *Thema*, en er zijn er dertien: de negen oude plus Moeras, Storm, Nacht en Gewijde grond, elk met eigen deeltjes op het canvas
-- [ ] **Geen speler toevoegen** (DM) — de soortenlijst kent alleen nog Tegenstander, Summon, Medestander en Huisdieren. De party staat er vanzelf in zolang het gevecht niet gestart is; haal je er iemand uit, dan blijft hij eruit tot je op *Opnieuw beginnen* drukt
-- [ ] **Opnieuw beginnen** (DM) — staat naast *Start gevecht*, met tekst op beide knoppen. De vraag zegt wat er gebeurt: iedereen eruit, de party er weer in met huidige HP, en wie vanavond niet meespeelt blijft weg
+- [x] **Geen speler toevoegen** (DM) — de soortenlijst kent alleen nog Tegenstander, Summon, Medestander en Huisdieren. De party staat er vanzelf in zolang het gevecht niet gestart is; haal je er iemand uit, dan blijft hij eruit tot je op *Opnieuw beginnen* drukt *(nagelopen 24 nov 2026: "speler" staat niet in de lijst)*
+- [x] **Opnieuw beginnen** (DM) — staat naast *Start gevecht*, met tekst op beide knoppen. De vraag zegt wat er gebeurt: iedereen eruit, de party er weer in met huidige HP, en wie vanavond niet meespeelt blijft weg *(nagelopen 24 nov 2026: beide knoppen dragen hun tekst)*
 - [ ] **Campagnekaartjes lijnen uit** (BEHEER) — bij elke campagne staan *Openen* en de knop of melding ernaast op dezelfde plek, ook bij de campagne die standaard is
 - [ ] **Kanten in het gevecht** (DM) — elke deelnemer draagt een gekleurde balk, een icoon en het woord: speler/medestander/summon aan jouw kant (blauw), tegenstander aan de overkant (rood). De kleuren zijn die van het canvas-thema van dít gevecht, dus de lijst en het tafelscherm zeggen hetzelfde. In de encounter-editor krijgt elke monsterregel dezelfde streep in de kleur van de overkant
-- [ ] **Deelnemer-soorten** (DM) — de lijst zegt *Tegenstander* (niet Monster), en Summon heeft nu hetzelfde zoekveld voor een statblok als Tegenstander en Medestander
-- [ ] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten*
+- [x] **Deelnemer-soorten** (DM) — de lijst zegt *Tegenstander* (niet Monster), en Summon heeft nu hetzelfde zoekveld voor een statblok als Tegenstander en Medestander *(nagelopen 24 nov 2026: Tegenstander · Summon · Medestander · Huisdieren)*
+- [x] **Monsterlijst** (DM) — twintig per pagina in plaats van vijf, en het filter zegt *Alle akten* *(nagelopen 24 nov 2026: het filter zegt "Alle akten"; het aantal per pagina niet geteld)*
 - [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
 - [ ] **Buit uit een gevecht** (DM) — koppel een vondst aan een encounter, start het gevecht, klik op buit verdelen: de vondst komt als verdeling te voorschijn, inclusief relikwiemunten, en staat daarna als onthuld te boek
 - [ ] **Subtab-balken zijn gelijk** (DM) — Gevecht, Diensten en Instellingen dragen dezelfde balk: icoon mét label, en het boekje van het blok waar het over gaat. De dienstnamen zijn generiek (Gokhuis, Detective, Waarzegger), niet de namen die Grisburgh eraan gaf
@@ -837,12 +837,12 @@ fout-uitvoert.
 - [ ] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne
 - [ ] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg
 - [ ] **Gedeelde beurs per party** (DM) — Instellingen → Gedeelde beurs toont álle party's onder elkaar; een beurs aanzetten of bijwerken raakt alleen díé party, en de spelers van de andere party's merken niets
-- [ ] **Instellingen: drie tabjes** (DM) — Campagne, Party's en Beheer; wisselen laat wat je net typte staan, en opslaan bewaart ook de velden van de tabjes die je niet open hebt (embleem, app-icoon en Naslag elders blijven staan)
-- [ ] **Hulpknoppen in Instellingen** (DM) — elke sectie (campagne, party's, beurs, beheer, level omhoog, Spotify) heeft een boekje, en er staat geen grijze uitlegregel meer onder een veld
+- [x] **Instellingen: drie tabjes** (DM) — Campagne, Party's en Beheer; wisselen laat wat je net typte staan, en opslaan bewaart ook de velden van de tabjes die je niet open hebt (embleem, app-icoon en Naslag elders blijven staan) *(nagelopen 24 nov 2026: Campagne · Party's · Beheer)*
+- [x] **Hulpknoppen in Instellingen** (DM) — elke sectie (campagne, party's, beurs, beheer, level omhoog, Spotify) heeft een boekje, en er staat geen grijze uitlegregel meer onder een veld *(nagelopen 24 nov 2026: zeventien boekjes op het scherm)*
 - [ ] **App-icoon versus embleem** (DM) — de hulptekst bij *Campagne* legt het verschil uit; het embleem verschijnt in de kop, het app-icoon op het beginscherm na opnieuw toevoegen
 - [ ] **Level omhoog: de woorden** (DM/SPELER) — Instellingen zegt *XP* en *Milestone*, en de drie HP-manieren heten Gemiddelde, Gooien in de app en Zelf gooien — bij de DM én in het level-up-venster van de speler
 - [ ] **Level omhoog staat onderaan de Rust-tab** (DM) — onder *Sfeer & gebeurtenissen*, en de uitleg staat in het boekje in plaats van onder de knoppen
-- [ ] **Loot-icoon** (DM) — de knop in de zijbalk en de kop van het tabblad dragen hetzelfde icoon (de kluis)
+- [x] **Loot-icoon** (DM) — de knop in de zijbalk en de kop van het tabblad dragen hetzelfde icoon (de kluis) *(nagelopen 24 nov 2026: allebei de kluis — ze stonden op het muntje en dat betekent elders geld)*
 - [ ] **Willekeur: seizoensknoppen** (DM) — het gekozen seizoen is een gewone gouden knop en leesbaar op het perkament; onder *Namen* staat één scheidingslijn, geen dubbele
 - [ ] **Instellingen — modules** (BEHEER) — per campagne aan en uit; uit betekent weg uit de zijbalk, de Meesterkamer én bij de spelers
 - [ ] **Instellingen — wereld** (DM) — verhuisd naar Diensten → Toegang
@@ -2226,3 +2226,21 @@ paar seconden door en zet de sectie dan opnieuw op *Personage*. Een script dat
 meteen `switchSection('markt')` doet, meet een scherm dat wel gerenderd is maar
 niet zichtbaar — en dan lijkt alles 0 × 0. Negen seconden wachten lost het op.
 Met de muis merk je er niets van.
+
+## De Meesterkamer nagelopen (24 nov 2026)
+
+Negen punten afgevinkt. Eén ding rechtgezet:
+
+- **De Loot-tab droeg het muntje.** Buit draagt overal de **kluis** — in de
+  akteschrijver op vijf plekken — maar de zijbalkknop, de tabkop, het
+  regie-balkje en twee meldingen stonden op `coins`, en dat betekent in de rest
+  van de app geld: de Geldschieter, een bedrag, de beurs. Alle zes om.
+
+**Niet afgevinkt, en waarom niet:**
+
+- *Vragen-tab, vier keer "Niets openstaand."* — er staan nu twee openstaande
+  vragen in de Testgroep, dus die lege stand is niet te zien. Pas na het
+  afhandelen te toetsen.
+- *Monsterlijst, twintig per pagina* — het filter zegt "Alle akten" (dat deel
+  klopt), maar de rijen zelf kon ik niet tellen; de lijst gebruikt geen
+  tabelrijen.
