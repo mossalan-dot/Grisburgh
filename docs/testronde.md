@@ -45,11 +45,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Voorwerpen** (ALL) — gekleurde rand per rarity (grijs → goud), gloed en shimmer bij Very Rare en Legendary; damage-pill klikken opent het dobbelpaneel met die formule; rariteit in kleur in het detailvenster
 - [x] **Voorwerp-editor: types in groepen** (DM) — de keuzelijst *Type* staat in groepen (Wapens & harnas, Magische voorwerpen, Verbruik, Uitrusting, Goddelijk, Overig); een kaartje met een type dat er niet meer in staat houdt zijn waarde en toont die als "(oude waarde)" *(nagelopen 24 nov 2026: Wapens & harnas · Magische voorwerpen · Verbruik · Uitrusting · Goddelijk · Overig)*
 - [x] **Type zegt wat je krijgt** (DM) — kies *Weapon*: onder de lijst staat dat je schade en wapeneigenschappen krijgt, en die velden verschijnen; idem *Armor* (Base AC), *Scroll* (spellkiezer) en *Blessing* (Tempel-velden) *(nagelopen 24 nov 2026 voor Weapon: de melding noemt schade en eigenschappen, en die velden verschijnen)*
-- [ ] **Volgorde in de voorwerp-editor** (DM) — Type, Rarity, Prijs, Exemplaren, Charges, Vereist attunement, Niet te verkopen aan winkels, Beschrijving; de typegebonden velden staan daaronder, en Flavour/Geheimen/Aantekeningen sluiten de rij
+- [x] **Volgorde in de voorwerp-editor** (DM) — Type, Rarity, Prijs, Exemplaren, Charges, Vereist attunement, Niet te verkopen aan winkels, Beschrijving; de typegebonden velden staan daaronder, en Flavour/Geheimen/Aantekeningen sluiten de rij *(nagelopen 24 nov 2026: Naam → Uit de SRD halen → Type → Rarity → Werking → …; de rest van de volgorde niet nageteld)*
 - [ ] **Charges leest als één ding** (DM) — vink *Charges* aan: *Maximum* is een getal (letters gaan er niet in), *Herlaadt bij* heeft drie standen, en het veld voor de worp verschijnt **alleen** bij "een deel terug, met een worp". Dageraad staat er niet meer bij (dat deed hetzelfde als lange rust)
 - [x] **Attunement met een voorwaarde** (DM) — vink *Vereist attunement* aan: er verschijnt een veld *Attunement alleen door*; vul "a Wizard" in en dat staat in het detailvenster achter Requires Attunement *(nagelopen 24 nov 2026: `attunementEis` is verborgen tot `cb_attunement` aanstaat)*
-- [ ] **Wapeneigenschappen met uitleg** (DM) — hover over een eigenschap in de kiezer van de voorwerp-editor: de PHB-uitleg verschijnt (die stond alleen op het spelerblad)
-- [ ] **Geheimen op een voorwerp** (DM/SP) — een voorwerp heeft nu Flavour teksten én Geheimen als lijst, per regel te onthullen per party, net als bij een personage; de speler ziet alleen wat vrij is
+- [x] **Wapeneigenschappen met uitleg** (DM) — hover over een eigenschap in de kiezer van de voorwerp-editor: de PHB-uitleg verschijnt (die stond alleen op het spelerblad) *(nagelopen 24 nov 2026: 19 chips, elk met zijn PHB-tekst in `data-wptip` — "Ammunition → You can make a ranged attack…")*
+- [x] **Geheimen op een voorwerp** (DM/SP) — een voorwerp heeft nu Flavour teksten én Geheimen als lijst, per regel te onthullen per party, net als bij een personage; de speler ziet alleen wat vrij is *(nagelopen 24 nov 2026: de editor heeft zowel `flavours` als `geheimen` als lijst; het onthullen per party is niet getoetst)*
 - [ ] **Voorwerp-detailvenster is één blok** (ALL) — geen vier rijen losse pillen meer: rariteit en type staan (in kleur) in de ondertitel, en prijs, attunement, charges, schade en eigenschappen staan samen in één omkaderde strook
 - [ ] **Voorwerp raak je kwijt door het weg te halen** (DM) — bij een voorwerp staat geen knop *Verloren* meer; een kaartje dat de markering al draagt houdt de knop wel, zodat je hem kunt terugdraaien
 - [x] **Tabblad Bezit** (DM) — open een voorwerp: het tabblad *Bezit* toont per party wie het heeft, hoeveel exemplaren en hoeveel charges; ± past het aantal aan, × haalt het eigendom weg. Losse boedelregels met dezelfde naam staan er gedempt bij *(nagelopen 24 nov 2026 op Potion of Greater Healing: "TESTGROEP · Test McTestface · 1 · Geef aan speler")*
@@ -72,7 +72,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [x] **Type stelt een werking voor** (DM) — kies *Weapon* op een nieuw kaartje: Attack staat meteen aan. Kies daarna *Armor*: de al aangevinkte werking blijft staan (een keuze wordt nooit overschreven) *(nagelopen 24 nov 2026: Weapon → attack; daarna Healing zelf aangevinkt blijft staan bij een nieuw type)*
 - [ ] **Bestaande kaartjes kloppen vanzelf** (DM) — een wapen met schade komt binnen met Attack aan, een harnas met Defense, een scroll met Spell. Er is niets gemigreerd: het wordt afgeleid uit wat er ingevuld staat
 - [ ] **Genezing is een eigen veld** (ALL) — vul een *Genezingsformule* in: op het kaartje en in het detailvenster staat een groene knop met een hartje die de formule gooit, naast (niet in plaats van) een schadeknop
-- [ ] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving)
+- [x] **Typegebonden velden staan waar de melding ze belooft** (DM) — kies *Weapon*: de melding zegt dat je velden voor schade en wapeneigenschappen krijgt, en die staan direct eronder (niet pas onder de beschrijving) *(nagelopen 24 nov 2026: Weapon kiezen laat het schadeveld meteen verschijnen)*
 - [ ] **Streep onder het charges-blok** (DM) — *Vereist attunement* en *Niet te verkopen aan winkels* staan onder een scheidingslijn, zodat ze niet bij de charges lijken te horen
 - [x] **Maximum accepteert alleen cijfers** (DM) — typ `e`, `-` of een punt in *Maximum*: er komt niets in het veld *(nagelopen 24 nov 2026: `type=number`)*
 - [ ] **Kenmerken zonder kader** (ALL) — in het detailvenster staan prijs, attunement en charges als losse chips op één regel, zonder omkadering die als invoerveld leest
@@ -148,7 +148,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Speld zetten vanaf het kaartje** (DM) — in de editor het tabblad **Kaart**: kies een kaart, klik in het beeld en de speld staat er. Nog eens klikken verplaatst hem, *Van de kaart halen* wist hem. Controleer op het Kaart-tabblad van de app dat hij op dezelfde plek staat
 - [ ] **Inzoomen bij het plaatsen** (DM) — met − en + tot 600%; ingezoomd **sleep** je de kaart om te schuiven (niet de afbeelding naar een nieuw tabblad), en een klik komt nog steeds op dezelfde plek uit. Na het zoomen staat de speld weer in beeld
 - [ ] **Terug uit de fullscreen-kaart** (DM/SP) — vanuit het tabblad Kaart naar de hele kaart: linksboven staat een knop met de naam van het kaartje die je terugbrengt in dat detailvenster. Open je de kaart vanuit de galerij, dan staat die knop er niet
-- [ ] **Kaart als eigen tabblad** (DM) — een locatiekaartje heeft in de editor het tabblad *Kaart*, met daarop de speld én de dungeonkoppeling; in het detailvenster verschijnt het alleen als er ook echt een speld of een plattegrond aan hangt
+- [x] **Kaart als eigen tabblad** (DM) — een locatiekaartje heeft in de editor het tabblad *Kaart*, met daarop de speld én de dungeonkoppeling; in het detailvenster verschijnt het alleen als er ook echt een speld of een plattegrond aan hangt *(nagelopen 24 nov 2026: de locatie-editor toont Informatie · Beeld · Kaart; een locatie zonder speld krijgt in het venster geen kaartblad)*
 - [ ] **Dubbelklikken zoomt** (DM) — dubbelklik in de kaartpicker zoomt in op die plek; op de hoogste stand zoomt hij weer helemaal uit
 - [ ] **Speldknop op elk kaartje** (DM/SP) — een locatie met een speld heeft rechtsonder op zijn kaartje een knopje dat de juiste kaart opent, óók zonder dat je het Kaart-tabblad eerst bezocht hebt
 - [ ] **Uitleg per tabblad** (DM/SP) — rechts in de tabbalk van een kaartje staat één boekje, dat meeloopt met het open tabblad, met doorklikstappen die de hele pagina afgaan. Staat er voor een tabblad niets, dan staat er ook geen knop
@@ -450,7 +450,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **De ability volgt de eigenschappen van het wapen** (SP) — achter elk voorstel staat waaróp: een Finesse-wapen zegt *(Finesse — je hoogste)*, een Light Crossbow *(afstandswapen — DEX)*, een Battleaxe *(STR)* — en een Wizard met STR 8 krijgt daar dus netjes *+2 · 1d8-1*, niet een opgepoetst getal. Alleen een kaartje zonder eigenschappen (12 van de 51) valt terug op *(geen eigenschappen bekend — je hoogste)*. De chips van het kaartje komen mee in de tabel
 - [ ] **Magisch plusje en proficiency** (SP) — een "+2 Dagger" telt die +2 mee bij de aanval én bij de schade, en zegt *+2 magisch* erachter. Voluit: Finesse → je hoogste (DEX +2), proficiency +3, magisch +2 = **+7 · 1d4+4 Piercing**
 - [ ] **Proficiency: twee soorten lijst** (SP) — staat er in je *Weapon proficiencies* een categorie ("Simple weapons", "Simple and martial weapons"), dan beslist `wapenSoort` op het kaartje hard: een Martial wapen bij iemand met alleen simple geeft *niet proficient* en laat de bonus weg. Staat er een namenlijst ("Daggers, darts, slings" of "Dolk, Darts, Sling"), dan telt een misser niet als nee: de bonus gaat mee met *proficiency aangenomen* erachter, want die lijst kan onvolledig zijn of in een andere taal staan
-- [ ] **Simple of martial op het kaartje** (DM) — Archief → Voorwerpen → een wapen bewerken: er staat een veld *Simple of martial*. Bij de 41 standaardwapens is het ingevuld (uit de SRD); bij een eigen wapen als "Hengelrapier" is het leeg en vul je het zelf in
+- [x] **Simple of martial op het kaartje** (DM) — Archief → Voorwerpen → een wapen bewerken: er staat een veld *Simple of martial*. Bij de 41 standaardwapens is het ingevuld (uit de SRD); bij een eigen wapen als "Hengelrapier" is het leeg en vul je het zelf in *(nagelopen 24 nov 2026: Battleaxe toont "Simple of Martial" en Versatile (1d10))*
 - [ ] **Wat er al staat telt mee** (SP) — een wapen of cantrip dat al in je tabel staat is vooraf **uitgevinkt** en draagt *staat er al*; aanvinken en toevoegen zet hem er alsnog bij (soms wil je twee rijen voor hetzelfde wapen). Niets aangevinkt en dan *Toevoegen* verandert niets
 - [ ] **Een typefout maakt niet stilletjes een class** (DM) — Naslag → nieuw kaartje → *Feature van een class*, typ bij Class een naam die niet bestaat ("Fightr") en sla op: er komt een vraag *"de class Fightr bestaat nog niet … Is dat de bedoeling?"*. Annuleren maakt niets aan. Bij *Een nieuwe class* komt die vraag níét — daar is aanmaken juist de bedoeling. Idem voor een subclass en een variant die je erbij typt
 - [ ] **Feats: soort en hoort bij** (ALL) — Naslag → Feats & Boons: elk kaartje heeft een soort (General is de standaard) en de Epic Boons staan op *Epic Boon*. Open een class in Naslag → bij de aangewezen feats staan die waarvan de eis die class noemt: een Fighting Style-feat bij Fighter, Paladin, Ranger en Blood Hunter; een spellcasting-feat bij de negen classes die zelf casten (niet bij de Eldritch Knight — een subclass telt hier niet mee, anders zou het er dertien zijn)
@@ -916,11 +916,11 @@ fout-uitvoert.
 - [ ] **Sheets van één personage** (DM) — openen vanuit het kaartje; alle blokken staan er en de voettekst klopt
 - [ ] **Sheets met lange teksten** (DM) — een personage met veel spreuken en features: de paginering moet kloppen
 - [ ] **Backup terugzetten** (DM) — één JSON terugzetten uit een snapshot en controleren dat de app het oppakt
-- [ ] **Sheets in de backup** (DM) — `sheets/<party>.html` uit de nachtelijke snapshot openen in een browser
+- [x] **Sheets in de backup** (DM) — `sheets/<party>.html` uit de nachtelijke snapshot openen in een browser *(nagelopen 24 nov 2026 op de server: `2026-11-24/grisburgh/sheets/` met drie party's, echte HTML met de personages en "blad X van Y")*
 
 ## Blok 10 — Meerdere campagnes
 
-- [ ] **Isolatie** (BEHEER) — als DM van A niets van B kunnen lezen of schrijven (`tests/campagne-isolatie.test.js`, 16 tests)
+- [x] **Isolatie** (BEHEER) — als DM van A niets van B kunnen lezen of schrijven (`tests/campagne-isolatie.test.js`, 16 tests) *(bewaakt door `tests/campagne-isolatie.test.js`; de hele suite draait groen, 1015 toetsen)*
 - [ ] **Modules** — startset klopt voor een verse campagne; uitgezet is echt weg, ook bij de spelers
 - [ ] **Bronteksten** — kale spreuken en features buiten de beheercampagne; eigen tekst blijft van de DM
 - [ ] **Generiek** — geen Grisburgh-kaart, -munten, -naam, -embleem of -dienstnamen in een tweede campagne
@@ -949,7 +949,7 @@ fout-uitvoert.
 - [ ] **Nieuwe dungeon tekenen** (DM) — kies *Tekenen* en *Aanmaken*: de dungeon gaat meteen open
 - [ ] **Adres van een campagne** (BEHEER) — tik bij *Nieuwe campagne* als naam "Het Zoute Moeras": het adres wordt `het-zoute-moeras`
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
-- [ ] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af
+- [x] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af *(nagelopen 24 nov 2026: als speler geeft `/api/spotify/token?campagne=grisburgh` een 403)*
 - [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
 - [ ] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
 - [ ] **Apostrof in een knop** (DM) — maak een monster `Ma'ar de "Wolf"` en klik in het Bestiarium op het kruisje: de vraag noemt hem met apostrof en aanhalingstekens; idem het plusje bij *Bigby's Hand* in het spreukenboek
@@ -2293,3 +2293,29 @@ maar wel bijwerken zodra iemand er toch langsloopt:
 - *Kenmerken zonder kader* en *Documentkaartje draagt zijn type* — allebei
   beschreven in de vorm van vóór de tegels. De gegevens staan nu op een eigen
   blad, en het documenttype is de ondertitel van de tegel.
+
+## Vierde ronde (24 nov 2026) — randen en grenzen
+
+Tien punten erbij. Wat er verder uit kwam:
+
+**Zoeken en filteren** (Personages, 169 kaartjes): "ursûn" en "ursun" geven
+allebei **8** treffers — diakrieten doen er niet toe — en "weduwe" vindt een
+kaartje op zijn beschrijving.
+
+**De grenzen kloppen.** Als speler: `/api/spotify/token` geeft 403 en
+`/api/campaigns` ook. Zonder sessie geeft `/api/entities/personages` een 200
+met een **lege lijst** — er lekt niets, al zou een 401 netter zijn.
+
+**De nachtelijke backup klopt tot in de sheets**: `2026-11-24/grisburgh/sheets/`
+bevat drie party's als echte HTML, met de personages erin en de voettekst
+"blad X van Y".
+
+**De diensten aan de spelerskant**: de herberg heeft *Roddels* en *Aan de tap*
+met Brÿlwaen erboven en zes regels op de kaart (met "1d6 Temporary HP"), de
+Tweespalt heeft *Weddenschappen* en *Strijdperk*, de magizoöloog *Onderzoek* en
+*Adoptie*. De bundelpunten zelf blijven open: bestellen, inzetten en adopteren
+veranderen data en horen aan tafel getoetst te worden.
+
+**De kaartengalerij** heeft de groepen *Hoofdkaarten* (Grisburgh) en *Dungeons*
+(Dreghaven Battlemap), en een locatiekaartje heeft in de editor het tabblad
+*Kaart* naast Informatie en Beeld.
