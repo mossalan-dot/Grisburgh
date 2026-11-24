@@ -374,7 +374,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Sessieverslagen** (ALL) — entries per akte, afbeeldingen in een carousel, per beeld onthullen zodat het pas dán bij de speler verschijnt
 - [ ] **Missies** (ALL) — status open/voltooid/gefaald; een speler vraagt er een aan, de DM keurt goed of af, beide kanten krijgen een melding
 - [ ] **Prikbord / relatiemap** (ALL) — netwerk van personages en organisaties, slepen bewaart de positie, onthulde relaties verschijnen bij de speler
-- [ ] Prikbord: de knoppenbalk staat in perkamentstijl met *Kaartje · Draad · Organogram* links en de hulpknop rechts (niet meer in een eigen grijze balk)
+- [x] Prikbord: de knoppenbalk staat in perkamentstijl met *Kaartje · Draad · Organogram* links en de hulpknop rechts (niet meer in een eigen grijze balk) *(nagelopen 24 nov 2026: de drie knoppen staan er, de hulpknop ook, en geen emoji in de balk)*
 - [ ] Klik op *Organogram*, kies een organisatie die de party kent → de organisatie staat bovenaan op het bord met haar leden eronder, met draden die de rol als label dragen
 - [ ] Zit er een lid in dat de party nog niet kent, dan staat er *Onbekend — <rol>* zonder naam; een lid achter een nog niet onthulde geheimregel staat er helemaal niet bij
 - [ ] Een organisatie die de party nog niet kent staat niet in de keuzelijst (en het verzoek wordt geweigerd)
@@ -2244,3 +2244,11 @@ Negen punten afgevinkt. Eén ding rechtgezet:
 - *Monsterlijst, twintig per pagina* — het filter zegt "Alle akten" (dat deel
   klopt), maar de rijen zelf kon ik niet tellen; de lijst gebruikt geen
   tabelrijen.
+
+## Prikbord nagelopen (24 nov 2026)
+
+- De knoppenbalk draagt **Kaartje · Draad · Organogram** met de hulpknop erbij,
+  en er staat geen emoji in.
+- Het missiebord kent de kolom **Aangevraagd**; de kolomindeling zelf kon ik
+  niet uitlezen (geen herkenbare kolomklasse), dus het slepen tussen kolommen
+  blijft handwerk.
