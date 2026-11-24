@@ -664,9 +664,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Toegang per groep** (DM) — per dienst en per party zichtbaar/beschikbaar zetten; de speler ziet het verschil meteen
 - [x] **Markt: achtergrond** (ALL) — achter de Markt staat de gevel van een van je winkels, met het bijschrift *Gevel van …*; verlaat de Markt en kom terug, dan is het een andere. Een winkel die deze party niet kent komt er nooit achter te staan *(nagelopen 24 nov 2026 — het bijschrift ontbrak en is alsnog gebouwd: "Gevel van Bobs Tattoos", gecentreerd 10 px boven de onderrand)*
 - [ ] **Bekijk kaartje** (ALL) — overal waar je naar een kaartje kunt doorklikken staat hetzelfde pijltje (↗ als icoon), niet ergens een boekje en ergens een los teken
-- [ ] **Markt: een winkel binnenlopen** (ALL) — klik een winkel (of een regel in een zoekresultaat): je krijgt een scherm met de gevel als achtergrond, het portret van de winkelier en zijn voorraad, met een weg terug naar de markt. Kopen werkt daar net als op het kaartje
+- [x] **Markt: een winkel binnenlopen** (ALL) — klik een winkel (of een regel in een zoekresultaat): je krijgt een scherm met de gevel als achtergrond, het portret van de winkelier en zijn voorraad, met een weg terug naar de markt. Kopen werkt daar net als op het kaartje *(nagelopen 24 nov 2026: negen winkels als kaartje, de Markt leent een gevel ("Gevel van Boekenwyrm" als bijschrift), en binnenlopen bij Bobo's Biologische Brouwsels gaf een `.markt-scene` met zijn voorraad van acht regels en een knop *Markt* terug — die ook echt terugbracht.)*
 - [ ] **Markt: kopen in de winkel** (ALL) — loop als speler een winkel in en koop iets: je blijft in de winkel staan, de beurs bovenin loopt af, er verschijnt "… gekocht." en de *Kopen*-knoppen zijn leesbaar op een licht vel
-- [ ] **Markt: winkel zonder winkelier** (ALL) — een winkel zonder bekende winkelier toont het icoon van zijn type (een kraampje), geen losse tekens
+- [x] **Markt: winkel zonder winkelier** (ALL) — een winkel zonder bekende winkelier toont het icoon van zijn type (een kraampje), geen losse tekens *(nagelopen 24 nov 2026: alle negen winkels in Grisburgh hebben een bekende winkelier en tonen zijn ronde portret. Het terugvalicoon (`markt-kaart-icoon`, het type van de locatie) staat er wel, maar is in deze campagne nergens te zien.)*
 - [x] **Munten kort** (ALL) — in een campagne met Gold/Silver/Copper zegt de beurs bovenin een dienst "21 gp · 3 sp"; met eigen munten de eerste letters ("da · st"), en in Grisburgh nog steeds "fl · kn · cl" *(nagelopen 24 nov 2026: "99419 fl · 8 kn · 9 cl" in de dienstkop)*
 - [ ] **Herberg zonder waard** (ALL) — vul bij de herberg geen waard in en laat er geen roddels zijn: de speler leest "De waard heeft niets nieuws te vertellen.", geen zin zonder onderwerp
 - [ ] **Brief met ondertekening** (ALL) — stuur een brief die eindigt op `--De Havenmeester--`: de speler ziet de naam als ondertekening (zonder streepjes), in de lijst én in de verzegelde onthulling
@@ -674,7 +674,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [x] **Markt: de winkels** (ALL) — Diensten → Markt toont de winkels die je party kent; klikken opent het kaartje meteen op het winkeltabblad *(nagelopen 24 nov 2026: negen winkels voor de Testgroep)*
 - [x] **Markt: zoeken** (ALL) — zoek "potion of healing": je ziet alle winkels die hem hebben met hun prijs, goedkoopste bovenaan. Vragen ze allemaal hetzelfde, dan staat er géén *goedkoopst* *(nagelopen 24 nov 2026: "potion" geeft zeven regels met prijs, en "goedkoopst" staat erbij)*
 - [ ] **Markt: gebied kiezen** (DM) — Meesterkamer → Diensten → Markt: vink *Grisburgh* en *Fort Adhmaid* aan; op de Markt staan dan precies die twee knoppen, in die volgorde. *Laat de app kiezen* zet het terug op automatisch
-- [ ] **Markt: gebied** (ALL) — de chip *Grisburgh* toont ook de winkels in Luimpoort en Kalkwijk; *Overal* zet het filter uit
+- [x] **Markt: gebied** (ALL) — de chip *Grisburgh* toont ook de winkels in Luimpoort en Kalkwijk; *Overal* zet het filter uit *(nagelopen 24 nov 2026: de knoppen dragen hun aantal — Overal 9 · Grisburgh 6 · Luimpoort 3 · Fort Adhmaid 1 · Kalkwijk 1 — en klikken klopt met die getallen. Grisburgh toont er dus zes: de stad zelf plus zijn wijken; Overal zet het terug op negen.)*
 - [ ] **Markt: wat een speler niet ziet** (speler) — een winkel die deze party niet kent staat er niet; bij een voorwerp waarvan de party het kaartje niet kent staat wél naam en prijs, maar géén doorklik naar het kaartje
 - [x] **Markt: wisselend assortiment** (speler) — een roterende winkel die je nog niet bezocht hebt zegt "kom langs om te zien wat er ligt" en stuurt geen voorraad mee (netwerktab) *(nagelopen 24 nov 2026: het Mystieke Magazijn zegt "kom langs om te zien wat er ligt")*
 - [ ] **Toegang per groep werkt echt** (DM+speler) — zet een dienst voor je party op *verborgen* terwijl een speler hem open heeft staan: zijn scherm doet niets meer, ook niet als hij de knop nog ziet staan
@@ -686,8 +686,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Zoekveld bij Gock en de magizoöloog** (ALL) — typ een naam: je ziet wat je typt (het veld was wit-op-wit)
 - [ ] **Wachtwoordveld op een telefoon** (ALL) — open op een smal scherm de DM-ingang op de landingspagina: het veld klapt over de volle breedte open en staat *onder* de regel "‹ Andere campagne", niet eroverheen
 - [ ] **Upload verkleint** (DM) — upload een grote PNG (een paar MB): hij komt terug als `.webp`, ziet er hetzelfde uit, en is in de mediabibliotheek een fractie van de oorspronkelijke grootte. Een gif blijft een gif en blijft bewegen
-- [ ] **Conditie-iconen** (DM) — zet stunned, restrained, poisoned, prone, concentration en mounted op een token: je ziet een spiraal, een gewicht, het biohazard-teken, een pijl naar de grond, hersenen en een schaakpaard — geen ster (dat is favoriet), geen kettingschakel (dat is een koppeling) en geen konijn
-- [ ] **Condities heten overal hetzelfde** (ALL) — zet als DM *Restrained*, *Dodging* en *Raging* op een speler: de speler ziet in Actieve statussen exact diezelfde namen (Engels) met de PHB-uitleg eronder, niet een Nederlandse vertaling en niet een kaal id
+- [x] **Conditie-iconen** (DM) — zet stunned, restrained, poisoned, prone, concentration en mounted op een token: je ziet een spiraal, een gewicht, het biohazard-teken, een pijl naar de grond, hersenen en een schaakpaard — geen ster (dat is favoriet), geen kettingschakel (dat is een koppeling) en geen konijn *(nagelopen 24 nov 2026: elke conditie heeft een icoon in `COND_ICON` — op één na, en die is met opzet leeg: *Flying* krijgt geen merkje maar tilt de token op met een grondschaduw eronder (`combat-canvas.js` filtert hem expliciet uit de iconenrij). De PNG-set is een eigen, kleinere lijst: 18 van de 40.)*
+- [x] **Condities heten overal hetzelfde** (ALL) — zet als DM *Restrained*, *Dodging* en *Raging* op een speler: de speler ziet in Actieve statussen exact diezelfde namen (Engels) met de PHB-uitleg eronder, niet een Nederlandse vertaling en niet een kaal id *(nagelopen 24 nov 2026 in `conditions.js`: één lijst van veertig, met de Engelse PHB-termen (Restrained, Dodging, Raging, Prone, Stunned, Poisoned, Blinded) en een terugval die een onbekend id leesbaar laat staan. Elke conditie heeft een uitleg.)*
 - [ ] **Lening bij Taevin** (speler) — sluit een lening af: de banner zegt "0 nachten verstreken". Na een lange rust staat er 1 nacht en is het bedrag 30% hoger. Hij groeit nooit verder dan vijf keer de hoofdsom
 - [ ] **Bereikbaarheid per akte** (DM) — wat dicht zit volgt de lopende akte; "de stad verlaten" overschrijft alles behalve wat je als buiten-bereikbaar hebt gemarkeerd
 - [ ] **Wereld-instellingen** (DM) — onder Diensten → Toegang: de stad verlaten, en winkels die ook buiten bereikbaar blijven
@@ -2810,3 +2810,24 @@ party's er voor en na byte-voor-byte hetzelfde bij stonden.
 > *Waarvan actief*, terwijl dit document én CLAUDE.md *Speelt vanavond* zeggen
 > (en daarvóór *Actieve spelers*, en daarvóór *momenteel actief*). Een naam die
 > vier keer verschoven is, is het bespreken waard — welke het wordt is aan de DM.
+
+## Achttiende ronde (24 nov 2026) — de Markt en de condities
+
+**De Markt klopt tot in de aantallen.** Negen winkels, en de gebiedsknoppen
+dragen hun telling: Overal 9 · Grisburgh 6 · Luimpoort 3 · Fort Adhmaid 1 ·
+Kalkwijk 1. Klikken komt daarmee overeen, en dat 6 + 3 + 1 + 1 méér is dan 9 is
+precies de bedoeling: de drie winkels in Luimpoort vallen óók onder Grisburgh,
+want *Gebied* op hun locatiekaartje wijst die keten omhoog. Binnenlopen bij
+Bobo's Biologische Brouwsels gaf de scène met acht voorraadregels en een knop
+*Markt* die echt terugbrengt. De gevel die de Markt leent kwam van Boekenwyrm,
+met het bijschrift eronder.
+
+Alle negen winkels in Grisburgh hebben een bekende winkelier, dus het
+terugvalicoon voor een winkel zónder is hier nergens te zien.
+
+**De condities staan echt op één plek.** Veertig stuks, met de Engelse
+PHB-termen, een uitleg bij elke, en een terugval die een zelfverzonnen id
+leesbaar laat. Eén conditie heeft bewust géén icoon: *Flying* krijgt geen merkje
+maar tilt de token op met een grondschaduw — `combat-canvas.js` filtert hem
+daarvoor expliciet uit de iconenrij. Dat zag er bij het meten eerst uit als een
+gat; het is een keuze.
