@@ -387,4 +387,50 @@ describe('Winkel en rust', () => {
       assert.strictEqual(r.status, 200, 'een nacht verder is een nieuwe kas: ' + JSON.stringify(r.body));
     });
   });
+
+  // ── Een kaal getal in een prijsveld ───────────────────────────────────────
+  // De client leest "2" als twee hele munten (`_prijsNaarCl` in
+  // render-campagne.js zegt het met zoveel woorden: *kaal getal = hele
+  // munten*), de server gaf er `null` op terug — en dan schrijft de aanroeper
+  // niets af. De DM zag in zijn editor 2,00 staan en de party sliep gratis.
+  // Precies dat stond in Grisburgh: `overnachtingPrijs: "2"`.
+  describe('Een prijs zonder munt erachter', () => {
+    it('schrijft de overnachting af als de prijs een kaal getal is', async () => {
+      await req(server, 'PUT', '/api/meta/herberg',
+        { naam: 'De Kale Prijs', waard: 'Mie', overnachtingPrijs: '2' }, dm);
+      await req(server, 'PATCH', `/api/player-currency/${aria}`, { fl: 50, kn: 0, cl: 0 }, dm);
+
+      const voor = (await req(server, 'GET', `/api/player-currency/${aria}`, null, dm)).body;
+      const r = await req(server, 'POST', '/api/party/long-rest', { locatie: 'herberg' }, dm);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+      const na = (await req(server, 'GET', `/api/player-currency/${aria}`, null, dm)).body;
+
+      const cl = (c) => (c.fl || 0) * 100 + (c.kn || 0) * 10 + (c.cl || 0);
+      assert.strictEqual(cl(voor) - cl(na), 200, 'twee florinde, zoals de editor het toont');
+      assert.ok(r.body.kosten, 'en de rust meldt wat het kostte: ' + JSON.stringify(r.body.kosten));
+    });
+
+    it('laat een bedrag mét munt en de kommanotatie met rust', async () => {
+      await req(server, 'PUT', '/api/meta/herberg',
+        { naam: 'De Kale Prijs', waard: 'Mie', overnachtingPrijs: '1,50' }, dm);
+      await req(server, 'PATCH', `/api/player-currency/${aria}`, { fl: 50, kn: 0, cl: 0 }, dm);
+      const voor = (await req(server, 'GET', `/api/player-currency/${aria}`, null, dm)).body;
+      await req(server, 'POST', '/api/party/long-rest', { locatie: 'herberg' }, dm);
+      const na = (await req(server, 'GET', `/api/player-currency/${aria}`, null, dm)).body;
+      const cl = (c) => (c.fl || 0) * 100 + (c.kn || 0) * 10 + (c.cl || 0);
+      assert.strictEqual(cl(voor) - cl(na), 150, '1,50 is anderhalve florinde');
+    });
+
+    it('blijft nul voor een veld dat leeg is of een munt noemt die niet bestaat', async () => {
+      await req(server, 'PUT', '/api/meta/herberg',
+        { naam: 'De Kale Prijs', waard: 'Mie', overnachtingPrijs: '5 kp.' }, dm);
+      await req(server, 'PATCH', `/api/player-currency/${aria}`, { fl: 50, kn: 0, cl: 0 }, dm);
+      const voor = (await req(server, 'GET', `/api/player-currency/${aria}`, null, dm)).body;
+      await req(server, 'POST', '/api/party/long-rest', { locatie: 'herberg' }, dm);
+      const na = (await req(server, 'GET', `/api/player-currency/${aria}`, null, dm)).body;
+      const cl = (c) => (c.fl || 0) * 100 + (c.kn || 0) * 10 + (c.cl || 0);
+      assert.strictEqual(cl(voor) - cl(na), 0,
+        'een munt die we niet kennen raden we niet — dat hoort de DM te zien, niet de app te verzinnen');
+    });
+  });
 });

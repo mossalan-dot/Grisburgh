@@ -765,12 +765,12 @@ fout-uitvoert.
 - [ ] **How do you want to do this? — voorstel** (DM) — breng tijdens de beurt van een speler een vijand op 0 HP; bovenin staat *<vijand> valt* met die speler al gekozen; het kruisje laat het voorstel verdwijnen zonder dat er iets op tafel komt
 - [ ] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
 - [ ] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
-- [ ] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij
+- [x] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij *(nagelopen 24 nov 2026: de knop *1* zette de failures van 0 op 2 en de knop *20* bracht hem op 1 HP met Unconscious eraf; de `nat20`-vlag bleef niet aan de deelnemer hangen en de regie noteerde het als *op* mét `nat20: true`. Een losse faal of succes gaat wél naar het tafelscherm maar bewust niet in `regie.doodsstrijd` — daar staan alleen de vier scènes.)*
 - [x] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave *(nagelopen 24 nov 2026: starten, schade (28 → 21), een conditie (prone) die blijft staan, de ronde omhoog (1 → 2) en afsluiten — met een verslag in het Logboek. Daarna opgeruimd.)*
 - [ ] **Monsters & Encounters** (DM) — statblokken beheren, encounter bouwen, automatisch vullen met de aanwezige spelers
 - [x] **Loot** (DM/SP/TAB) — vondsten aanmaken, DC als aantekening, onthullen, claimen, afrollen, uitdelen; op de tablet de kist-animatie; een mimic start het gevecht *(nagelopen 24 nov 2026 met een proefvondst: aanmaken in het venster, onthullen, en de speler las in zijn Boedel "buit! Geld: 1 fl 5 kn (wordt bij afsluiting verdeeld)". Daarna opgeruimd.)*
-- [ ] **Rust** (DM/SP/TAB) — lange en korte rust, veld of herberg, maanfase in de overlay, d100-gebeurtenis per speler met valuta-token
-- [ ] **Hit Dice besteden** (SP) — tijdens een korte rust een Hit Die inzetten; HP en voorraad kloppen daarna
+- [x] **Rust** (DM/SP/TAB) — lange en korte rust, veld of herberg, maanfase in de overlay, d100-gebeurtenis per speler met valuta-token *(nagelopen 24 nov 2026, DM-kant: korte rust 200 voor vier spelers, lange rust zette de HP op max en gaf alle Hit Dice terug; in het veld kostte het niets, in de herberg 2 fl per speler; elke speler kreeg zijn eigen d100-voorval. De maanfase en de overlay blijven handwerk, en er kwam in deze ronde geen voorval met een valuta-token voorbij.)*
+- [x] **Hit Dice besteden** (SP) — tijdens een korte rust een Hit Die inzetten; HP en voorraad kloppen daarna *(nagelopen 24 nov 2026: een d6 inzetten gooide 2, telde de Constitution-modifier (+1) erbij en bracht de HP van 20 naar 23; de voorraad ging van 0 naar 1 van de 8 verbruikt. Een korte rust geeft er bewust geen terug, een lange alle.)*
 - [ ] **Akte aanmaken** (DM) — nieuwe akte met nummer, titel en optioneel afbeeldingen
 - [ ] **Akte importeren** (DM) — een `.md` inlezen en controleren of koppen, namen en beelden goed landen
 - [ ] **Stap onthullen** (DM/SP) — elk staptype één keer onthullen en bij de speler controleren wat er verschijnt
@@ -779,8 +779,8 @@ fout-uitvoert.
 - [x] **Condities in gevecht** (DM) — toekennen en weghalen; de iconen kloppen bij speler en tafelscherm *(nagelopen 24 nov 2026: `prone` gezet en teruggelezen op de combatant)*
 - [x] **Monster-HP en schade** (DM) — schade uitdelen, monster verslaan, en de kaart bijwerken *(nagelopen 24 nov 2026: `PUT /combat/combatant/:id` bracht Dummy van 28 naar 21, en die schade liep door naar zijn blad in `playerHp`)*
 - [ ] **Loot na gevecht** (DM) — vondst koppelen aan het gevecht en meteen verdelen
-- [ ] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af
-- [ ] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst
+- [x] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af *(nagelopen 24 nov 2026 — en dit punt viel eerst om: `overnachtingPrijs` stond op `"2"` en `parsePrijs()` las een kaal getal als niets, dus de party sliep gratis terwijl de editor 2,00 toonde. Rechtgezet; nu gaat er 2 fl per speler af, 8 fl voor vier.)*
+- [x] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst *(nagelopen 24 nov 2026: vier spelers, vier verschillende voorvallen in het antwoord van de lange rust ("Reizende minstreel", "Vreemde paddenstoelen", …). Wat het tafelscherm ervan toont blijft handwerk.)*
 - [ ] **Kaartje kiezen bij een gevecht** (DM) — bij Monster én Medestander kun je nu een kaartje kiezen; wie op de kaart als vijand of bondgenoot staat, staat bovenaan
 
 ## Blok 7 — Meesterkamer: sfeer en beheer
@@ -2571,3 +2571,42 @@ stand van vanochtend 05:15, dus ze waren alle 36 dubbelop.
 > in drie van de vijf metingen niet af vóór het venster sloot. Reken er niet op
 > dat een opruimregel aan het eind van een browsermeting ook echt draait —
 > zet het bestand terug en controleer de md5.
+
+### Nog in dezelfde ronde: rust, Hit Dice en een prijs die niets kostte
+
+**Hit Dice volgen het klasselevel, niet het personagelevel.** Test McTestface
+staat op level 12 met klasselevel 8, en krijgt dus 8d6 — dat is de regel
+(`_hitDicePool` neemt `klasseLevel ?? level`), geen fout. Een d6 inzetten
+gooide 2, telde zijn +1 Constitution erbij en bracht hem van 20 naar 23.
+
+**De lange rust doet alles wat hij belooft**: HP op max, alle Hit Dice terug
+(2024), in het veld gratis, in de herberg betaald, en per speler een eigen
+d100-voorval.
+
+### Wat eruit kwam: een kaal getal in een prijsveld was gratis
+
+De herbergprijs van Grisburgh stond op `"2"`. `parsePrijs()` kent twee vormen —
+de kommanotatie (`1,50`) en een bedrag met een munt erachter (`2 kn`, `5 gp`) —
+en gaf op een kaal getal **null** terug. De aanroeper schrijft dan niets af, dus
+de party sliep al die tijd gratis in de herberg.
+
+Het venijn zit in de tweede lezer: de **client** leest een kaal getal wél als
+hele munten. `_prijsNaarCl` in `render-campagne.js` zegt het letterlijk —
+*kaal getal = hele munten* — en `_tekstNaarCl` in `dm-panel.js` doet hetzelfde.
+De DM tikte dus "2", zag in zijn editor **2,00** staan, en de server rekende 0.
+Dat is dezelfde fout als bij de Lair Actions eerder vandaag: één veld, twee
+lezers, en alleen de stille helft had gelijk.
+
+Rechtgezet in `parsePrijs()`: een kaal getal is florindes, net als het deel vóór
+de komma. Een munt die we **niet** kennen blijft bewust null — in Grisburgh
+staat bij twee winkels een Dart op `"5 kp."`, en wat de DM daar bedoelde (kn of
+cl) mag de app niet raden. Die twee zijn dus nog gratis; dat is data, geen code.
+
+Bewaakt door drie toetsen in `tests/winkel-en-rust.test.js` (*Een prijs zonder
+munt erachter*): het kale getal schrijft af, de kommanotatie en een bedrag mét
+munt blijven zoals ze waren, en een onbekende munt blijft nul.
+
+**Nagemeten in de hele campagne** (`scripts/prijsscan.js`-achtige scan over
+`meta.json` en `entities.json`): op die twee darts en de herbergprijs na stond
+elk prijsveld goed — 0 van de 190 kaartjesprijzen en 120 van de 122
+voorraadregels waren in orde.

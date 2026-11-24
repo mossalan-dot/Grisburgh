@@ -782,6 +782,17 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > `lib/character-sheet.js`). Dat liep over álle sleutels in `meta.currency`, dus
 > zodra een DM electrum een naam gaf stond er "0 Lion d'or" op elk uitgedeeld
 > blad — twee vakjes die per definitie altijd nul zijn.
+> **Een kaal getal in een prijsveld is florindes.** `parsePrijs()` kende twee
+> vormen — de kommanotatie en een bedrag met een munt erachter — en gaf op
+> `"2"` **null** terug; de aanroeper schrijft dan niets af. De client las
+> datzelfde veld allang wél als hele munten (`_prijsNaarCl` in
+> render-campagne.js, `_tekstNaarCl` in dm-panel.js), dus de DM zag 2,00 in
+> zijn editor terwijl de server 0 rekende: in Grisburgh sliep de party zo
+> gratis in de herberg. Sinds 24 nov 2026 leest de server hem hetzelfde.
+> Een munt die we **niet** kennen (`"5 kp."`) blijft bewust null — wat daar
+> bedoeld werd mag de app niet raden. Bewaakt door *Een prijs zonder munt
+> erachter* in `tests/winkel-en-rust.test.js`.
+>
 > **Munten met een komma:** in de editor vul je één bedrag in — `1,34` is
 > 1 florinde, 3 knakers en 4 centelingen (de knaker is een tiende florinde, de
 > centeling een honderdste, dus het leest als gewoon geld; zelfde idee als bij de

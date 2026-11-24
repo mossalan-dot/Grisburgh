@@ -2723,6 +2723,14 @@ function parsePrijs(str) {
   const komma = kaal.match(/^(\d+)[.,](\d{1,2})$/);
   if (komma) return fromCl(parseInt(komma[1]) * 100 + parseInt(komma[2].padEnd(2, '0')));
 
+  // **Een kaal getal is hele munten.** Dezelfde lezing als bij de komma, waar
+  // het deel ervóór de florindes zijn. De client deed dat allang (`_prijsNaarCl`
+  // in render-campagne.js, `_tekstNaarCl` in dm-panel.js), de server niet: wie
+  // "2" in een prijsveld tikte zag in de editor 2,00 staan en kreeg hier `null`
+  // terug — en dan schrijft de aanroeper niets af. In Grisburgh stond de
+  // overnachtingsprijs van de herberg zo op "2" en sliep de party dus gratis.
+  if (/^\d+$/.test(kaal)) return { fl: parseInt(kaal), kn: 0, cl: 0 };
+
   const result = { fl: 0, kn: 0, cl: 0 };
   // Ook gp/sp/cp en de twee muntjes zonder eigen plek in de beurs: electrum
   // (5 zilver) en platinum (10 goud) worden hier meteen omgerekend.
