@@ -85,11 +85,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Overleden markeren** (DM) — kaartje markeren; de speler ziet het meteen (`entity:deceased`), party en archief tonen hem als overleden
 - [ ] **Geheimen onthullen** (DM) — een geheim vrijgeven komt live binnen bij de speler (`entity:secret`) zonder herladen; terugdraaien verbergt het weer
 - [ ] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret) en blijft na herladen. Terugvinden kan op twee plekken: open het zoekvenster en typ niets — je bladwijzers staan er onder *Jouw bladwijzers* — en in het tabblad zelf staat een chip **★ Bladwijzers** in de filterbalk die de lijst terugbrengt tot wat je gemarkeerd hebt
-- [ ] **Korte zoekterm** (ALL) — typ één letter: je krijgt alleen kaartjes waarvan de naam daarmee begint, niet de halve campagne. Vanaf twee letters telt de hele naam mee, vanaf drie ook de teksten
-- [ ] **Globaal zoeken** — sneltoets of vergrootglas; het venster is perkament (niet donker); resultaten uit alle types door elkaar, klikken opent het juiste kaartje; als speler zie je alleen wat vrijgegeven is
-- [ ] **Spreuken en bestiarium in het zoeken** (ALL) — zoek op een spreuknaam of een monster: ze staan onder eigen kopjes, met een chip om erop te filteren, en klikken opent het spreukvenster respectievelijk het statblock
-- [ ] **Zoeken laat zien wáárom** (ALL) — zoek op een naam die alleen in de tekst van een ánder kaartje voorkomt: onder dat kaartje staat het stukje tekst met de term erin gemarkeerd; de regel waar je op staat blijft goed leesbaar en de kopjes hebben SVG-iconen (geen emoji)
-- [ ] **Zoeken zet de naam bovenaan** (ALL) — zoek op een deel van een naam: het kaartje zelf staat boven kaartjes die die naam alleen in hun tekst noemen
+- [x] **Korte zoekterm** (ALL) — typ één letter: je krijgt alleen kaartjes waarvan de naam daarmee begint, niet de halve campagne. Vanaf twee letters telt de hele naam mee, vanaf drie ook de teksten *(nagelopen 24 nov 2026 op 169 personages: "b" gaf er 21 — twaalf waarvan de naam ermee begint en negen waarvan een wóórd erin ermee begint (Alfira en Ramella **B**leekhamer), en niets anders. "elf" gaf er 47, dus daar tellen rol, volk en class mee; "smid" vond kaartjes die het woord alleen in hun tekst hebben.)*
+- [x] **Globaal zoeken** — sneltoets of vergrootglas; het venster is perkament (niet donker); resultaten uit alle types door elkaar, klikken opent het juiste kaartje; als speler zie je alleen wat vrijgegeven is *(nagelopen 24 nov 2026: het venster is perkament (#f8f0de), resultaten staan per soort onder elkaar en elke regel draagt een `onclick` naar het juiste kaartje. Wat een **speler** er ziet is niet meegemeten — dat vraagt een tweede sessie.)*
+- [x] **Spreuken en bestiarium in het zoeken** (ALL) — zoek op een spreuknaam of een monster: ze staan onder eigen kopjes, met een chip om erop te filteren, en klikken opent het spreukvenster respectievelijk het statblock *(nagelopen 24 nov 2026: "fireball" gaf een kopje *Spreuken*, "goblin" een kopje *Bestiarium*, en er staan negen chips om op soort te filteren (Alles · Personages · … · Spreuken · Bestiarium · Naslag) die ook echt filteren.)*
+- [x] **Zoeken laat zien wáárom** (ALL) — zoek op een naam die alleen in de tekst van een ánder kaartje voorkomt: onder dat kaartje staat het stukje tekst met de term erin gemarkeerd; de regel waar je op staat blijft goed leesbaar en de kopjes hebben SVG-iconen (geen emoji) *(nagelopen 24 nov 2026: "smid" gaf bij Avi en Embric het fragment "… schilden en ander wapentuig. De **smidse** wordt bestierd door twee mannen …" met de term in een `.gs-hl`, en de drie kopjes dragen alle drie een SVG-icoon zonder emoji.)*
+- [x] **Zoeken zet de naam bovenaan** (ALL) — zoek op een deel van een naam: het kaartje zelf staat boven kaartjes die die naam alleen in hun tekst noemen *(nagelopen 24 nov 2026: "brok" gaf zes treffers met **Brok** bovenaan en Lysander, Matall en Mikail — die hem alleen noemen — eronder.)*
 - [ ] **Filters en sortering** (ALL) — de trechter per type (winkel, subtype, rariteit), sorteren op naam, en of de keuze blijft staan als je een kaartje opent en terugkomt
 - [ ] **Zichtbaarheid per party** (DM) — een kaartje vrijgeven aan de ene party en niet aan de andere; wissel van party en controleer beide kanten
 - [ ] **Voorwerp aan een speler geven** (DM) — vanuit het kaartje toewijzen aan een personage; het verschijnt in zijn boedel met de juiste rariteit
@@ -2665,3 +2665,20 @@ staat, en nagelopen.
 
 Alle proefkaartjes zijn weer weg; het aantal voorwerpen staat op 288, net als
 ervoor.
+
+### Zoeken, in dezelfde ronde
+
+Vijf punten over zoeken nagelopen. Alles klopte; wat opviel is hoe precies de
+**korte-termregel** uitpakt. `_searchScore` is strenger naarmate het woord
+korter is: één letter kijkt alleen naar het begin van een naam (1000 bij een
+volledige treffer, 600 bij een begin, 400 bij een woordgrens erin), twee letters
+nemen de korte velden erbij (rol, volk, class, type, rariteit), en pas vanaf
+drie letters wordt in alle teksten gezocht. In de praktijk: "b" geeft 21 van de
+169 personages in plaats van de halve campagne.
+
+Het globale zoekvenster groepeert **per soort** en sorteert binnen zo'n groep op
+score. Daardoor kan een naamtreffer onder een tekst-treffer staan als ze in
+verschillende groepen vallen (een locatie *Stoom en Staal* onder personages die
+"smid" in hun tekst hebben). Dat is de bedoeling van de groepering, en binnen
+één lijst — het tabblad zelf — staat de naam wél bovenaan: "brok" gaf **Brok**
+eerst en Lysander, Matall en Mikail eronder.
