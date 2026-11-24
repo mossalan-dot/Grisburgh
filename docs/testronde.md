@@ -597,7 +597,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Huurlingen** (ALL) — open als DM een NPC, klik *Huurling*: het loon staat voorgevuld op 2 gouden munten; tik 2,50 in, kies wie betaalt en neem hem in dienst. Hij staat bij de speler onder *Huurlingen* met "2 fl · 5 kn per dag". Geef de betaler te weinig geld en doe twee lange rusten: in het rustoverzicht staat dat hij niets kreeg, de tweede keer dat hij wil vertrekken; de DM krijgt een melding, de knop *Huurling* krijgt een rode rand, de speler ziet "wil vertrekken" — en hij staat er nog. *Achterstand betalen* met te weinig geld weigert; met genoeg haalt het alles in één keer af. *Laat hem gaan* vraagt eerst, daarna is hij geen medestander meer
 - [ ] **Het mooiste moment van de avond** (ALL) — DM: regie-balk → *Stemmen* → *Open de stemronde*. Elke aanwezige speler krijgt meteen een venster met de anderen (niet zichzelf); kies iemand, schrijf een reden, *Stem*. De teller bij de DM loopt mee, maar nergens staat wie op wie stemde. Wegklikken met het kruisje laat de kaart bovenaan het partytabblad staan. Sluit bij een gelijke stand: de DM kiest uit de gelijken. Na sluiten toont het tafelscherm de winnaar in een gouden ring met de redenen eronder (zonder namen), de winnaar krijgt Heroic Inspiration en de anderen een melding. *Afbreken* sluit zonder winnaar Een speler uit een ándere party (incognito ingelogd) krijgt van dit alles niets te zien: geen venster, geen melding.
 - [ ] **Boedel** (SP) — voorwerp-kaartjes en losse regels, stapelbare items met aantal, notitie per regel, bladeren met de pijltjes
-- [ ] **Beurs** (SP) — eigen munten of de gedeelde partybeurs (dan telt eigen geld niet mee); bedragen kloppen na kopen, verkopen en loot
+- [x] **Beurs** (SP) — eigen munten of de gedeelde partybeurs (dan telt eigen geld niet mee); bedragen kloppen na kopen, verkopen en loot *(nagelopen 24 nov 2026: de gedeelde beurs betaalde (8 → 6 kn) terwijl de eigen beurs van de speler op 5 fl bleef staan — eigen geld telt inderdaad niet mee)*
 - [ ] **Geven aan…** (SP) — knop onder een voorwerp, medespeler kiezen met portret; de hele stapel verhuist en telt op bij de ontvanger. Niet aan jezelf, niet buiten je party, geld gaat niet mee
 - [ ] **Progressie** (SP) — tijdlijn en kaartweergave, features per level met subklasse-tag, vergrendelde levels, keuzevelden die bewaard blijven
 - [ ] **Spreukenboek** (SP) — eigen lijst, slots per niveau, voorbereid-stempel, glossary-tooltips, spreuken toevoegen vanuit de bibliotheek
@@ -653,7 +653,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 
 `public/js/app.js` (secties) · `dm-panel.js` (instellingen per dienst)
 
-- [ ] **Herberg** (SP/DM) — roddels vragen (met cooldown), bestellen bij de tap, backdrop en waard uit de instellingen
+- [x] **Herberg** (SP/DM) — roddels vragen (met cooldown), bestellen bij de tap, backdrop en waard uit de instellingen *(nagelopen 24 nov 2026 in de Testgroep: Brÿlwaen boven het paneel, zes menuregels, een Kattenspin besteld voor 2 kn — de gedeelde beurs ging van 8 naar 6 kn en de buff "Loszittende tong" verscheen onder *Aan de tap* op het blad. Roddels antwoordde met zijn drukte-melding. Daarna teruggedraaid.)*
 - [ ] **De Tweespalt** (SP/DM) — inzetten met een komma-bedrag, uitslag verwerken, godenwedden aan of uit
 - [ ] **De Gock** (SP/DM) — onderzoek aanvragen, rapport klaarzetten, de speler krijgt bericht
 - [ ] **Madame Ursula** (SP/DM) — vier zintuigen kiezen, voorspelling tonen, brief in Berichten, per party resetten
@@ -2319,3 +2319,28 @@ veranderen data en horen aan tafel getoetst te worden.
 **De kaartengalerij** heeft de groepen *Hoofdkaarten* (Grisburgh) en *Dungeons*
 (Dreghaven Battlemap), en een locatiekaartje heeft in de editor het tabblad
 *Kaart* naast Informatie en Beeld.
+
+## Vijfde ronde (24 nov 2026) — met de Testgroep, en weer teruggedraaid
+
+Met toestemming een paar dingen écht gedaan in de Testgroep, met een backup
+vooraf en een momentopname van precies wat ik aanraakte.
+
+**Bestellen aan de tap werkt, en betaalt uit de goede beurs.** Een Kattenspin
+van 2 kn: de **gedeelde** beurs ging van 8 naar 6 kn terwijl de eigen beurs van
+de speler op 5 fl bleef staan — precies zoals `_effectiveCurrency` het hoort te
+doen. De buff landde als *Loszittende tong* onder **Aan de tap** op het
+Personage-tabblad, met *De Swarte Cat* als bron.
+
+**Roddels houdt zijn cooldown aan**: de waardin antwoordde met haar
+drukte-melding in plaats van een nieuwe roddel.
+
+**Teruggedraaid**: de beurs staat weer op 8 kn en de buff is weg. Twee backups
+staan op de server (`dm-state.bak.voor-test.*` en `dm-state.bak.na-test.*`).
+
+**Niet te toetsen vandaag:** de Tweespalt had geen openstaande weddenschap en de
+magizoöloog geen dieren in de kooien, dus inzetten en adopteren bleven liggen.
+
+**Les voor de volgende keer:** meet de **gedeelde** beurs
+(`groups[gid].sharedPurse`), niet `/api/player-currency/<id>` — die laatste
+verandert niet zolang de partybeurs aanstaat, en dan lijkt een geslaagde
+bestelling mislukt.
