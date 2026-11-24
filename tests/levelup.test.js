@@ -450,6 +450,11 @@ describe('Level omhoog', () => {
     assert.strictEqual(st.tegoed, 3, '2700 XP is level 4, en hij staat op 1');
 
     // Terug naar mijlpaal: dan telt XP niet mee en beslist de DM weer.
+    // Eerst de teller leegmaken: eerdere toetsen in dit bestand draaien
+    // level-ups terug, en sinds 24 nov 2026 geeft dat het tegoed terug. Deze
+    // toets gaat erover dat **XP** niet meetelt op mijlpaal, niet over wat de
+    // DM eerder gaf — en dan hoort hij dat ook alleen te meten.
+    await req(server, 'POST', '/api/party/level-up-tegoed', { charId, aantal: 0 }, dm);
     await req(server, 'PUT', '/api/meta/levelup', { systeem: 'milestone' }, dm);
     st = (await req(server, 'GET', `/api/characters/${charId}/level-up`, null, dm)).body;
     assert.strictEqual(st.systeem, 'milestone');
@@ -501,5 +506,26 @@ describe('Level omhoog', () => {
       { hpMethode: 'gemiddelde' }, dm);
     assert.strictEqual(r.status, 409);
     await req(server, 'PATCH', `/api/player-profile/${charId}`, { level: '4' }, dm);
+  });
+});
+
+// ── Terugdraaien geeft het tegoed terug ──────────────────────────────────────
+// Een level-up maakt het tegoed op. Draaide je hem daarna terug, dan stond de
+// speler weer op zijn oude level **zonder** het recht om opnieuw omhoog te
+// gaan: de DM moest het opnieuw gunnen, en niets zei dat. Sinds 24 nov 2026
+// komt het tegoed mee terug — maar alleen als er een op ging, en alleen op
+// mijlpaal (op XP volgt het tegoed uit de XP zelf).
+describe('Level omhoog — terugdraaien en het tegoed', () => {
+  it('geeft het tegoed terug, maar maakt er geen uit het niets', () => {
+    const fs = require('fs');
+    const bron = fs.readFileSync(require('path').join(__dirname, '..', 'routes', 'api.js'), 'utf8');
+    assert.ok(/regel\.tegoedGebruikt = true/.test(bron),
+      'de level-up merkt aan dat er een tegoed op ging');
+    assert.ok(/if \(regel\.tegoedGebruikt\) \{/.test(bron),
+      'de undo geeft het alleen terug als er een op ging');
+    const i = bron.indexOf('regel.tegoedGebruikt = true');
+    const regel = bron.slice(bron.lastIndexOf('\n', i) + 1, i + 40);
+    assert.ok(regel.includes('_levelupSysteem') && regel.includes("!== 'xp'"),
+      'en op XP wordt de vlag niet gezet — regel: ' + regel.trim());
   });
 });

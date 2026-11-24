@@ -18,7 +18,7 @@
 // niets mogen overnemen, en de twaalf *Spirits* hebben bovendien geen vást
 // statblok: hun HP en AC hangen af van het slotniveau. Daar vraagt dit venster
 // ze één keer en onthoudt de server ze, zodat de tweede keer weer één klik is.
-import { api } from './api.js?v=326';
+import { api } from './api.js?v=327';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

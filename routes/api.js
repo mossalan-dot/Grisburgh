@@ -8596,6 +8596,12 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
   if (g.levelUpTegoed && g.levelUpTegoed[characterId] > 0) {
     g.levelUpTegoed[characterId] -= 1;
     if (g.levelUpTegoed[characterId] <= 0) delete g.levelUpTegoed[characterId];
+    // **Zet erbij dát er een tegoed op ging.** De undo geeft het terug, en
+    // alleen dan: zette de DM iemand omhoog zonder dat er een tegoed stond,
+    // dan hoort terugdraaien er geen te maken. Op XP ook niet — daar volgt het
+    // tegoed uit de XP zelf (`_levelupTegoed`) en is deze teller niet de bron,
+    // dus een teruggave zou er een uit het niets bij maken.
+    if (_levelupSysteem(storage.readJSON('meta.json')) !== 'xp') regel.tegoedGebruikt = true;
   }
 
   // Wat er nú te kiezen valt in de bibliotheek. Niet als tekst zoals in
@@ -8679,6 +8685,18 @@ router.post('/characters/:characterId/level-up/undo', requireDM, (req, res) => {
   const nieuweMax = Math.max(1, (parseInt(hp.max) || 0) - regel.hp);
   const nieuwCurrent = hp.current == null ? null : Math.min(nieuweMax, Math.max(0, (parseInt(hp.current) || 0) - regel.hp));
   dmState.playerHp[characterId] = { ...hp, current: nieuwCurrent, max: nieuweMax };
+
+  // **Het tegoed komt terug — maar alleen als er een op ging.** De level-up
+  // maakt het op en zet daarom `tegoedGebruikt` op de regel. Zonder deze
+  // teruggave kost een teruggedraaide vergissing de speler zijn level-up, en
+  // moet de DM hem opnieuw gunnen zonder dat iets dat zegt. Zette de DM iemand
+  // omhoog zonder tegoed (dat mag hij), dan valt er niets terug te geven — en
+  // op XP al helemaal niet, want daar volgt het tegoed uit de XP zelf.
+  if (regel.tegoedGebruikt) {
+    const g = getGroup(dmState);
+    if (!g.levelUpTegoed) g.levelUpTegoed = {};
+    g.levelUpTegoed[characterId] = (parseInt(g.levelUpTegoed[characterId]) || 0) + 1;
+  }
 
   rij.pop();
   if (!rij.length) delete dmState.levelUps[characterId];

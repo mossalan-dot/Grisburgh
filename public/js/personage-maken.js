@@ -17,7 +17,7 @@
 // rechts één keuze per scherm — en tot slot de onthulling met het lakzegel.
 // Eén klikhandler op de hele overlay (`data-actie`), zodat een naam met een
 // apostrof ("Thieves' Tools") nergens in een onclick-string hoeft te passen.
-import { api, huidigeCampagne } from './api.js?v=326';
+import { api, huidigeCampagne } from './api.js?v=327';
 
 const esc = s => window.app?.esc?.(s) ?? String(s ?? '')
   .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
@@ -1497,7 +1497,7 @@ const ACTIES = {
   // Het Heldenboek laadt lui; de eerste keer duurt dat even.
   async uitleg({ naam }) {
     try {
-      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=219'), window.vaardigheden);
+      const mod = window.vaardigheden || (await import('./render-vaardigheden.js?v=220'), window.vaardigheden);
       if (!mod?.openOpNaam) return toast('Het Heldenboek is hier niet beschikbaar.');
       const gelukt = await mod.openOpNaam(naam);
       if (!gelukt) toast(`${naam} staat niet in het Heldenboek.`);

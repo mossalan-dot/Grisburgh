@@ -441,7 +441,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Een beest bewerk je in het bestiarium** (DM) — Naslag → Familiars → een beest dat de campagne zelf heeft: het potlood opent de monster-editor (dezelfde als in de Meesterkamer), niet een tweede formulier. Bij een SRD-beest staat onder het statblok *Neem over in het bestiarium* → de editor opent met naam, AC, HP en abilities al ingevuld
 - [ ] **Je gedaante staat op je blad** (SP) — een Druid die Wild Shape gebruikt ziet bovenaan zijn Personage-tab een groene strook *Je bent een Wolf* met AC, Speed, Size en STR/DEX/CON van het beest **groot**, en zijn eigen waarde er klein onder ("jij: 16"). Daaronder Senses, Skills en zijn aanvallen, plus een knop naar het hele statblok. *Terug* beëindigt de gedaante en de strook verdwijnt; er is niets teruggezet, want er is niets overschreven — zijn HP, Hit Dice, INT/WIS/CHA en class features staan er nog precies zo
 - [ ] **Een familiar met tiers** (DM) — Naslag → Familiars → potlood op *Steel Defender* → *Statblok van*: kies een kaartje van soort dier (de datalist toont ze allemaal). Op het kaartje staat daarna zijn statblok met "hij groeit mee: … vanaf level 9". Roep hem op als speler van level 5 → de basis; op level 12 → de tier van 9, met zijn eigen HP en AC, zonder dat iemand iets intikt
-- [ ] **Een keuze op een feature, na het aanmaken** (SP) — Progressie → open het kaartje van een feature die iets laat kiezen (Skillful, Primal Knowledge, Student of War) → blad *Jouw keuze*: de echte lijst staat er, niet een leeg tekstveld. Kies er een → hij staat als proficiency op je blad (Personage → Skills) en de knop blijft aan. Nog eens klikken haalt hem er weer af, óók van je blad
+- [x] **Een keuze op een feature, na het aanmaken** (SP) — Progressie → open het kaartje van een feature die iets laat kiezen (Skillful, Primal Knowledge, Student of War) → blad *Jouw keuze*: de echte lijst staat er, niet een leeg tekstveld. Kies er een → hij staat als proficiency op je blad (Personage → Skills) en de knop blijft aan. Nog eens klikken haalt hem er weer af, óók van je blad *(nagelopen 24 nov 2026: Skillful bood 18 skills, Scholar 6; iets buiten de lijst geeft 409 "Dat staat niet in de lijst". Daarna teruggezet.)*
 - [ ] **De herinnering op je blad** (SP) — staat er nog een keuze open, dan zegt het Personage-tabblad bovenaan *"Je mag nog een skill kiezen bij Skillful"* met een knop *Kiezen* die naar dat level springt. Zodra je gekozen hebt is de regel weg. Een dagelijkse keuze (Astral Knowledge) staat er níét bij — die hoort in de rustoverlay
 - [ ] **Verplicht of niet: de tweede laag van een species** (SP/DM) — zet een personage op Dragonborn zonder Draconic Ancestry: de rij onder Origin is goudomrand, draagt een potloodje en de lege optie heet *nog te kiezen* (geen "—"). Vink in Naslag → Species → Dragonborn bewerken *Draconic Ancestry is verplicht* uit → dezelfde rij staat weer neutraal met "—", en de maker vraagt er niet meer om. Een species zonder varianten (Human) heeft die rij helemaal niet
 - [ ] **Wat er op een later level verandert** (SP) — Progressie → tijdlijn van een Bard: op level 5, 10 en 15 staat naast de tegels een groene strook *Bardic Inspiration* met de zin uit het boek ("The die becomes a d8 at level 5…"). Een level dat je nog niet hebt toont hem gedimd. Bij Ability Score Improvement staat hij **niet**, want die heeft op 8, 12 en 16 zijn eigen regel in de progressie — een groeiregel zou daar een herhaling zijn
@@ -613,7 +613,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Voorwerp gebruiken** (SP) — charges verbruiken en na een rust weer terugkrijgen
 - [ ] **Loot claimen** (SP) — tijdens een verdeling claimen, en zien wat je krijgt na het afrollen
 - [ ] **Brief openen** (SP) — verzegelde brief in Berichten, zegel aanklikken, tekst lezen en teruggaan
-- [ ] **Level omhoog** (SP/DM) — de DM verhoogt het level; nieuwe features verschijnen in Progressie en de sheet klopt
+- [x] **Level omhoog** (SP/DM) — de DM verhoogt het level; nieuwe features verschijnen in Progressie en de sheet klopt *(nagelopen 24 nov 2026 in de Testgroep: level 12 → 13, HP 50 → 55 bij "Gemiddelde +5 HP", daarna teruggedraaid door de DM. De knop *Level omhoog* verschijnt pas als je openstaande keuzes gemaakt zijn.)*
 - [ ] **Rage: alleen voor een Barbarian** (SP) — log in als een Barbarian en als een Wizard; alleen de Barbarian heeft bovenaan Personage een Rage-blok, de Wizard ziet er niets van (ook geen lege regel)
 - [ ] **Rage aan en uit** (SP) — druk op *Rage*: je telefoon flitst rood met klauwsporen, er komt een rode rand om je scherm, één teken dooft, en onder de knop staat wat er nu geldt; *Beëindigen* haalt rand en lijst weg zonder de use terug te geven
 - [ ] **Rage in een gevecht** (SP/DM) — zet een Concentration op je token en ga in Rage; de token draagt *Raging*, de Concentration is weg (met een melding), en de gevechtslog zegt het; stop het gevecht en de Rage is uit
@@ -2438,3 +2438,31 @@ te lopen.
 **Niets achtergelaten.** `dm-state.json`, `berichten.json`, `archief.json` en
 `loot.json` zijn alle vier byte-voor-byte ongewijzigd, en de testspeler staat
 nog op level 12.
+
+## Tiende ronde (24 nov 2026) — level omhoog, van begin tot eind
+
+Met toestemming zelf klaargezet in de Testgroep, en daarna alles teruggezet.
+
+**De twee openstaande keuzes.** `GET …/keuzes` geeft per slot zijn eigen lijst:
+Skillful 18 skills, Scholar 6. Iets dat er niet in staat wordt geweigerd —
+`Onderwaterbasketbal` gaf **409 "Dat staat niet in de lijst"**.
+
+**En toen pas kon de level-up.** Dat is de vondst van deze ronde: de knoppen
+*Level omhoog* / *Later* verschijnen **pas als er geen keuzes meer openstaan**.
+Daarom liep ik er eerder op vast. Het is goed gedrag — eerst kiezen, dan omhoog
+— maar het zégt niets, en ik dacht een tijdlang dat de knop kapot was.
+
+Daarna: level **12 → 13**, HP **50 → 55** (de "+5" die het paneel belooft bij
+*Gemiddelde*), tegoed naar 0. De undo is DM-only (een speler krijgt 403) en zet
+level én HP netjes terug.
+
+**Eén echte bug gevonden en gerepareerd:** de undo gaf het **tegoed** niet
+terug. Op mijlpaal kostte een teruggedraaide vergissing de speler dus zijn
+level-up, en moest de DM hem opnieuw gunnen zonder dat iets dat zei. Nu merkt de
+level-up aan dát er een tegoed op ging (`regel.tegoedGebruikt`) en geeft de undo
+het terug — alleen dán, en niet op XP, waar het tegoed uit de XP zelf volgt.
+
+**Alles teruggezet**, en nagemeten: `playerProfiles`, `playerHp`,
+`playerKeuzes`, `playerBuffs`, `levelUps` en de groep zijn gelijk aan de
+momentopname, en `loot.json`, `entities.json`, `archief.json`, `berichten.json`
+en `combat.json` zijn byte-voor-byte ongewijzigd.

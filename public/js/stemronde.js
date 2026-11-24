@@ -13,7 +13,7 @@
 // De server houdt de stemmen bij en geeft ze nooit terug (routes/api.js, zoek
 // op "Het mooiste moment"). Side-effect import in app.js, net als rage.js.
 
-import { api } from './api.js?v=326';
+import { api } from './api.js?v=327';
 
 const ic  = (n, o) => window.icon?.(n, o) || '';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>

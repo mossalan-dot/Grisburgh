@@ -21,7 +21,7 @@
 // hetzelfde paneel als naslag, voor als je de overlay hebt weggeklikt of
 // halverwege de avond wilt zien wat je ook alweer koos. Eén renderer voor
 // allebei; twee die hetzelfde moeten tonen lopen uit elkaar.
-import { api } from './api.js?v=326';
+import { api } from './api.js?v=327';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

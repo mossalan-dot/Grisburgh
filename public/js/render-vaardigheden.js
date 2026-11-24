@@ -14,8 +14,8 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=326';
-import { naslagBron } from './render-progressie.js?v=81';
+import { api } from './api.js?v=327';
+import { naslagBron } from './render-progressie.js?v=82';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
 import { CONDITIONS, COND_ICON, condGroep, isEigenConditie, isAangepasteConditie } from './conditions.js?v=7';
 // Eén renderer voor elk statblok in de app — zie render-statblock.js.
