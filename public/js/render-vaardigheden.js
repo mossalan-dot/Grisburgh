@@ -680,6 +680,18 @@ function _filtered() {
   // (een Wolf heeft er geen) en een honderdtal namen zoek je op de letter;
   // waar iets vandaan komt staat als penning op de tegel.
   if (_deur === 'beest') return lijst.sort((a, b) => a.naam.localeCompare(b.naam));
+  // **Per sectie**: eerst de class zelf, dan elke subclass onder zijn eigen
+  // kop, en binnen een sectie gewoon op level. De volgorde van de subclasses
+  // volgt de kolom ernaast (alfabetisch), zodat twee schermen hetzelfde zeggen.
+  if (_volgorde === 'sectie' && _volgordeKeuzeZinvol()) {
+    const orde = ['', ...[..._subAan].sort((a, b) => a.localeCompare(b, 'nl'))];
+    const idx = (it) => { const i = orde.indexOf(_sectieVan(it)); return i < 0 ? orde.length : i; };
+    return lijst.sort((a, b) =>
+      idx(a) - idx(b) ||
+      (a.level || 0) - (b.level || 0) ||
+      SOORT_VOLGORDE.indexOf(a.soort) - SOORT_VOLGORDE.indexOf(b.soort) ||
+      a.naam.localeCompare(b.naam));
+  }
   // Level 0 (een feat, een Epic Boon) heeft geen plek in die ladder en gaat
   // daarom vooraan; binnen hetzelfde level houden we de oude volgorde aan.
   return lijst.sort((a, b) =>
@@ -2341,6 +2353,30 @@ let _deur = null;
 // Welke subclasses er aangevinkt staan. **Een Set, geen enkele waarde**: aan
 // tafel vergelijk je ze (wat krijgt een Berserker dat een Zealot niet krijgt?),
 // en dat kan alleen als je er meer dan één tegelijk kunt aanzetten.
+// **Op level, of per sectie?** Vink je twee of drie subclasses aan, dan liggen
+// hun features door de hele lijst verspreid — alles staat op level, en juist
+// het verschil tussen die subclasses (de reden dát je ze aanvinkt) verdwijnt in
+// de bulk. Twee standen dus:
+//   level   — de tijdlijn van één personage: wat krijg ik op 6? (standaard)
+//   sectie  — eerst de class, dan elke subclass onder zijn eigen kop: wat
+//             krijgt een Berserker dat een Zealot niet krijgt?
+// De keuze hoort bij de kijker en niet bij de campagne, dus `localStorage` —
+// zelfde afspraak als de uitgewaaierde favorietenstapel.
+let _volgorde = 'level';
+try { if (localStorage.getItem('vdVolgorde') === 'sectie') _volgorde = 'sectie'; } catch { /* privémodus */ }
+
+// Onder welke kop valt dit kaartje? Een subclass-feature onder zijn subclass,
+// al het andere onder de class zelf.
+const _sectieVan = (it) => ((it.soort === 'subclass' || it.soort === 'variant') && it.sub) ? it.sub : '';
+
+// De knop heeft alleen zin als de lijst écht gemengd is: binnen één class, met
+// minstens één subclass aangevinkt. Daarbuiten zou hij een keuze aanbieden die
+// niets verandert.
+function _volgordeKeuzeZinvol() {
+  if ((_filters.q || '').trim()) return false;      // tijdens zoeken is relevantie de volgorde
+  return !!_filters.bron && _subAan.size > 0;
+}
+
 let _subAan = new Set();
 
 // **De plaat op een deur komt uit één bak**, voor alle voorpagina's dezelfde:
@@ -2662,6 +2698,22 @@ function _subKolomHtml(klasse) {
       <button class="vd-subblader-knop" onclick="window.vaardigheden.subBlader(1)"
         title="Volgende">${icon('chevron-right')}</button>
     </div>` : ''}
+    ${_volgordeKnopHtml()}
+  </div>`;
+}
+
+// De keuze staat ónder de kolom waar je de subclasses aanvinkt — daar ontstaat
+// de vraag ("ik heb er nu drie aan, laat me ze vergelijken") en daar hoort het
+// antwoord. Hij verschijnt pas zodra er iets aangevinkt is, want zonder
+// subclass is er niets te groeperen.
+function _volgordeKnopHtml() {
+  if (!_volgordeKeuzeZinvol()) return '';
+  const knop = (v, label, titel) => `<button class="vd-volgorde-knop${_volgorde === v ? ' is-aan' : ''}"
+    title="${esc(titel)}" onclick="window.vaardigheden.volgorde('${v}')">${esc(label)}</button>`;
+  return `<div class="vd-volgorde">
+    <span class="vd-volgorde-lbl">Sorteer</span>
+    ${knop('level', 'op level', 'Alles door elkaar in de volgorde waarin je het krijgt')}
+    ${knop('sectie', 'per sectie', 'Eerst de class, dan elke subclass onder zijn eigen kop')}
   </div>`;
 }
 // Welke bladzijde van de subclasslijst in beeld staat, en welke subclass het
@@ -2949,8 +3001,34 @@ function _paint() {
   // kaartfunctie bestond al en werd nergens aangeroepen: de deur Backgrounds
   // slaat de bandlaag over (ze hebben geen tussenlaag zoals subclasses), en
   // daardoor kwam hij nooit in beeld.
+  // Per sectie krijgt elke groep een kop over de volle breedte van het raster.
+  // De kop telt zelf mee als kaartje in de opkomstanimatie, vandaar dat hij
+  // gewoon in dezelfde stroom staat.
+  const metKoppen = () => {
+    let huidig = null;
+    const uit = [];
+    for (const it of lijst) {
+      const sec = _sectieVan(it);
+      if (sec !== huidig) {
+        huidig = sec;
+        const n = lijst.filter(x => _sectieVan(x) === sec).length;
+        uit.push(`<h3 class="vd-sectiekop">${esc(sec || _filters.bron)}
+          <span class="vd-sectiekop-n">${n}</span></h3>`);
+      }
+      uit.push(_card(it));
+    }
+    return uit.join('');
+  };
+  const secties = _volgorde === 'sectie' && _volgordeKeuzeZinvol();
+  // **`dense` moet uit zodra er koppen staan.** Het raster pakt normaal dicht
+  // (`grid-auto-flow: row dense`) om de gaten te vullen die een opengeklapte
+  // tegel van 2×2 achterlaat. Een kop over de volle breedte laat óók gaten
+  // achter — en dan trekt de browser de kaartjes die eróńder horen omhoog, de
+  // rij vóór hun eigen kop in. Zo stonden vier Berserker- en vier World
+  // Tree-features boven het kopje dat ze aankondigde.
+  grid.classList.toggle('vd-secties', secties);
   grid.innerHTML = (lijst.length
-      ? lijst.map(_card).join('')
+      ? (secties ? metKoppen() : lijst.map(_card).join(''))
       : `<p class="spreuk-empty">Niets gevonden.</p>`);
   // De spreuk die een feat geeft is een knop naar het spreukenboek — ook hier
   // in het raster, niet alleen in het venster. De bibliotheek laadt lui, dus
@@ -5245,6 +5323,13 @@ window.vaardigheden = {
     _paint();
   },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
+  // Op level of per sectie. Alleen de kijker heeft hier iets over te zeggen,
+  // dus de keuze blijft in `localStorage` en gaat nooit naar de server.
+  volgorde(v) {
+    _volgorde = v === 'sectie' ? 'sectie' : 'level';
+    try { localStorage.setItem('vdVolgorde', _volgorde); } catch { /* privémodus */ }
+    _paint();
+  },
   setBron(b)  { _filters.bron = b || null; _filters.sub = null; _bandHerteken(); _paint(); },
   // Een klasse, volk of achtergrond uit de band. Een achtergrond heeft geen
   // eigen bron (ze staan allemaal onder "Backgrounds"), dus die zoeken we op

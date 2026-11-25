@@ -2206,6 +2206,23 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > scherm dus. Het uitwaaieren staat in CSS (`--vd-i` per tegel, 30 ms per stap,
 > afgetopt op twaalf); `_cinematisch()` forceert alleen een reflow zodat de
 > animatie opnieuw speelt.
+> **Op level of per sectie** (25 nov 2026). Vink je er twee of drie aan, dan
+> liggen hun features door de hele lijst verspreid — alles staat op level, en
+> juist het verschil tussen die subclasses verdwijnt in de bulk. Onder de kolom
+> staat daarom *Sorteer: op level · per sectie*; de tweede zet eerst de class
+> met zijn eigen features neer, dan elke subclass alfabetisch onder zijn naam
+> met het aantal erachter, en binnen een sectie gewoon op level. De keuze is van
+> de kijker, niet van de campagne: `localStorage` (`vdVolgorde`), zoals de
+> uitgewaaierde favorietenstapel. De knop verschijnt alleen waar hij iets doet —
+> binnen een class, met minstens één subclass aan, en niet tijdens het zoeken
+> (daar is relevantie de volgorde).
+> **Valkuil:** het raster staat op `grid-auto-flow: row dense` om de gaten van
+> een opengeklapte tegel (2×2) te vullen. Een kop over de volle breedte laat óók
+> gaten achter, en dan trekt de browser de kaartjes die eróńder horen omhoog —
+> ze stonden boven het kopje dat ze aankondigde. In de sectie-stand krijgt het
+> raster daarom `.vd-secties`, dat `dense` uitzet. Bewaakt door *Het Heldenboek
+> per sectie* in `tests/frontend-imports.test.js`.
+>
 > **Subclasses zijn een kolom links van het raster, en je vinkt ze aan.**
 > `_subAan` is een **Set**: aan tafel vergelijk je ze (wat krijgt een Berserker
 > dat een Zealot niet krijgt?), en dat kan alleen als er meer dan één tegelijk

@@ -343,7 +343,7 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
 
 ## Nog te verzinnen
 
-- [ ] **De featurelijst sorteren als er meerdere subclasses aan staan.**
+- [x] **De featurelijst sorteren als er meerdere subclasses aan staan.** *(gebouwd 25 nov 2026 — zie onder)*
       Vink je in het Heldenboek twee of drie subclasses aan, dan liggen hun
       features door de hele lijst verspreid: alles staat op level, en juist het
       verschil tussen die subclasses — de reden dat je ze aanvinkt — verdwijnt
@@ -360,6 +360,18 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       sectie-indeling is af te leiden zonder nieuwe data. De keuze hoort bij de
       kijker en niet bij de campagne — dus `localStorage`, zoals de
       uitgewaaierde favorietenstapel. Gevraagd door de DM, 25 nov 2026.
+      **Gebouwd dezelfde dag.** De knop staat onder de subclasskolom (daar
+      ontstaat de vraag) en verschijnt pas zodra er iets aangevinkt is. Per
+      sectie: eerst de class met zijn eigen features, dan elke subclass
+      alfabetisch onder zijn naam, met het aantal erachter; binnen een sectie
+      gewoon op level. De keuze staat in `localStorage` (`vdVolgorde`).
+      Gemeten op Barbarian met drie subclasses aan: 19 · 4 · 4 · 5.
+      **Eén ding dat je niet verwacht:** het raster staat op
+      `grid-auto-flow: row dense` om de gaten van een opengeklapte tegel te
+      vullen, en dat trok de kaartjes ónder een kop omhoog de rij ervóór in —
+      vier Berserker- en vier World Tree-features stonden boven het kopje dat
+      ze aankondigde. In de sectie-stand gaat `dense` daarom uit
+      (`.vd-secties`), bewaakt door een toets.
 
 - [ ] **Een kaartje mag een alias dragen.** Harmen Jonker ís in het geheim
       Hugo Grisburgh II — en dát is meteen het geheim. Nu kan dat alleen als

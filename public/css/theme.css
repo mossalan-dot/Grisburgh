@@ -35397,3 +35397,64 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
   background: rgba(255, 255, 255, 0.16);
   border-color: rgba(255, 255, 255, 0.4);
 }
+
+/* ── Heldenboek: op level of per sectie ──────────────────────────────────────
+   Vink je twee of drie subclasses aan, dan liggen hun features door de hele
+   lijst verspreid. De keuze staat onder de kolom waar je ze aanvinkt. */
+.vd-volgorde {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid rgba(196, 168, 122, 0.25);
+}
+.vd-volgorde-lbl {
+  font-size: 0.68rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #8a7050;
+  margin-right: 2px;
+}
+.vd-volgorde-knop {
+  font-family: 'Crimson Text', serif;
+  font-size: 0.78rem;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(196, 168, 122, 0.55);
+  background: rgba(255, 255, 255, 0.4);
+  color: #5a452a;
+  cursor: pointer;
+}
+.vd-volgorde-knop:hover { background: rgba(196, 168, 122, 0.3); }
+.vd-volgorde-knop.is-aan {
+  background: linear-gradient(#e8c27a, #c4a87a);
+  border-color: #9a7a3a;
+  color: #2a1a08;
+  font-weight: 600;
+}
+
+/* De kop boven een sectie loopt over de volle breedte van het raster. */
+.cards-grid .vd-sectiekop {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin: 14px 0 2px;
+  padding-bottom: 5px;
+  border-bottom: 1px solid rgba(196, 168, 122, 0.45);
+  font-family: 'Cinzel', serif;
+  font-size: 0.95rem;
+  color: #4a3418;
+}
+.cards-grid .vd-sectiekop:first-child { margin-top: 0; }
+.vd-sectiekop-n {
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: #8a7050;
+}
+
+/* Zie `_hertekenRaster`: met sectiekoppen mag het raster niet dicht pakken,
+   anders schuiven de kaartjes de rij vóór hun eigen kop in. */
+.cards-grid.tegel-raster.vd-secties { grid-auto-flow: row; }

@@ -3846,3 +3846,42 @@ aanwezig, groep *situatie*, 40 om 40.
 sleutels en meldde er elf als "zonder icoon" — die hebben gewoon
 aanhalingstekens (`'bardic-inspiration':`). Vierde keer vandaag dat een te
 strak patroon een probleem suggereerde dat er niet was.
+
+## De featurelijst per sectie (25 nov 2026)
+
+Een to-do-punt van vanochtend, dezelfde dag gebouwd. Vink je in het Heldenboek
+twee of drie subclasses aan, dan liggen hun features door de hele lijst
+verspreid: alles staat op level, en juist het verschil tussen die subclasses —
+de reden dát je ze aanvinkt — verdwijnt in de bulk.
+
+Onder de subclasskolom staat nu **Sorteer: op level · per sectie**. Daar
+ontstaat de vraag ("ik heb er nu drie aan, laat me ze vergelijken"), dus daar
+hoort het antwoord. Hij verschijnt alleen waar hij iets doet: binnen een class,
+met minstens één subclass aan, en niet tijdens het zoeken — daar is relevantie
+de volgorde.
+
+- [x] Barbarian met Berserker, World Tree en Zealot aan, stand *per sectie*:
+      **Barbarian 19 · Path of the Berserker 4 · Path of the World Tree 4 ·
+      Path of the Zealot 5**, elk onder zijn eigen kop en binnen een sectie op
+      level.
+- [x] Terug op *op level*: geen koppen, precies de lijst van vroeger.
+- [x] De keuze overleeft een herlaadbeurt (`localStorage`, `vdVolgorde`) en gaat
+      nooit naar de server — het is een keuze van de kijker, niet van de
+      campagne.
+
+### Een valkuil die je niet ziet aankomen
+
+De eerste versie klopte in de data maar niet op het scherm: **vier Berserker- en
+vier World Tree-features stonden bóven het kopje dat ze aankondigde.** De
+oorzaak zit in CSS die er met goede reden staat: het raster pakt dicht
+(`grid-auto-flow: row dense`) om de gaten te vullen die een opengeklapte tegel
+van 2×2 achterlaat. Een kop over de volle breedte laat óók gaten achter, en dan
+trekt de browser de volgende kaartjes omhoog — de rij vóór hun eigen kop in.
+
+In de sectie-stand gaat `dense` daarom uit. Nagemeten na de reparatie: 36
+elementen, **nul kaartjes boven hun eigen kop**.
+
+*En een meetfout van mezelf:* mijn diagnose-script sloeg het openen van de deur
+over, dus het raster was leeg en ik dacht even dat de functie zelf stuk was. De
+foto liet het echte probleem zien, de meting niet — precies andersom dan
+gisteren bij de verteller.

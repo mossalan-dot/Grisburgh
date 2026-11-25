@@ -578,3 +578,22 @@ describe('Condities', () => {
     assert.deepEqual(mist, [], 'deze conditie-iconen staan niet in icons.svg: ' + mist.join(', '));
   });
 });
+
+// **Sectiekoppen en een dicht gepakt raster gaan niet samen.**
+// `.cards-grid.tegel-raster` staat op `grid-auto-flow: row dense`, zodat de
+// gaten die een opengeklapte tegel (2×2) achterlaat gevuld worden. Een kop over
+// de volle breedte laat óók gaten achter — en dan trekt de browser de kaartjes
+// die eróńder horen omhoog, de rij vóór hun eigen kop in. Zo stonden vier
+// Berserker- en vier World Tree-features boven het kopje dat ze aankondigde.
+describe('Het Heldenboek per sectie', () => {
+  it('zet het dicht pakken uit zodra er koppen staan', () => {
+    const css = fs.readFileSync(path.join(PUB_DIR, 'css', 'theme.css'), 'utf8');
+    const regel = /\.cards-grid\.tegel-raster\.vd-secties\s*\{[^}]*grid-auto-flow:\s*row\s*;?[^}]*\}/.exec(css);
+    assert.ok(regel, 'de sectie-stand moet `grid-auto-flow: row` zetten, anders schuiven de kaartjes omhoog');
+    assert.ok(!/dense/.test(regel[0]), 'en zeker geen dense');
+
+    const js = fs.readFileSync(path.join(JS_DIR, 'render-vaardigheden.js'), 'utf8');
+    assert.match(js, /classList\.toggle\('vd-secties'/,
+      'het raster krijgt die klasse niet, dus de regel hierboven doet niets');
+  });
+});
