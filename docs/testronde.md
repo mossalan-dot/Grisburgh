@@ -3135,3 +3135,24 @@ klopt:
 > dus voor iedereen "in orde" terug behalve één toevalstreffer. Een check op een
 > veld dat niet bestaat is een check die altijd slaagt; dezelfde valkuil als de
 > toets die een route las die er niet was.
+
+### De spreukenboeken, in dezelfde ronde
+
+Alle elf spelersboeken (81 regels) naast de bibliotheek van 545 gelegd. Twee
+regels wijzen naar een spreuk die daar niet staat:
+
+- **Orphéan Vanverres · "Dissonant Whispers"** op index `custom_1775822053292`.
+  Die regel draagt zijn eigen tekst, dus hij leest gewoon — maar het is een
+  privékopie van een spreuk die intussen wél in de bibliotheek staat
+  (`dissonant-whispers`). Hij volgt dus geen latere verbetering meer.
+- **Sharari Duskwalker · "Virtue"** op index `virtue`: een cantrip uit een
+  ouder boek, zonder tekst.
+
+Nagemeten met een proefregel in het boek van de testspeler: zo'n spreuk stond
+in de lijst en opende op een bladzijde met alleen *"Geen beschrijving
+beschikbaar."* — **de enige plek in de app waar een ontbrekende tekst geen
+wegwijzer naar buiten kreeg.** Overal elders (de bibliotheek, het Heldenboek, de
+tijdlijn) staat daar `window.app.bronLink`. Nu hier ook: *"Deze spreuk staat
+niet in de bibliotheek van deze campagne"* met **Lees hem elders** eronder, op
+allebei de paden — de lazy fetch die niets vindt, en een eigen spreuk zonder
+tekst. Proefregel daarna weer weg.

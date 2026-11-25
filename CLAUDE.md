@@ -2025,6 +2025,14 @@ in `_load()` (`render-spreuken.js`), ontdubbeld op `index`:
 > **Backgrounds blijven kaal**: de SRD geeft daar alleen structuur
 > (ability scores, proficiencies), geen beschrijvingen.
 
+> **Ook het spreukenboek van de speler wijst naar buiten.** Dat was de enige
+> plek die het niet deed: een spreuk die niet in de bibliotheek staat — een
+> cantrip uit een ouder boek, of een regel die ooit onder een eigen index is
+> weggeschreven — gaf een lege bladzijde met "Geen beschrijving beschikbaar."
+> en verder niets. Sinds 25 nov 2026 staat er wat er aan de hand is plus
+> *Lees hem elders* (`_sbGeenTekstHtml`), op allebei de paden: de lazy fetch
+> die niets vindt én een eigen spreuk zonder tekst.
+>
 > **Waar wijst de app naartoe als een tekst er niet mag staan?** Eén sjabloon
 > voor de hele app: `meta.bronLink` met `{naam}` en `{soort}`, in te stellen bij
 > Instellingen → *Naslag elders*. Leeg = de standaard (de zoekpagina van

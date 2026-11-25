@@ -6272,6 +6272,17 @@ window._sbEditPreparedMax = async () => {
   }
 };
 
+// **Een lege bladzijde is geen antwoord.** Staat een spreuk niet in de
+// bibliotheek — een cantrip uit een ouder boek, of een regel die ooit onder een
+// eigen index is weggeschreven — dan hoort hij hetzelfde te doen als elk ander
+// scherm met een tekst die we niet mogen meeleveren: zeggen dat hij er niet
+// staat, en de weg naar buiten wijzen.
+function _sbGeenTekstHtml(naam) {
+  const link = window.app?.bronLink?.(naam, 'spell') || '';
+  return `<p style="color:#8a6030;font-style:italic;margin-top:20px;opacity:.75">Deze spreuk staat niet in de bibliotheek van deze campagne.</p>`
+    + (link ? `<p style="margin-top:12px"><a class="prog-geen-tekst-knop" href="${esc(link)}" target="_blank" rel="noopener">${icon('book-open')} Lees hem elders</a></p>` : '');
+}
+
 function _sbRender() {
   const spell = _sbState.spells[_sbState.idx];
   if (!spell) return;
@@ -6421,9 +6432,14 @@ function _sbRender() {
         const found = _sbDescCache.get(spell.index) || spell.desc;
         if (_sbState.idx === curIdx && found) _sbRender();
         else if (_sbState.idx === curIdx && !found) {
-          // Niets gevonden — toon spell-naam zonder beschrijving
+          // Niets gevonden — de naam, en de weg naar buiten. Overal elders in de
+          // app krijgt een tekst die niet meegeleverd mag worden een verwijzing
+          // (`window.app.bronLink`); alleen hier liep je dood op een lege
+          // bladzijde. Dat raakt elke spreuk die niet in de bibliotheek staat:
+          // een cantrip uit een ouder boek, of een regel die ooit op een eigen
+          // index is weggeschreven.
           contentEl.innerHTML = `<h2 class="sb-spell-name">${esc(spell.name)}</h2>
-            <p style="color:#8a6030;font-style:italic;margin-top:20px;opacity:.6">Geen beschrijving beschikbaar.</p>`;
+            ${_sbGeenTekstHtml(spell.name)}`;
         }
       });
     } else {
@@ -6476,7 +6492,7 @@ function _sbRender() {
         </label>
         <div class="sb-slot-higher" id="sb-slot-higher" style="display:none">${higherText}</div>` : ''}
         ${(badges || metaRows.length) ? '<div class="sb-divider"></div>' : ''}
-        <div class="sb-desc">${desc || '<em>Geen beschrijving beschikbaar.</em>'}</div>`;
+        <div class="sb-desc">${desc || _sbGeenTekstHtml(spell.name)}</div>`;
       contentEl.scrollTop = 0;
       _sbState.matWacht = null;
       _sbRenderMateriaal();
