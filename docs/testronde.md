@@ -610,7 +610,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Progressie** (SP) — tijdlijn en kaartweergave, features per level met subklasse-tag, vergrendelde levels, keuzevelden die bewaard blijven
 - [ ] **Spreukenboek** (SP) — eigen lijst, slots per niveau, voorbereid-stempel, glossary-tooltips, spreuken toevoegen vanuit de bibliotheek
 - [ ] **Berichten** (SP) — ongelezen-badge, brieven van de DM, cinematische reveal: verzegelde envelop → klik op het lakzegel → de brief vouwt open
-- [ ] **Notities** (SP) — blijven per speler bewaard en zijn voor niemand anders zichtbaar
+- [x] **Notities** (SP) — blijven per speler bewaard en zijn voor niemand anders zichtbaar
 - [x] **Subtabs onthouden** (SP) — wissel van subtab, ga naar een andere sectie en terug — je staat weer op dezelfde subtab *(nagelopen 24 nov 2026: Boedel → Personages → terug = Boedel)*
 - [ ] **Conditie-uitleg** (SP) — tik op een conditie-icoon voor de uitleg
 - [ ] **Inspiration** (SP/DM) — de DM geeft inspiration, de speler ziet het meteen en kan het inzetten
@@ -658,7 +658,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Pool dobbelstenen** (SP) — Zealot: *Warrior of the Gods* vraagt hoeveel d12, weigert meer dan de pool toelaat, en geneest de gerolde som; Celestial Patron: *Healing Light* idem met d6 tot je CHA-mod
 - [ ] **Prijzen in je eigen munt** (SP) — noem je munten Daalder/Stuiver/Duit, zet in een winkel "2 stuiver" en koop het als speler: er gaan 2 Stuivers af, en heb je er te weinig, dan zegt de melding "2 Stuiver" en niet "2 kn"
 - [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
-- [ ] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
+- [x] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
 - [ ] **Brief bladeren** (ALL) — vegen blaadert door een lange brief; de pijltjes deden dat al
 - [ ] **Subtabbladen** (SP) — vegen wisselt tussen Party · Personage · Boedel · …; een veeg die in de voorwerp-carrousel begint hoort bij de carrousel en wisselt dus niet van tabblad
 
@@ -3752,3 +3752,24 @@ een klasse staat vaak in een samengesteld attribuut
 alleen attributen zónder `${`, dan lijken vier houding-klassen verdwenen terwijl
 ze alleen hernoemd zijn. `--sinds` leest nu de letterlijke stukken tussen de
 gaten.
+
+### Twee dingen die van de speler zelf zijn
+
+Blok 4 is grotendeels klikwerk, maar er staan twee regels in die de server
+afdwingt en die stil fout kunnen gaan. Allebei hadden ze geen toets.
+
+**Zijn aantekening.** Die staat in `player-notes.json` onder
+`"<entityId>::<spelersnaam>"`. Een medespeler aan dezelfde tafel hoort hem niet
+te zien; de DM wél, gegroepeerd per speler, want die leest mee met de tafel. En
+de DM kan er geen schrijven namens iemand anders (403).
+
+**Zijn charges.** Die staan per party, en de party volgt uit het **karakter** —
+niet uit welke groep de DM toevallig actief heeft staan. Dat is precies de
+familie die eerder toesloeg bij het bijstellen van een aantal. Getoetst met de
+DM op groep 1 terwijl de speler aan de tweede tafel zit: de charge landt in
+zíjn party, en in die van de DM staat niets. Een speler komt ook niet aan de
+charges van een ander (403).
+
+`tests/speler-prive.test.js`, vijf toetsen, twee kanaries nagelopen — de een
+geeft de aantekening van wie dan ook terug, de ander schrijft in de actieve
+groep. Allebei vallen ze op hun eigen toets om.
