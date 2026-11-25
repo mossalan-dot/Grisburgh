@@ -556,7 +556,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Dichtgeklapte akte** (ALL) — een akte die dicht staat is een lage balk waarop naam en dag leesbaar zijn, óók op een lichte banner; de akte die openstaat houdt zijn hoge banner. Het chevron rechts wijst opzij als hij dicht is en omlaag als hij open staat
 - [ ] **Chips in het sessievenster** (ALL) — Personages/Locaties/Organisaties/Voorwerpen/Documenten hebben een icoon, geen emoji; het tekentje vóór een naam zegt met een tooltip of hij nieuw is of al eerder voorkwam
 - [ ] **Sessieverslag schrijven** (DM) — nieuwe entry, markdown, afbeeldingen uploaden, opslaan en teruglezen
-- [ ] **Missie aanmaken** (DM) — titel, beschrijving, koppeling aan een factie of locatie, en zichtbaar maken
+- [x] **Missie aanmaken** (DM) — titel, beschrijving, koppeling aan een factie of locatie, en zichtbaar maken *(nagelopen 25 nov 2026 met een proefmissie: aanmaken met titel, beschrijving en status, de status heen en weer zetten (open → voltooid → mislukt → open) en daarna verwijderen. De dertien echte missies van Grisburgh staan voor de Testgroep allemaal op *verborgen* — die party heeft er nog geen een gekregen.)*
 - [ ] **Pin voorstellen en goedkeuren** (SP/DM) — speler stelt voor, DM keurt goed of af, beide zien de uitkomst
 - [ ] **Kaart of dungeon aanmaken** (DM) — de +-knop boven een groep opent *Nieuwe kaart* respectievelijk *Nieuwe dungeonkaart* (niet de eerste bestaande kaart). Vul naam én beschrijving in, kies een afbeelding uit de bibliotheek: het kaartje staat er meteen, mét beeld en beschrijving, zonder de pagina te herladen
 - [ ] **Een verborgen locatie op de kaart** (DM) — een speld van een locatie die de party nog niet kent is gewoon leesbaar, met een gestippelde rand; hij is niet half doorzichtig en verschijnt niet pas bij hover
@@ -577,7 +577,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Soort en uitsnede van een hoofdkaart** (DM) — *Kaart bewerken*: kies een soort (Stad, Continent…); die staat als badge op het kaartje. Sleep het kruisje en het kaartje toont die uitsnede
 - [ ] **Sluiten vanuit de balk** (ALL) — zowel bij een hoofdkaart als bij een dungeon staat het kruisje in de balk, in perkamentstijl; er zweeft geen zwarte knop meer over het beeld
 - [ ] **Dungeon vrijgeven aan een party** (DM) — toegang per groep; een speler zonder toegang ziet de kaart niet
-- [ ] **Missiegever kiezen** (DM) — zoekveld *Gegeven door* in de missie-editor kent personages én organisaties; leeg laten mag
+- [x] **Missiegever kiezen** (DM) — zoekveld *Gegeven door* in de missie-editor kent personages én organisaties; leeg laten mag *(nagelopen 25 nov 2026: een personage én een organisatie (Cassalanter Compagnie) kunnen allebei de gever zijn, en leeg laten mag. Alleen het id wordt bewaard; de naam zoekt de client erbij — één bron, zoals het hoort.)*
 
 ## Blok 4 — Spelerstabblad
 
@@ -2896,3 +2896,15 @@ de momentopname en `dm-state.json` verschilt in geen enkele sleutel.
 > onthulde geheimregel kon ik niet toetsen: er staat er in Grisburgh geen. Dat
 > is geen bevinding over de app maar over de campagne — en het hoort bij het
 > antwoord, want anders lijkt het punt getoetst.
+
+### De missies, in dezelfde ronde
+
+Een proefmissie aangemaakt, zijn status heen en weer gezet (dat is wat slepen op
+het bord doet), een personage én een organisatie als gever gekoppeld, leeg
+gelaten, en weer verwijderd.
+
+> **Eén losse eindje:** het bord laat je een kaartje niet naar *Aangevraagd*
+> slepen — die kolom licht niet op — maar `PUT /quests/:id` accepteert
+> `status: "aangevraagd"` wél. Dat is geen lek (alleen de DM komt erbij), maar
+> het zet wel een aanvraag neer die niemand gedaan heeft. Of dat erg is, is aan
+> de DM: hij kan het ook bewust willen.
