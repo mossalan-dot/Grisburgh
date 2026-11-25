@@ -30,21 +30,26 @@ const blok = (naam, eind) => {
   return APP.slice(a, b);
 };
 
-describe('Het tafelscherm begint met het gevecht dat al loopt', () => {
+describe('Het tafelscherm haalt bij het opstarten de stand in', () => {
   it('heeft één plek die de stand ophaalt', () => {
-    const helper = blok('window._displayGevechtInhalen = () => {', '};');
+    const helper = blok('window._displayStandInhalen = () => {', '};');
     assert.match(helper, /api\.getCombat\(\)/, 'hij haalt het gevecht niet op');
     assert.match(helper, /dmPanel\?\.onCombatUpdated/, 'het gevechtsscherm krijgt het niet');
     assert.match(helper, /_gevechtRegie\?\.onCombat/,
       'de regie krijgt het niet — dan blijft de rode rand van iemand op 0 HP weg');
+    // En de kist. Die stond onder `_displayModeAan`, mét een comment dat hij er
+    // was "voor na een herlaadbeurt" — precies het geval dat daar niet langs
+    // komt.
+    assert.match(helper, /combat\/loot\?tafel=1/, 'een kist die openstaat wordt niet opgehaald');
+    assert.match(helper, /_lootCinematic/, 'de kist wordt opgehaald maar niet getoond');
   });
 
   it('roept hem aan vanuit allebei de ingangen', () => {
     const aan = blok('function _displayModeAan() {', '\nfunction ');
-    assert.match(aan, /_displayGevechtInhalen\(\)/, '?display=1 haalt de stand niet in');
+    assert.match(aan, /_displayStandInhalen\(\)/, '?display=1 haalt de stand niet in');
 
     const init = blok('function _initDisplayMode() {', '\n}\n');
-    assert.match(init, /_displayGevechtInhalen\(\)/,
+    assert.match(init, /_displayStandInhalen\(\)/,
       'een scherm dat herlaadt haalt de stand niet in — die komt niet langs _displayModeAan');
   });
 

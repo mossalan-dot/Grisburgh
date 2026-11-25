@@ -881,8 +881,19 @@ fout-uitvoert.
 - [ ] **Tafelscherm aanzetten en terug** (DM/TAB) — knop in de balk zet dit scherm om; het kruisje brengt je terug zonder opnieuw inloggen
 - [ ] **Sfeer wisselen** (DM/TAB) — sfeerkeuze verandert de embers en de achtergrond
 - [ ] **Effecten** (DM/TAB) — bliksem, windvlaag en duister; let erop dat ze tijdens een gevecht (nog) niet zichtbaar zijn — zie `docs/tafelscherm-effecten.md`
-- [ ] **Gevecht op tafel zonder cijfers** (TAB) — start een gevecht en zet daarna pas `?display=1` aan: op de tokens staan geen HP-getallen en geen AC van monsters die de party niet bestudeerd heeft, ook niet direct na het aanzetten
-- [ ] **Kist na herladen** (TAB) — onthul een vondst, herlaad het tafelscherm halverwege het claimen: de kist staat er weer
+- [x] **Gevecht op tafel zonder cijfers** (TAB) — start een gevecht en zet
+      daarna pas `?display=1` aan: op de tokens staan geen HP-getallen en geen
+      AC van monsters die de party niet bestudeerd heeft, ook niet direct na het
+      aanzetten. *Allebei de wegen zijn gezeefd en bewaakt: `GET /combat?tafel=1`
+      en, over de socket, `_zendCombat` — die een tafelscherm herkent **aan de
+      room, niet aan de rol** (het is immers als DM ingelogd). Zie
+      `tests/tafelscherm-sessie.test.js`. Op beeld bevestigd: de strook onderaan
+      zegt "zwaar gewond" en "ongedeerd", geen getallen.*
+- [x] **Kist na herladen** (TAB) — onthul een vondst, herlaad het tafelscherm
+      halverwege het claimen: de kist staat er weer. *Nagemeten: overlay over het
+      hele scherm, gesloten kist met "Tik om te openen", buit nog niet zichtbaar.
+      Let op: dit wérkte via `?display=1`, maar níét via een gewone herlaadbeurt
+      — zie hieronder.*
 - [ ] **Onthulling en brief tegelijk** (DM→SP) — onthul een kaartje en stuur meteen een verzegelde brief: de brief ligt bovenop en het zegel is aan te tikken
 - [ ] **Level gegund** (DM→SP) — gun een speler een level terwijl hij zijn Personage-tab open heeft: de balk *Je mag een level omhoog* verschijnt zonder herladen, met een melding die het venster opent
 - [ ] **Buit bijgeschreven** (SP) — sluit een verdeling met alleen geld: de melding noemt het hele bedrag met de muntnamen ("4 Silver · 2 Copper"), en de speler las eerder *Er is buit!* — geen "Alle items zijn verdeeld" als er nooit een voorwerp in zat
@@ -3421,3 +3432,33 @@ kanarie op allebei die ingangen.
 Stond als *De plek zelf vecht mee*. Op verzoek van de DM de gewone PHB-term —
 en dat is ook wat de afspraak zegt: als de term in de PHB voorkomt, staat hij
 in het Engels.
+
+### De tweede ingang die niemand neemt
+
+De reparatie van het gevecht legde een tweede geval bloot, in dezelfde functie.
+Een tafelscherm komt op **twee** manieren in tafelmodus:
+
+| ingang | weg | wat haalde hij in |
+|---|---|---|
+| `?display=1` | `_displayModeAan()` | het gevecht **en** de kist |
+| het scherm lag er al en herlaadt | `localStorage` → `_initDisplayMode()` | niets |
+
+De kist-herstelcode stond onder de eerste, mét een comment dat hij er was "voor
+na een herlaadbeurt halverwege het claimen" — precies het geval dat daar níét
+langs komt. Hij wérkte dus alleen in het scenario waarvoor hij niet bedoeld was.
+
+`window._displayStandInhalen()` is nu de enige plek die de opstartstand ophaalt
+— het lopende gevecht (aan allebei de kanten) én een kist die openstaat — en
+allebei de ingangen roepen hem aan. Bewaakt met een kanarie op elk onderdeel.
+
+**De les is algemener dan deze twee gevallen.** Alles wat op dat scherm staat
+komt over de socket, en een socket vertelt je niets over wat er vóór je komst
+gebeurde. Komt er iets bij dat een avond lang zichtbaar hoort te blijven, dan
+hoort het in die ene functie — niet in de handler die hem toevallig aanzette.
+
+**En een leesfout van mezelf**, omdat hij twee metingen lang een bug suggereerde
+die er niet was: ik zocht op `.loot-cinematic`, maar de klasse heet `loot-cin`
+(het **id** is `loot-cinematic`). Twee keer "kist in beeld: nee" was dus mijn
+selector, niet de app. *Een selector die nergens op slaat geeft hetzelfde
+antwoord als een kapotte app* — zelfde familie als de toets die op het kapotte
+gedrag slaagt.

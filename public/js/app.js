@@ -311,34 +311,39 @@ function _displayModeAan() {
   // ligt (bij `?display=1` wordt de rol pas na het opstarten bekend) — en dan
   // stond de DM-versie erop, met de HP en AC van elk monster. Opnieuw ophalen,
   // nu als tafelscherm.
-  window._displayGevechtInhalen();
-  // En een kist die openstaat: die kwam alleen over de socket, dus na een
-  // herlaadbeurt halverwege het claimen was hij weg.
-  fetch('/api/combat/loot?tafel=1&campagne=' + encodeURIComponent(campagneUitUrl()))
-    .then(r => r.ok ? r.json() : null)
-    .then(d => { if (d && window._isDisplayMode) window._lootCinematic?.(d); })
-    .catch(() => {});
+  window._displayStandInhalen();
 }
 
-// **Een tafelscherm dat midden in een gevecht opstart, moet de stand ophalen —
-// en aan alle twee de kanten afleveren.** `combat:updated` voedt zowel het
-// gevechtsscherm (`dmPanel.onCombatUpdated`) als de regie
-// (`_gevechtRegie.onCombat`), maar bij het opstarten ging alleen de eerste mee.
-// Gevolg: de rode rand en de hartslag van iemand die op 0 ligt kwamen er niet
-// op — terwijl die juist uit het gevecht zélf afgeleid worden zodat ze een
-// herlaadbeurt overleven. Gemeten op 25 nov 2026: een vers geladen tafelscherm
-// met een speler op 0 HP en twee failures liet niets zien, en bleef dat de hele
-// scène doen tot er toevallig een volgende update langskwam.
+// **Wat een tafelscherm bij het opstarten moet inhalen.** Alles wat daar staat
+// komt normaal over de socket, en een socket vertelt je niets over wat er vóór
+// je komst gebeurde. Een scherm dat midden in een avond opstart — na haperende
+// wifi, of omdat het nú pas op tafel gelegd wordt — begint dus blanco terwijl
+// de scène doorloopt. Twee dingen moeten daarom opgehaald worden:
 //
-// Dit raakt twee ingangen: `?display=1` (via `_displayModeAan`) en een scherm
-// dat al op tafel lag en gewoon herlaadt (die komt alleen langs
-// `_initDisplayMode`). Daarom één functie, door allebei aangeroepen.
-window._displayGevechtInhalen = () => {
+//  - **het lopende gevecht**, en dan aan *allebei* de kanten: `combat:updated`
+//    voedt het gevechtsscherm (`dmPanel.onCombatUpdated`) én de regie
+//    (`_gevechtRegie.onCombat`, die de rode rand en de hartslag zet van wie op
+//    0 ligt). Bij het opstarten ging alleen de eerste mee, dus kwam dat signaal
+//    er niet op — gemeten 25 nov 2026;
+//  - **een kist die openstaat**, zodat een herlaadbeurt halverwege het claimen
+//    hem niet wegneemt.
+//
+// En dit raakt **twee ingangen**: `?display=1` loopt via `_displayModeAan`,
+// maar een scherm dat al op tafel lag en gewoon herlaadt leest zijn stand uit
+// `localStorage` en komt alléén langs `_initDisplayMode`. Dat was precies het
+// gat: de kist-herstelcode stond onder de eerste, terwijl het geval dat zijn
+// eigen commentaar beschrijft (een herlaadbeurt) langs de tweede komt. Eén
+// functie dus, door allebei aangeroepen.
+window._displayStandInhalen = () => {
   api.getCombat().then(c => {
     if (!c) return;
     window.dmPanel?.onCombatUpdated?.(c);
     window._gevechtRegie?.onCombat?.(c);
   }).catch(() => {});
+  fetch('/api/combat/loot?tafel=1&campagne=' + encodeURIComponent(campagneUitUrl()))
+    .then(r => r.ok ? r.json() : null)
+    .then(d => { if (d && window._isDisplayMode) window._lootCinematic?.(d); })
+    .catch(() => {});
 };
 
 function _displayModeInlossen() {
@@ -13183,9 +13188,9 @@ function _initDisplayMode() {
   _buildIdleEmbers(_huidigeSfeer);
   _spotifyTafelspeler();
   // Een scherm dat al op tafel lag en gewoon herlaadt komt niet langs
-  // `_displayModeAan`, dus hier ook: anders begint het zonder de stand van een
-  // gevecht dat al loopt.
-  window._displayGevechtInhalen();
+  // `_displayModeAan`, dus hier ook: anders begint het zonder het gevecht dat
+  // al loopt en zonder de kist die openstaat.
+  window._displayStandInhalen();
   // Het tafelscherm heeft een eigen, volledige gevechtsweergave (.co-display in
   // dm-panel.js) — nooit geminimaliseerd. Voorheen werd hier 'minimized' gezet
   // terwijl socket-client.js het er bij elke combat:updated weer afhaalde; die
