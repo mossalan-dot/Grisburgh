@@ -974,6 +974,14 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > ongedaan-maken van het tekstvak kosten en een lossless parse vragen; de
 > afweging staat in `docs/voorstel-akteregie.md`.
 >
+> **Toetsen staan in `tests/akte-importer.test.js`** (sinds 25 nov 2026): de
+> `##`-koppen worden sectiekoppen op volgorde, `[[naam]]` wordt een
+> kaartje-stap en `![[bestand]]` een beeld-stap die níét als naam meetelt, een
+> naam zonder kaartje wordt gemeld, de markdown blijft bewaard en aanvullen
+> overschrijft niets. Let op bij het schrijven van zo'n toets:
+> `/import/akte/apply` draait achter de upload-middleware en leest dus
+> **multipart**, ook zonder bestanden — een gewone JSON-POST komt er niet door.
+>
 > **De importer bewaart de `.md` nu wél.** Hij las het bestand, haalde de
 > tokens eruit en gooide de tekst weg — precies waarom Obsidian tijdens het
 > spelen nog openstond. `POST /import/akte/apply` neemt `md` mee en vult

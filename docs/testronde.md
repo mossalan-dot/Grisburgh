@@ -762,7 +762,7 @@ fout-uitvoert.
 
 `public/js/dm-panel.js` · `render-archief.js` (aktes) · `combat-canvas.js`
 
-- [ ] **Aktes — verhaal** (DM) — `.md` inlezen of plakken; `##`-koppen worden sectiekoppen in het script
+- [x] **Aktes — verhaal** (DM) — `.md` inlezen of plakken; `##`-koppen worden sectiekoppen in het script
 - [ ] **Aktes — namenrij** (DM) — `[[ ]]` uit de tekst: heeft een kaartje of niet, nieuw of terugkerend; zonder kaartje kun je er meteen een aanmaken
 - [ ] **Aktes — regie-script** (DM) — stappen toevoegen van elk type: beeld, entiteit, encounter, dungeon, rust, brief, loot en kop; volgorde verslepen
 - [ ] **Akte-afbeeldingen uploaden** (DM) — vanuit de picker én bij *Nieuwe akte*; ze verschijnen als thumbnails en zijn daarna te onthullen
@@ -777,9 +777,9 @@ fout-uitvoert.
 - [x] **Aftellen** (DM/TAB) — kies *Aftellen tot een explosie* (3 rondes): op tafel een groot getal 3 en rechtsboven een penning; elke nieuwe ronde telt hij af, op nul komt de explosie met zijn Saving Throw en het afhandelpaneel; beëindig je het gevecht eerder, dan verdwijnt de penning *(nagelopen 24 nov 2026: de teller stond op 3/3, ging per ronde 3 → 2 → 1 → weg, en op nul stond de explosie klaar als effect met DC 15 DEX en 6d6. De penning op tafel blijft handwerk.)*
 - [x] **Niets toepassen** (DM) — open een effect en druk *Niets toepassen*: het paneel verdwijnt, niemand verliest HP, en een herladen toont het niet opnieuw *(nagelopen 24 nov 2026: Niets toepassen gaf 200, het effect was weg uit `dm-state.json` — dus een herladen vindt het ook niet — en de HP van alle drie stond na afloop op hetzelfde getal als ervoor.)*
 - [x] **Lair Action op initiative 20** (DM/TAB) — geef één speler initiative 21 en start; zodra de beurt naar iemand onder de 20 gaat staat bovenin *Lair Action — initiative 20* met je regels als knoppen; kies er een en het tafelscherm beeft en toont hem; de ronde erna staat *vorige ronde* bij die regel *(nagelopen 24 nov 2026: met initiative 21 tegen 12/8/5/5 kwam de Lair Action niet bij het begin van de ronde maar precies toen de beurt onder de 20 zakte, met de regel in de gevechtslog; na het kiezen stond `lairVorige` op die regel en bleef daar staan — ook na een eigen tekst, die hem bewust niet verzet.)*
-- [ ] **How do you want to do this? — voorstel** (DM) — breng tijdens de beurt van een speler een vijand op 0 HP; bovenin staat *<vijand> valt* met die speler al gekozen; het kruisje laat het voorstel verdwijnen zonder dat er iets op tafel komt
-- [ ] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
-- [ ] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
+- [x] **How do you want to do this? — voorstel** (DM) — breng tijdens de beurt van een speler een vijand op 0 HP; bovenin staat *<vijand> valt* met die speler al gekozen; het kruisje laat het voorstel verdwijnen zonder dat er iets op tafel komt
+- [x] **How do you want to do this? — de speler** (DM/SP/TAB) — druk *Vraag het*: alleen die speler krijgt het venster (een andere speler niets), het tafelscherm vertraagt en loopt grijs weg; de speler schrijft een zin en drukt *Zo gaat het*: op tafel komt de zin woord voor woord, dan de klap, en het venster bij de speler gaat dicht
+- [x] **How do you want to do this? — zonder speler** (DM/TAB) — de speler zegt het hardop: typ het zelf in en druk *Op tafel*; of *Zonder woorden*: de klap valt meteen; het kruisje trekt de vraag in en het tafelscherm keert terug zonder klap
 - [x] **Death saves: 20 en 1** (DM) — een speler op 0: de knop *20* zet hem op 1 HP zonder Unconscious, de knop *1* zet er twee failures bij *(nagelopen 24 nov 2026: de knop *1* zette de failures van 0 op 2 en de knop *20* bracht hem op 1 HP met Unconscious eraf; de `nat20`-vlag bleef niet aan de deelnemer hangen en de regie noteerde het als *op* mét `nat20: true`. Een losse faal of succes gaat wél naar het tafelscherm maar bewust niet in `regie.doodsstrijd` — daar staan alleen de vier scènes.)*
 - [x] **Gevecht** (DM/TAB) — initiatief, beurten, HP, condities met iconen; op de tablet de volledige weergave *(nagelopen 24 nov 2026: starten, schade (28 → 21), een conditie (prone) die blijft staan, de ronde omhoog (1 → 2) en afsluiten — met een verslag in het Logboek. Daarna opgeruimd.)*
 - [ ] **Monsters & Encounters** (DM) — statblokken beheren, encounter bouwen, automatisch vullen met de aanwezige spelers
@@ -787,13 +787,13 @@ fout-uitvoert.
 - [x] **Rust** (DM/SP/TAB) — lange en korte rust, veld of herberg, maanfase in de overlay, d100-gebeurtenis per speler met valuta-token *(nagelopen 24 nov 2026, DM-kant: korte rust 200 voor vier spelers, lange rust zette de HP op max en gaf alle Hit Dice terug; in het veld kostte het niets, in de herberg 2 fl per speler; elke speler kreeg zijn eigen d100-voorval. De maanfase en de overlay blijven handwerk, en er kwam in deze ronde geen voorval met een valuta-token voorbij.)*
 - [x] **Hit Dice besteden** (SP) — tijdens een korte rust een Hit Die inzetten; HP en voorraad kloppen daarna *(nagelopen 24 nov 2026: een d6 inzetten gooide 2, telde de Constitution-modifier (+1) erbij en bracht de HP van 20 naar 23; de voorraad ging van 0 naar 1 van de 8 verbruikt. Een korte rust geeft er bewust geen terug, een lange alle.)*
 - [ ] **Akte aanmaken** (DM) — nieuwe akte met nummer, titel en optioneel afbeeldingen
-- [ ] **Akte importeren** (DM) — een `.md` inlezen en controleren of koppen, namen en beelden goed landen
+- [x] **Akte importeren** (DM) — een `.md` inlezen en controleren of koppen, namen en beelden goed landen
 - [ ] **Stap onthullen** (DM/SP) — elk staptype één keer onthullen en bij de speler controleren wat er verschijnt
 - [ ] **Encounter starten vanuit de regie** (DM) — stap onthullen start het gevecht met de juiste monsters
 - [x] **Initiatief en beurten** (DM) — toevoegen, sorteren, beurt doorgeven, ronde ophogen *(nagelopen 24 nov 2026: drie deelnemers op initiative gesorteerd, ronde 1 → 2)*
 - [x] **Condities in gevecht** (DM) — toekennen en weghalen; de iconen kloppen bij speler en tafelscherm *(nagelopen 24 nov 2026: `prone` gezet en teruggelezen op de combatant)*
 - [x] **Monster-HP en schade** (DM) — schade uitdelen, monster verslaan, en de kaart bijwerken *(nagelopen 24 nov 2026: `PUT /combat/combatant/:id` bracht Dummy van 28 naar 21, en die schade liep door naar zijn blad in `playerHp`)*
-- [ ] **Loot na gevecht** (DM) — vondst koppelen aan het gevecht en meteen verdelen
+- [x] **Loot na gevecht** (DM) — vondst koppelen aan het gevecht en meteen verdelen
 - [x] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af *(nagelopen 24 nov 2026 — en dit punt viel eerst om: `overnachtingPrijs` stond op `"2"` en `parsePrijs()` las een kaal getal als niets, dus de party sliep gratis terwijl de editor 2,00 toonde. Rechtgezet; nu gaat er 2 fl per speler af, 8 fl voor vier.)*
 - [x] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst *(nagelopen 24 nov 2026: vier spelers, vier verschillende voorvallen in het antwoord van de lange rust ("Reizende minstreel", "Vreemde paddenstoelen", …). Wat het tafelscherm ervan toont blijft handwerk.)*
 - [ ] **Kaartje kiezen bij een gevecht** (DM) — bij Monster én Medestander kun je nu een kaartje kiezen; wie op de kaart als vijand of bondgenoot staat, staat bovenaan
@@ -3624,3 +3624,37 @@ Bewaakt door `tests/bronteksten-kaal.test.js` (4 toetsen, kanarie nagelopen).
 daar viel de toets over. Commentaar is geen code: de bewaker slaat regels die
 met `//` of `*` beginnen nu over. De kanarie (een echte terugval erbij) laat
 hem nog gewoon omvallen.
+
+## Blok 6 aangepakt (25 nov 2026)
+
+De helft van dit blok raakt de gevechtsregie en de aktes, en daar stond al veel
+onder toetsing. Nagelopen en afgevinkt met het bewijs erbij:
+
+| punt | waar het bewaakt wordt |
+|---|---|
+| How do you want to do this? — voorstel | `gevecht-regie.test.js`, *een vijand die valt tijdens de beurt van een speler* |
+| … — de speler | idem, *de vraag gaat alleen naar die speler, het antwoord naar tafel* |
+| … — zonder speler | idem, *overslaan mag: leeg antwoord, geen moment in het verslag* |
+| Loot na gevecht | `loot-events.test.js` (11 toetsen, incl. koppelen aan een kamer) |
+| Stap onthullen (deels) | `akte-onthullen.test.js` (10 toetsen) |
+
+### De importer had geen enkele toets
+
+Dat was het echte gat. Een akte importeren is de weg waarlangs een heel
+hoofdstuk binnenkomt, en er waren twee dingen misgegaan die nergens
+vastlagen:
+
+- hij **gooide de tekst weg** — hij haalde de tokens eruit en liet de `.md`
+  vallen, precies waarom Obsidian tijdens het spelen nog openstond;
+- bij **aanvullen** mocht bestaande tekst niet overschreven worden.
+
+`tests/akte-importer.test.js` legt nu vier regels vast: elke `##`-kop wordt een
+sectiekop in het script (op volgorde), een `[[naam]]` wordt een kaartje-stap en
+een `![[bestand]]` een beeld-stap (en telt níét als naam), een naam zonder
+kaartje wordt **gemeld** in plaats van stil overgeslagen, de markdown wordt
+bewaard, en aanvullen laat staan wat er stond. Drie kanaries nagelopen — elk
+viel op zijn eigen toets om.
+
+*Technisch detail voor wie er verder aan werkt:* `/import/akte/apply` draait
+achter de upload-middleware, dus hij leest **multipart** — ook als er geen
+enkel bestand meegaat. Een gewone JSON-POST komt er niet doorheen.
