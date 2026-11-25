@@ -2943,3 +2943,36 @@ terugkomt.
 > **Waar dit vandaan kwam:** ik was de deur *Conditions* in Naslag aan het
 > nalopen en keek eerst naar de data. Dat is de goedkoopste meting die er is —
 > één regel in `meta.json` vertelde wat drie schermen lieten zien.
+
+## Tweeëntwintigste ronde (25 nov 2026) — wijst alles nog ergens heen?
+
+Na de conditie van gisteren nog een keer **eerst naar de data** gekeken, nu
+breed: wijzen alle verwijzingen nog ergens heen? `scripts/verwijzingen-nalopen.js`
+loopt ze langs — betrokkenen en hun chef, geheime verbindingen, *Verkoopt bij*,
+voorraadregels, de `links` op een kaartje, het veld *Gebied*, de regels van een
+encounter, de voorwerpen in een vondst, de mimic-encounter en de gever van een
+missie.
+
+**Van de 1.363 verwijzingen wijzen er 26 nergens heen — en geen enkele daarvan
+is een id.** Alle harde koppelingen kloppen: elk `entityId` in een voorraad,
+elke betrokkene, elke vondst, elke missiegever. Ook de beeld-ids zijn heel: van
+de honderden platen in `meta.heldenboek`, de 41 naslagkaarten en alle kaartjes
+wijst er geen één naar een bestand dat er niet is.
+
+Wat er wél uitkwam zijn **namen zonder kaartje**, en die zijn in deze app geen
+fout: je krijgt er een plus bij om er ter plekke een te maken. Drie groepjes:
+
+| wat | hoe vaak | wat het is |
+|---|---|---|
+| *Gebied* → **Continent** | 21 locaties | de top van de gebiedsketen bestaat als woord, niet als kaartje |
+| `[[Hugo II Grisburgh]]` | 2 personages | een naam uit de stamboom die nooit een kaartje kreeg |
+| `[[artifexgilde]]` en `[[Dreigbrief van de Heeren van de Nacht]]` | 1 + 1 | twee die er nét naast zitten: er is wél een *Dreigbrief*, en van een artifexgilde bestaat geen organisatie |
+
+Die laatste twee zijn het bekijken waard — een link die niets doet ziet er aan
+tafel uit als een link die werkt. De 21 keer *Continent* is een keuze: of het
+wordt een kaartje (dan kun je erheen klikken), of het blijft een label.
+
+> **De goedkoopste meting die er is.** Twee rondes achter elkaar leverde een
+> blik op de data meer op dan een uur klikken: eerst het icoon van Unconscious,
+> nu deze 26. Een scan over een datamap vindt in één keer wat je op het scherm
+> alleen tegenkomt als je toevallig dát kaartje opent.
