@@ -763,7 +763,7 @@ fout-uitvoert.
 `public/js/dm-panel.js` · `render-archief.js` (aktes) · `combat-canvas.js`
 
 - [x] **Aktes — verhaal** (DM) — `.md` inlezen of plakken; `##`-koppen worden sectiekoppen in het script
-- [ ] **Aktes — namenrij** (DM) — `[[ ]]` uit de tekst: heeft een kaartje of niet, nieuw of terugkerend; zonder kaartje kun je er meteen een aanmaken
+- [x] **Aktes — namenrij** (DM) — `[[ ]]` uit de tekst: heeft een kaartje of niet, nieuw of terugkerend; zonder kaartje kun je er meteen een aanmaken
 - [ ] **Aktes — regie-script** (DM) — stappen toevoegen van elk type: beeld, entiteit, encounter, dungeon, rust, brief, loot en kop; volgorde verslepen
 - [ ] **Akte-afbeeldingen uploaden** (DM) — vanuit de picker én bij *Nieuwe akte*; ze verschijnen als thumbnails en zijn daarna te onthullen
 - [ ] **Regie-balk** (DM) — akte spelen, stap voor stap onthullen, pauzeren, en de sheets-herinnering na afloop
@@ -797,7 +797,7 @@ fout-uitvoert.
 - [x] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af *(nagelopen 24 nov 2026 — en dit punt viel eerst om: `overnachtingPrijs` stond op `"2"` en `parsePrijs()` las een kaal getal als niets, dus de party sliep gratis terwijl de editor 2,00 toonde. Rechtgezet; nu gaat er 2 fl per speler af, 8 fl voor vier.)*
 - [x] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst *(nagelopen 24 nov 2026: vier spelers, vier verschillende voorvallen in het antwoord van de lange rust ("Reizende minstreel", "Vreemde paddenstoelen", …). Wat het tafelscherm ervan toont blijft handwerk.)*
 - [ ] **Kaartje kiezen bij een gevecht** (DM) — bij Monster én Medestander kun je nu een kaartje kiezen; wie op de kaart als vijand of bondgenoot staat, staat bovenaan
-- [ ] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
+- [x] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
 
 ## Blok 7 — Meesterkamer: sfeer en beheer
 
@@ -3658,3 +3658,29 @@ viel op zijn eigen toets om.
 *Technisch detail voor wie er verder aan werkt:* `/import/akte/apply` draait
 achter de upload-middleware, dus hij leest **multipart** — ook als er geen
 enkel bestand meegaat. Een gewone JSON-POST komt er niet doorheen.
+
+### De tegenhanger van de kale bronteksten
+
+Na de reparatie van *bronteksten kaal buiten de beheercampagne* is de vraag
+meteen: heb ik daarmee niet te veel afgeknepen? De **SRD 5.2 staat onder CC BY
+4.0** en mág juist overal mee — de 331 standaard-statblokken gaan bij élke
+campagne compleet de deur uit. Een verse campagne zonder monsters is een
+campagne waarin je geen gevecht kunt bouwen.
+
+Nagemeten op productie: `grisburgh`, `prewett` en `waterdeep` krijgen alle drie
+331 wezens, en de Guard komt er in alle drie **identiek** uit (674 tekens, met
+zijn statblok). Vastgelegd in `tests/bronteksten-kaal.test.js`, met een kanarie
+die `srd-monsters` uit de vrijgegeven lijst haalt.
+
+- [x] **Aktes — namenrij** — bewaakt door `verhaal.test.js`: de namen komen uit
+      de tekst, terugkerende namen worden herkend aan een eerdere akte, en een
+      alias (`[[Naam|zo getoond]]`) plus een dubbele vermelding tellen als één.
+- [x] **SRD-monster in een gevecht** — de data-kant staat vast (elke campagne
+      krijgt de 331 wezens compleet); het intikken van "Guard" in de
+      encounterbouwer blijft handwerk.
+
+*Mijn eigen valkuil hierbij:* ik las eerst `g.armor_class` en `g.actions` uit
+en kreeg `undefined` terug — het statblok zit genest onder `statblock`. Dat had
+ik bijna als "de tekst is eraf geknipt" gelezen. Derde keer vandaag dat een
+verkeerd geraden veldnaam een bug suggereerde; lees de vorm voor je er een
+oordeel aan hangt.

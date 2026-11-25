@@ -101,6 +101,28 @@ describe('Bronteksten blijven in de beheercampagne', () => {
     assert.ok(een.school || een.level === 0 || een.level >= 0, 'school of niveau');
   });
 
+  // **De tegenhanger, en die is net zo belangrijk.** De SRD 5.2 staat onder
+  // CC BY 4.0 en mág dus overal mee — de 331 standaard-statblokken gaan bij
+  // élke campagne compleet de deur uit. Wie de kale-regel hierboven aanscherpt
+  // moet die grens niet per ongeluk mee verschuiven: een verse campagne zonder
+  // monsters is een campagne waarin je geen gevecht kunt bouwen.
+  it('stuurt de SRD-monsters wél compleet naar elke campagne', async () => {
+    const haal = async (campagne) => {
+      const r = await req(server, 'GET', `/api/bron/srd-monsters?campagne=${campagne}`, null, beheerder);
+      assert.strictEqual(r.status, 200);
+      const lijst = Array.isArray(r.body) ? r.body : (r.body.monsters || []);
+      assert.ok(lijst.length > 100, `${campagne} krijgt de bestiariumbron`);
+      return lijst.find(m => /^guard$/i.test(m.name));
+    };
+    const hier = await haal('grisburgh');
+    const daar = await haal('veerhuis');
+    assert.ok(hier && daar, 'de Guard staat er allebei de keren in');
+    assert.ok(JSON.stringify(daar.statblock || {}).length > 100,
+      'en draagt zijn statblok — een kaal monster is geen monster');
+    assert.deepStrictEqual(daar, hier,
+      'een andere campagne krijgt precies hetzelfde wezen; hier wordt niets afgeknipt');
+  });
+
   it('luistert naar meta.bronTeksten als de campagne die zelf zet', async () => {
     const pad = path.join(DATA_DIR, 'campaigns', 'veerhuis', 'meta.json');
     const meta = JSON.parse(fs.readFileSync(pad, 'utf8'));
