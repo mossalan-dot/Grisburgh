@@ -374,9 +374,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Missies** (ALL) — status open/voltooid/gefaald; een speler vraagt er een aan, de DM keurt goed of af, beide kanten krijgen een melding
 - [ ] **Prikbord / relatiemap** (ALL) — netwerk van personages en organisaties, slepen bewaart de positie, onthulde relaties verschijnen bij de speler
 - [x] Prikbord: de knoppenbalk staat in perkamentstijl met *Kaartje · Draad · Organogram* links en de hulpknop rechts (niet meer in een eigen grijze balk) *(nagelopen 24 nov 2026: de drie knoppen staan er, de hulpknop ook, en geen emoji in de balk)*
-- [ ] Klik op *Organogram*, kies een organisatie die de party kent → de organisatie staat bovenaan op het bord met haar leden eronder, met draden die de rol als label dragen
-- [ ] Zit er een lid in dat de party nog niet kent, dan staat er *Onbekend — <rol>* zonder naam; een lid achter een nog niet onthulde geheimregel staat er helemaal niet bij
-- [ ] Een organisatie die de party nog niet kent staat niet in de keuzelijst (en het verzoek wordt geweigerd)
+- [x] Klik op *Organogram*, kies een organisatie die de party kent → de organisatie staat bovenaan op het bord met haar leden eronder, met draden die de rol als label dragen *(nagelopen 25 nov 2026 met de Druïden van het Amberwoud: de organisatie op y60, de drie leden op y240, drie draden met "Lobbyist voor milieuwetgeving" en twee keer "Brutale lobbyist" als label.)*
+- [x] Zit er een lid in dat de party nog niet kent, dan staat er *Onbekend — <rol>* zonder naam *(nagelopen 25 nov 2026: Camma Chosach tijdelijk op verborgen gezet gaf letterlijk "Onbekend — Lobbyist voor milieuwetgeving"; daarna weer teruggezet. Een lid achter een nog niet onthulde geheimregel is niet gemeten — er staat er in Grisburgh geen.)*
+- [x] Een organisatie die de party nog niet kent staat niet in de keuzelijst (en het verzoek wordt geweigerd) *(nagelopen 25 nov 2026: `POST /party-board/organogram` op een verborgen organisatie gaf **403 "Deze organisatie kent de party nog niet"**.)*
 - [ ] *Kaartje*, *Draad leggen* en *Draad bewerken* openen als gewoon perkamentvenster (geen donkere lijst, geen emoji in het zoekveld); de hulpknop staat één keer in beeld
 - [ ] Een kaartje zonder portret toont een silhouet van zijn soort (poppetje / gebouw / speld), geen vraagteken of gebroken plaatje
 - [ ] Lexicon op een telefoon: één tik op een onderstreept woord opent de uitleg meteen (niet pas bij de tweede tik); tikken naast het woord sluit hem
@@ -2879,3 +2879,20 @@ leeg en `dm-state.json` gelijk aan de momentopname.
 > facility staat in het antwoord **op die facility** (`f.order`, met
 > `doorNaam`), niet in een losse `orders`-map — die map is de opslag, niet de
 > uitvoer.
+
+### Het organogram, in dezelfde ronde
+
+Drie punten, met een tijdelijke ingreep die daarna weer is teruggedraaid: van de
+zeven organisaties in Grisburgh heeft er maar één leden (*Druïden van het
+Amberwoud*, drie), en die is voor de Testgroep verborgen. Dus eerst gemeten dát
+hij geweigerd wordt (403), toen tijdelijk zichtbaar gezet, het organogram
+gebouwd, en één lid verborgen om de andere helft te zien: *"Onbekend —
+Lobbyist voor milieuwetgeving"*, netjes zonder naam maar mét rol.
+
+Daarna alles terug: de drie `party-boards/*.json` zijn byte-voor-byte gelijk aan
+de momentopname en `dm-state.json` verschilt in geen enkele sleutel.
+
+> **Waar de data dun is, zegt de meting weinig.** Een lid achter een nog niet
+> onthulde geheimregel kon ik niet toetsen: er staat er in Grisburgh geen. Dat
+> is geen bevinding over de app maar over de campagne — en het hoort bij het
+> antwoord, want anders lijkt het punt getoetst.
