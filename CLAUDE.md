@@ -348,18 +348,18 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1374  sound-manager.js?v=15  theme.css?v=1001
+index.html  : app.js?v=1382  sound-manager.js?v=15  theme.css?v=1008
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
-              conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=439
+              conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=441
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
-              media-picker.js?v=21  personage-maken.js?v=81  rage.js?v=11
-              render-archief.js?v=157  render-bestiarium.js?v=48
-              render-campagne.js?v=463  render-dungeon.js?v=83
+              media-picker.js?v=22  personage-maken.js?v=81  rage.js?v=11
+              render-archief.js?v=158  render-bestiarium.js?v=48
+              render-campagne.js?v=465  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=82
-              render-relatiemap.js?v=45  render-spreuken.js?v=69
+              render-relatiemap.js?v=45  render-spreuken.js?v=70
               render-statblock.js?v=10  render-vaardigheden.js?v=220
-              socket-client.js?v=112  stemronde.js?v=9  summons.js?v=5
+              socket-client.js?v=113  stemronde.js?v=9  summons.js?v=5
               tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
 dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
               conditions.js?v=7  render-statblock.js?v=10
@@ -1078,6 +1078,17 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > **Nog open (stap 3 en 4 uit `docs/voorstel-markt.md`):** een boodschappenlijst
 > over winkels heen, en één DM-tabel om voorraad en prijzen bij te stellen.
 
+> **De mediakiezer viel om als je hem sloot terwijl hij laadde.** `close()` zet
+> `_state = null`, en `open()` schreef ná het wachten in `_state.files` — dus
+> wie het venster dichtdeed voordat de lijst binnen was, kreeg
+> `null is not an object`. Drie keer gebeurd (laatst 14 nov 2026, in de
+> vaardigheden-editor), en je ziet er niets van: de kiezer valt in stilte om en
+> laat een knop achter die niets meer doet. Sinds 25 nov 2026 schrijft `open()`
+> in zijn **eigen** standobject en tekent alleen nog als dat object nog steeds
+> het huidige is; `_doUpload` neemt `pendingFile` en `onSelect` om dezelfde
+> reden over vóór het uploaden. Algemener: **lees na een `await` niets meer uit
+> een module-variabele die intussen vervangen kan zijn.**
+>
 > **Beelden worden bij binnenkomst WebP.** Gemeten op 15 sep 2026: de
 > bestanden van Grisburgh waren samen **2.053 MB**, gemiddeld 1.853 kB per
 > beeld. Dat zat **niet in de afmetingen** — 843 van de 1.135 beelden zijn maar
@@ -2633,6 +2644,42 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > landingspagina en kop) en **app-icoon** (`meta.appIcon` → `GET
 > /app-icon-<maat>.png`, wat het besturingssysteem op het beginscherm zet) stond
 > nergens uitgelegd en staat nu in `inst_campagne`.
+> **Wat er misging had negen klassen en nul regels.** Het foutenlogboek in
+> Instellingen → Campagne (alleen de beheerder) verzamelt browserfouten,
+> serverfouten en wat een DM zelf meldt — en stond als kale tekst op de pagina:
+> `.dm-fout-kop` is een `div` en dus een blok, dus soort, teller, tijd en de
+> wegknop stonden ónder elkaar, en zes meldingen liepen in elkaar over. Geen
+> foutmelding, want een klasse die niet bestaat zwijgt. Gevonden met
+> `scripts/css-nalopen.js` (zie *Veelgemaakte fouten*), opgemaakt op 25 nov 2026:
+> een kaartje per fout met een streep in zijn eigen kleur (goud = een mens die
+> iets meldde, roodbruin = de browser, staalblauw = de server), de teller als
+> pil, de tijd en de knop rechts, en de stack in een uitklapper die mag schuiven.
+> De wegknop is een **vinkje**, geen kruis: hij betekent *afgehandeld*, en er
+> stonden al twee kruisjes per regel.
+>
+> **Wat erin stond was het nakijken waard.** Zes regels, waarvan vier echte
+> fouten — waaronder de `beursToggle`-fout die een DM vier keer raakte en de
+> race in de mediakiezer hieronder — en twee die helemaal geen fout van ons
+> waren.
+>
+> **Ruis van het internet blijft er nu buiten.** `fouten.isRuis(err, ingelogd)`
+> weigert naast een onleesbaar pad (`/%c0/`) ook een **kapot verzoeklichaam van
+> iemand zonder sessie**: een bot die `POST /.env` doet met `0x%5B%5D=DTAB`
+> erin, of een `Content-Encoding: br` die body-parser niet kent. Dat was 11 van
+> de 20 tellingen. De grens is de sessie en niet de route — onze eigen client
+> stuurt geldige JSON én is ingelogd, dus een kapot lichaam van een ingelogde
+> blijft wél staan.
+>
+> **Valkuil, en hij kostte een uitrol:** `express.json()` staat bovenin
+> `server.js` en dus **vóór** de sessie-middleware. Struikelt body-parser, dan
+> bestaat `req.session` nog niet — de eerste versie las daaruit, zag altijd
+> "niet ingelogd" en filterde dus élke kapotte JSON weg, ook die van ons.
+> De unittoets op `isRuis` bleef groen: die toetst de **regel**, niet wie hem
+> aanroept. Gevonden door het op productie te meten, en sindsdien bewaakt door
+> `tests/fouten-bedrading.test.js`, dat een écht verzoek naar een échte server
+> stuurt. Les: **toets een regel én zijn bedrading** — een helper die een vlag
+> binnenkrijgt zegt niets over wat de aanroeper erin stopt.
+>
 > **De woorden bij Level omhoog:** *XP* en *Milestone* (niet "ervaringspunten"
 > of "mijlpaal"), en de drie HP-manieren heten **Gemiddelde**, **Gooien in de
 > app** en **Zelf gooien** — in Instellingen, in het formulier voor een nieuwe
@@ -4462,6 +4509,18 @@ plaats van twee — elke rust één te veel.
   zonder achtergrond, en niemand zag het omdat er geen foutmelding is. Een scan
   op klassen die de JS gebruikt maar die `theme.css` niet kent brengt dit soort
   gaten boven.
+- **Een klasse die nergens bestaat geeft geen foutmelding.**
+  `node scripts/css-nalopen.js` loopt het na, twee kanten op. **`--gaten`** (de
+  standaard) zoekt klassen die de code uitstuurt en die `theme.css` niet kent —
+  dat is de kant die kapotte schermen vindt, zoals de `herberg-hero` die de
+  woekeraar zelf verzon. **`--dood`** zoekt het omgekeerde: wat in de stylesheet
+  staat en wat geen renderer meer uitstuurt, de achterblijvers na een
+  verbouwing. Tailwind doet niet mee (dat komt van een CDN), dus de gatenkant
+  kijkt alleen naar klassen wier eerste lid een voorvoegsel is dat `theme.css`
+  zelf gebruikt; samengestelde namen (`best-card-niv--${k}`) tellen als
+  gebruikt, want hun staart valt niet te kennen. Gemeten op 25 nov 2026: 161
+  gaten, waarvan de meeste JS-haken zijn (een klasse om een veld terug te
+  vinden). De echte vondst zat in één cluster van negen — zie hieronder.
 - **Eén stand, twee lezers → één helper.** De stand "welke roddels zijn er
   verteld" verhuisde van het kaartje (`data.flavoursUitgesproken`, campagnebreed)
   naar de **party** (`g.flavourReveals`, meegestuurd als `_roddels`). Het

@@ -35245,3 +35245,113 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 .spreuk-tegel .spreuk-tegel-herkomst--overgenomen {
   color: #f2e8d2; background: rgba(150,32,32,0.92); border-color: rgba(220,140,140,0.7);
 }
+
+/* ── Wat er misging (Instellingen → Beheer) ───────────────────────────────────
+   Dit paneel had negen klassenamen en nul regels: het stond als kale tekst op
+   de pagina, met de vier dingen in de kop onder elkaar omdat een div van
+   zichzelf een blok is. Geen foutmelding, dus het viel niet op — en juist dit
+   is de lijst waarin je ziet dát iets stuk is.
+   Een melding komt van een mens en staat bovenaan; die krijgt goud. Een fout
+   uit de browser of van de server is geteld en krijgt een rustiger streep. */
+.dm-fout {
+  position: relative;
+  background: rgba(255, 252, 244, 0.62);
+  border: 1px solid rgba(196, 168, 122, 0.55);
+  border-left: 3px solid rgba(122, 96, 64, 0.75);
+  border-radius: 4px;
+  padding: 8px 10px 9px;
+  /* Geen eigen marge: `.dm-inst-sectie-body` is een flexkolom met gap 8 en doet
+     de tussenruimte al — samen werd het 16. */
+}
+.dm-fout--melding { border-left-color: #8a6a1e; background: rgba(255, 248, 228, 0.72); }
+.dm-fout--client  { border-left-color: #8a3a2a; }
+.dm-fout--server  { border-left-color: #4a5a7a; }
+
+.dm-fout-kop {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 5px;
+}
+.dm-fout-soort {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: 'Cinzel', serif;
+  font-size: 0.72rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b5030;
+}
+.dm-fout-soort svg { width: 13px; height: 13px; }
+/* Honderd keer dezelfde fout is één regel met honderd erachter — dat getal is
+   het enige in de kop dat je echt moet zien staan. */
+.dm-fout-aantal {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.74rem;
+  font-weight: 600;
+  color: #5a3a12;
+  background: rgba(196, 168, 122, 0.3);
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+.dm-fout-wanneer {
+  margin-left: auto;
+  font-size: 0.74rem;
+  color: #8a7050;
+  white-space: nowrap;
+}
+.dm-fout-weg {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid rgba(196, 168, 122, 0.6);
+  border-radius: 3px;
+  background: transparent;
+  color: #7a6040;
+  cursor: pointer;
+}
+.dm-fout-weg:hover { background: rgba(138, 106, 30, 0.16); color: #6b5010; border-color: rgba(138, 106, 30, 0.55); }
+.dm-fout-weg svg { width: 12px; height: 12px; }
+
+/* De melding zelf. `break-word` omdat een foutmelding een url of een lange
+   bestandsnaam kan bevatten, en die hoort niet uit het paneel te lopen. */
+.dm-fout-tekst {
+  font-size: 0.92rem;
+  line-height: 1.35;
+  color: #3a2410;
+  overflow-wrap: break-word;
+}
+.dm-fout-meta {
+  margin-top: 4px;
+  font-size: 0.74rem;
+  color: #8a7050;
+}
+.dm-fout-meta:empty { display: none; }
+
+.dm-fout-stack { margin-top: 6px; }
+.dm-fout-stack > summary {
+  font-size: 0.74rem;
+  color: #7a6040;
+  cursor: pointer;
+  list-style: none;
+}
+.dm-fout-stack > summary::-webkit-details-marker { display: none; }
+.dm-fout-stack > summary::before { content: '▸ '; }
+.dm-fout-stack[open] > summary::before { content: '▾ '; }
+.dm-fout-stack pre {
+  margin: 5px 0 0;
+  padding: 7px 8px;
+  max-height: 180px;
+  overflow: auto;                      /* een stack is breder dan het paneel */
+  background: rgba(42, 26, 8, 0.055);
+  border-radius: 3px;
+  font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+  font-size: 0.7rem;
+  line-height: 1.4;
+  color: #4a3418;
+  white-space: pre;
+}

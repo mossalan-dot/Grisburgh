@@ -12957,7 +12957,7 @@ function _foutenHtml(lijst) {
         <span class="dm-fout-soort">${icon(s.icoon)} ${esc(s.label)}</span>
         ${f.aantal > 1 ? `<span class="dm-fout-aantal">${f.aantal}×</span>` : ''}
         <span class="dm-fout-wanneer">${esc(_foutWanneer(f.laatst))}</span>
-        <button class="dm-fout-weg" onclick="window.dmPanel.foutWeg('${escArg(f.id)}')" title="Afgehandeld — haal hem weg">${icon('x')}</button>
+        <button class="dm-fout-weg" onclick="window.dmPanel.foutWeg('${escArg(f.id)}')" title="Afgehandeld — haal hem weg">${icon('check')}</button>
       </div>
       <div class="dm-fout-tekst">${esc(melding)}</div>
       <div class="dm-fout-meta">${[f.campagne, f.rol, f.waar, f.versie].filter(Boolean).map(esc).join(' · ')}</div>

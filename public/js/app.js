@@ -13,9 +13,9 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=220';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=113";
-import { initDmPanel } from "./dm-panel.js?v=440";
+import { initDmPanel } from "./dm-panel.js?v=441";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=7';
-import './media-picker.js?v=21';
+import './media-picker.js?v=22';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
 import './kaartsfeer.js?v=5';
 // Wat je elke dag opnieuw kiest; hangt zichzelf op aan window.

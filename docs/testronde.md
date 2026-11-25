@@ -3188,3 +3188,58 @@ levelpenning, met overgenomen materiaal in het rood.
 Dat is nu **drie keer** dezelfde fout (schadepil, geheim-merkteken, herkomst).
 CLAUDE.md zegt het daarom scherper: wat op de oude kaart lag hoort ergens op de
 tegel terug — of bewust niet, en dan hoort dát opgeschreven te staan.
+
+### Het paneel dat zegt wat er stuk is, was zelf stuk
+
+Na het bestiarium (dat schóón bleek: elk signaal van de oude kaart heeft een
+blad gekregen) de scan omgedraaid. Niet *wat staat er in de stylesheet dat
+niemand meer uitstuurt*, maar *wat stuurt de code uit dat de stylesheet niet
+kent* — `node scripts/css-nalopen.js`. Dat is de kant die kapotte schermen
+vindt, want een klasse die niet bestaat zwijgt.
+
+161 treffers, waarvan de meeste JS-haken. Eén cluster van negen was echt:
+`dm-fout-*`, het foutenlogboek in Instellingen → Campagne. **Nul regels in
+`theme.css`.** Nagemeten op productie: `.dm-fout-kop` stond op `display: block`,
+dus soort, teller, tijd en de wegknop stonden onder elkaar, en zes meldingen
+liepen in elkaar over zonder rand of achtergrond.
+
+- [x] Instellingen → Campagne → *Wat er misging*: elke fout is een kaartje met
+      een gekleurde streep links — goud als een mens het meldde, roodbruin voor
+      de browser, staalblauw voor de server.
+- [x] De kop staat op **één** regel: soort links, de teller als pil ernaast, de
+      tijd rechts, en de wegknop helemaal rechts (nagemeten: x 1121 van 1152).
+- [x] De wegknop is een **vinkje**. Hij betekent *afgehandeld*; er stonden drie
+      kruisjes per regel.
+- [x] *Stack* klapt open in monospace en mag zijwaarts schuiven zonder dat de
+      pagina meeschuift.
+
+### En wat er in dat logboek stond
+
+Zes regels, en ze waren het nakijken waard:
+
+| wat | stand |
+|---|---|
+| `window.dmPanel.beursToggle is not a function` (4×) | de fout van deze week — `initDmPanel()` die vijf handlers wiste. Al gerepareerd; hier stond het bewijs dat een DM hem vier keer raakte |
+| `_kaartjeBeeld is not defined` (2×, server) | dezelfde dag al gerepareerd (20 nov) |
+| `null is not an object (evaluating '_state.files = []')` (3×) | **nieuw, en echt** — zie hieronder |
+| `Onafgehandelde belofte: Geen vondsten gekozen` | van dm-panel v438; alle vijf aanroepers vangen hem inmiddels op |
+| `unsupported content encoding "br"` (10×) + `POST /.env` | geen fouten maar scanners — zie hieronder |
+
+- [x] **De mediakiezer:** open hem, en sluit hem terwijl de lijst nog laadt. Hij
+      valt niet meer om. (`close()` zet `_state = null`, en `open()` schreef daar
+      ná het wachten in.) Hetzelfde in het uploadpad: sluit het venster tijdens
+      een trage upload.
+- [x] **Ruis blijft buiten de deur:** een `POST` met rommel in het lichaam, van
+      iemand zonder sessie, komt niet meer in de lijst. Nagemeten op productie:
+      400 en 415 terug, lijst bleef op zes.
+- [x] **Maar van een ingelogde wél:** datzelfde verzoek mét sessiecookie komt er
+      wel in. Dat is onze eigen client die onzin stuurt, en dat wil je zien.
+
+**De valkuil die dat opleverde**, en hij is de moeite waard: `express.json()`
+staat in `server.js` **vóór** de sessie-middleware, dus bij een kapot
+verzoeklichaam bestaat `req.session` nog niet. De eerste versie las daaruit en
+filterde daardoor *alles* weg, ook echte clientfouten. De unittoets bleef
+groen — die toetst de regel, niet wie hem aanroept. Gevonden door op productie
+te meten; nu bewaakt door `tests/fouten-bedrading.test.js`, dat een echt
+verzoek naar een echte server stuurt. Allebei de toetsen met een kanarie
+nagelopen.

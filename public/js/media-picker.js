@@ -52,14 +52,22 @@ function _ensureOverlay() {
 
 async function open({ type = 'afbeelding', onSelect, suggestedName = '' } = {}) {
   if (typeof onSelect !== 'function') return;
-  _state = { type, onSelect, suggestedName, tab: 'upload', files: [], query: '', pendingFile: null };
+  // **Schrijf in je eigen stand, niet in `_state`.** Die mag onder je handen
+  // verdwijnen: `close()` zet hem op null, en een tweede venster zet er een
+  // nieuwe. Deed dit `_state.files = …` ná het wachten, dan sloeg het stuk op
+  // niets zodra iemand de kiezer sloot terwijl de lijst nog onderweg was —
+  // drie keer gebeurd in de Meesterkamer, en een kiezer die in stilte omvalt
+  // laat een knop achter die niets meer doet.
+  const st = { type, onSelect, suggestedName, tab: 'upload', files: [], query: '', pendingFile: null };
+  _state = st;
   const ov = _ensureOverlay();
   ov.classList.add('active');
   _paint();          // toont meteen het skelet + laad-state
   try {
     const res = await api.listMedia();
-    _state.files = (res.files || []).filter(f => f.type === type);
-  } catch { _state.files = []; }
+    st.files = (res.files || []).filter(f => f.type === type);
+  } catch { st.files = []; }
+  if (_state !== st) return;   // intussen gesloten, of er staat een ander venster
   _paint();
 }
 
@@ -193,9 +201,11 @@ async function _doUpload() {
   // onder een eigen id, waarvan er één meteen wees.
   if (knop) knop.disabled = true;
   const fileId = `media_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+  // Vóór het wachten overnemen, om dezelfde reden als in `open()`: een upload
+  // duurt, en wie intussen het venster sluit maakt `_state` leeg.
+  const bestand = _state.pendingFile, onSelect = _state.onSelect;
   try {
-    await api.uploadFile(fileId, _state.pendingFile, naam);
-    const onSelect = _state.onSelect;
+    await api.uploadFile(fileId, bestand, naam);
     close();
     // `onSelect` is wat er écht moet gebeuren (het beeld aan een spreuk of een
     // vaardigheid hangen) en dat kán mislukken. Het stond hier zonder `await`

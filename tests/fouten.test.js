@@ -73,4 +73,36 @@ describe('Wat er misging', () => {
     const f = fouten.meld({ soort: 'verzonnen', melding: 'hm' });
     assert.equal(f.soort, 'client', 'een onbekende soort valt terug, hij komt niet als zichzelf binnen');
   });
+
+  // Een logboek dat volloopt met scanners leest niemand meer na — dan is het
+  // net zo nutteloos als de 862 kB pm2-log waar het voor in de plaats kwam.
+  describe('ruis van het internet', () => {
+    const bodyFout = (type) => Object.assign(new Error('kapot lichaam'), { type, status: 400 });
+
+    it('houdt een onleesbaar pad buiten de deur', () => {
+      assert.equal(fouten.isRuis(new URIError('URI malformed')), true);
+      assert.equal(fouten.isRuis(new Error('Failed to decode param \'/%c0/\'')), true);
+    });
+
+    it('houdt een kapot verzoeklichaam van een bezoeker buiten de deur', () => {
+      // Dit zijn de twee die er echt in stonden: `POST /.env` met rommel erin
+      // en een `Content-Encoding: br` die body-parser niet kent.
+      assert.equal(fouten.isRuis(bodyFout('entity.parse.failed'), false), true);
+      assert.equal(fouten.isRuis(bodyFout('encoding.unsupported'), false), true);
+      assert.equal(fouten.isRuis(bodyFout('entity.too.large'), false), true);
+    });
+
+    it('laat datzelfde van een ingelogde wél staan', () => {
+      // Hier zit onze eigen client achter, en die hoort geldige JSON te sturen:
+      // gaat dat mis, dan is het een fout van ons en wil je hem zien.
+      assert.equal(fouten.isRuis(bodyFout('entity.parse.failed'), true), false);
+      assert.equal(fouten.isRuis(bodyFout('encoding.unsupported'), true), false);
+    });
+
+    it('laat een gewone fout altijd staan', () => {
+      const echt = new TypeError('_kaartjeBeeld is not defined');
+      assert.equal(fouten.isRuis(echt, false), false, 'ook van een bezoeker: dit is onze code die omvalt');
+      assert.equal(fouten.isRuis(echt, true), false);
+    });
+  });
 });

@@ -330,9 +330,20 @@ app.get('*', (req, res) => {
 // argumenten als foutafhandelaar, en met drie wordt het stilletjes een gewone
 // route die nooit afgaat.
 app.use((err, req, res, _next) => {
-  // Een pad dat niet te decoderen valt is geen fout van ons maar een scanner.
-  // Die hoeven we niet te bewaren; we hebben er al achthonderd kilobyte van.
-  const scanner = err instanceof URIError || /Failed to decode param/.test(err?.message || '');
+  // Wat ruis van het internet is en wat een fout van ons, staat bij het logboek
+  // zelf (`fouten.isRuis`) — daar hoort die afweging thuis en daar valt hij te
+  // toetsen zonder de server te starten.
+  //
+  // **Kijk naar de cookie, niet naar de sessie.** `express.json()` staat boven
+  // in dit bestand en dus **vóór** de sessie-middleware: struikelt body-parser
+  // over een verzoeklichaam, dan is `req.session` er nog niet en zou élke
+  // kapotte JSON als ruis wegvallen — ook die van onze eigen client, en juist
+  // die wil je zien. De cookie staat wél in het verzoek. Met `saveUninitialized:
+  // false` krijgt een voorbijganger er geen, dus hij betekent echt "deze
+  // browser is hier eerder ingelogd geweest".
+  const ingelogd = !!(req.session?.role || req.session?.characterId)
+    || /(?:^|;\s*)connect\.sid=/.test(req.headers?.cookie || '');
+  const scanner = fouten.isRuis(err, ingelogd);
   if (!scanner) {
     try {
       fouten.meld({
