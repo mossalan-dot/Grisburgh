@@ -3098,3 +3098,40 @@ De sweep zelf woont nu in `scripts/verwijzingen-nalopen.js` in plaats van in
 `/tmp`: dat script loopt sindsdien óók de geluiden, backdrops, dungeonbeelden,
 doorgangen en de beelden in de sessieverslagen na — 1.774 verwijzingen in één
 keer.
+
+## Vierentwintigste ronde (25 nov 2026) — waarden die niet in de lijst staan
+
+Derde keer data-eerst, nu op zoek naar waarden die stil terugvallen: een
+`locType` dat de app niet kent krijgt de algemene speld, een onbekende rariteit
+geen kleur, een class die niet in de progressie staat een lege tijdlijn.
+
+**De keuzelijsten kloppen helemaal.** Uit de editor zelf gelezen en naast de
+data gelegd:
+
+| veld | in de lijst | in gebruik | erbuiten |
+|---|---|---|---|
+| locType | 29 | 14 | 0 |
+| docType | 22 | 17 | 0 |
+| itemType | 27 | 16 | 0 |
+| rariteit | 5 | 5 | 0 |
+
+**In de spelersprofielen zaten er twee.** Elf profielen, twee met iets dat niet
+klopt:
+
+- **Prinses Madelief had haar Origin en Background verwisseld**: `origin:
+  "Soldier"`, `background: "Orc"`. Allebei bestaande waarden — in het verkeerde
+  veld. Gevolg: haar tijdlijn toonde géén species-traits (Soldier is geen volk)
+  en géén background (Orc is geen achtergrond); ze miste dus allebei de blokken.
+  Haar kaartje zei al `ras: Orc`, dus het is een omdraaiing en geen gok —
+  omgezet, en nu staan **Adrenaline Rush, Darkvision en Relentless Endurance**
+  weer op haar blad, met Soldier als achtergrond.
+- **Mercule Tomes heeft helemaal geen Origin op zijn profiel**, terwijl zijn
+  kaartje *Gnome* zegt. Dat is niet om te raden — zijn kaartje zegt ook
+  "Wizard/Fighter" terwijl zijn profiel alleen Wizard kent, dus daar speelt
+  meer. Blijft staan voor de DM.
+
+> **Een veldnaam is een valkuil.** Mijn eerste scan keek naar `prof.ras` — dat
+> veld heet op een profiel `origin`, en op een kaartje `data.ras`. De scan gaf
+> dus voor iedereen "in orde" terug behalve één toevalstreffer. Een check op een
+> veld dat niet bestaat is een check die altijd slaagt; dezelfde valkuil als de
+> toets die een route las die er niet was.
