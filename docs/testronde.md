@@ -3034,3 +3034,42 @@ personage-id nu ook de groepsvelden, en heeft vijftien regels weggehaald (zes
 zichtbaarheid, negen bezit) verdeeld over de drie party's. Kopie ernaast,
 tweede keer draaien zegt *"Niets verweesd"*, en de campagne staat nog op 288
 voorwerpen en 169 personages met het bestaande bezit ongemoeid.
+
+## Drieëntwintigste ronde (25 nov 2026) — wat de gebruiksscan niet zag
+
+Dezelfde methode nog een keer, nu over de dátabestanden die ik nog niet had
+gehad: geluiden, kaartspelden, dungeons, tafels, beelden in de sessieverslagen.
+Eén ding sprong eruit, en niet waar ik het zocht.
+
+**De scan die bepaalt of een bestand nog in gebruik is, keek in elf bestanden**
+— terwijl een campagne er zesentwintig heeft. In de kop van `lib/media-usage.js`
+staat dat het juist een generieke scan is "zonder veldenregister dat veroudert",
+maar de lijst *bestanden* was zelf zo'n register. Wat er niet in stond telde
+niet als gebruik, en `_deleteFileIfUnused()` mag weggooien wat niemand gebruikt.
+
+Het duidelijkste gat: **`bastion.json`**. Een facility kan sinds 19 nov een
+eigen plaat dragen (`f.beeldId`), en die zou als wees gelden. In Grisburgh staat
+toevallig geen enkel bestand alléén daar, dus er is niets kwijt — maar de
+volgende bak data erbij was weer een gat.
+
+Nu leest hij elk `*.json` in de campagnemap, met twee uitzonderingen die allebei
+een reden hebben: `media.json` is het register zelf (een id staat daar per
+definitie in, dat is geen gebruik) en de kopieën (`*.bak.*`, `*.voor-*`,
+`*.backup.*`) zijn bevroren verleden. Nagemeten op productie: 1.798 bestanden,
+1.581 met gebruik, in 892 ms — ruim binnen wat de mediatab aankan.
+
+Bewaakt door twee toetsen in `tests/media.test.js`, met de kanarie erbij: zet de
+oude lijst terug en de eerste valt om.
+
+### En wat de sweep verder vond (data, geen code)
+
+| wat | aantal | wat het betekent |
+|---|---|---|
+| geluiden | 8 | vier standaardklanken (*win*, *loss*, *nextRound*, *nextTurn*) en de vier emotes van één personage wijzen naar bestanden die er niet zijn — die spelen dus niet |
+| encounter-backdrops | 12 | een `backdropId` naar een verdwenen bestand; de backdrop is uit de editor gehaald maar het veld gaat nog wél mee het gevecht in |
+| dungeondoorgang | 1 | *Pastorie van Velurut · W3: Ontvangsthal* heeft een doorgang naar een kaart die niet meer bestaat |
+
+Geen van drieën is een fout in de app — het zijn verwijzingen die bleven staan
+toen de bestanden verdwenen. Wat ermee moet is aan de DM; de scan staat in
+`/tmp/sweep.js`-vorm in deze ronde beschreven en kan zo in
+`scripts/verwijzingen-nalopen.js` worden opgenomen als het vaker nodig is.

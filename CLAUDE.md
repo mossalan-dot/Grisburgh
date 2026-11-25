@@ -2827,6 +2827,16 @@ data/
 | `loot.json` | loot-events: de bibliotheek van vondsten (naam, DC, items, goud, sjablonen) |
 | `media.json` | mediabibliotheek: per fileId weergavenaam + auto-info (type, MIME, afmetingen, upload-datum). Gebruik wordt NIET opgeslagen maar live berekend via `lib/media-usage.js` |
 
+> **De gebruiksscan leest de hele campagnemap.** Hij had een lijst van elf
+> bestanden terwijl een campagne er zesentwintig heeft — en wat er niet in stond
+> telde niet als gebruik, dus `_deleteFileIfUnused()` mocht het weggooien. Een
+> plaat die alléén aan een bastion-facility hing (`f.beeldId` in `bastion.json`)
+> was zo'n geval. Sinds 25 nov 2026 scant hij elk `*.json` in de map, met twee
+> uitzonderingen: `media.json` zelf (daar staat een id per definitie in, dat is
+> geen gebruik) en de kopieën (`*.bak.*`, `*.voor-*`, `*.backup.*` — bevroren
+> verleden). Gemeten: 1.798 bestanden, 1.581 met gebruik, in 892 ms.
+> Bewaakt door twee toetsen in `tests/media.test.js`.
+
 ---
 
 ## Icon-systeem

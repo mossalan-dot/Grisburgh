@@ -179,4 +179,37 @@ describe('Mediabibliotheek', () => {
     const del = await jsonReq(server, 'DELETE', '/api/media/m_spreuk', null, dmCookie);
     assert.strictEqual(del.status, 409, 'niet te verwijderen zolang een spreuk hem gebruikt');
   });
+
+  // **De scan leest de hele campagnemap, niet een lijst bestanden.** Die lijst
+  // noemde er elf terwijl een campagne er zesentwintig heeft, en wat er niet in
+  // stond telde niet mee als gebruik — een plaat die alléén aan een
+  // bastion-facility hangt gold als wees en mocht dus weg. Hier staat een
+  // verwijzing in een bestand dat vroeger buiten de scan viel.
+  it('ziet gebruik ook in een databak die geen vaste plek in de scan had', async () => {
+    await uploadReq(server, '/api/files/m_bastionplaat', dmCookie, { filename: 'burcht.png', contentType: 'image/png', content: PNG_1PX });
+
+    const pad = path.join(DATA_DIR, 'campaigns', 'grisburgh', 'bastion.json');
+    fs.writeFileSync(pad, JSON.stringify({
+      groep1: { naam: 'De Burcht', facilities: [{ id: 'f1', key: 'smithy', naam: 'Smithy', beeldId: 'm_bastionplaat' }] },
+    }, null, 2));
+
+    const del = await jsonReq(server, 'DELETE', '/api/media/m_bastionplaat', null, dmCookie);
+    assert.strictEqual(del.status, 409,
+      'een plaat die aan een bastion-facility hangt is in gebruik en mag niet als wees verdwijnen');
+
+    fs.rmSync(pad, { force: true });
+  });
+
+  it('telt het register zelf en de kopieën niet als gebruik', async () => {
+    await uploadReq(server, '/api/files/m_wees', dmCookie, { filename: 'los.png', contentType: 'image/png', content: PNG_1PX });
+    // media.json noemt dit id per definitie; een kopie-bestand bevriest het verleden.
+    const map = path.join(DATA_DIR, 'campaigns', 'grisburgh');
+    fs.writeFileSync(path.join(map, 'entities.bak.20260101_000000.json'),
+      JSON.stringify({ voorwerpen: [{ id: 'x', name: 'Oud', data: { imageId: 'm_wees' } }] }));
+
+    const del = await jsonReq(server, 'DELETE', '/api/media/m_wees', null, dmCookie);
+    assert.strictEqual(del.status, 200, 'alleen in het register en in een backup = geen gebruik');
+
+    fs.rmSync(path.join(map, 'entities.bak.20260101_000000.json'), { force: true });
+  });
 });
