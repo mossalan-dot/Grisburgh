@@ -584,7 +584,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 `public/js/app.js` (subtabs Party · Personage · Facties · Boedel · Progressie · Spreukenboek · Berichten)
 
 - [ ] **Level en class zet de DM** (SP/DM) — als speler staan level, class en een gekozen subclass als tekst op je Personage-tab, zonder multiclassknop; is je subclass nog leeg, dan kies je hem één keer (met bevestiging) en daarna staat hij vast. De DM ziet op hetzelfde blad gewoon de keuzelijsten. Langs de UI om geeft de route 403
-- [ ] **Party** (SP) — medespelers met portret en HP-balk, ontdekkingsteller per categorie, en wie er vanavond meespeelt
+- [ ] **Party** (SP) — medespelers met portret en HP-balk, ontdekkingsteller per categorie, en wie er meedoet (de DM zet dat onder *Waarvan actief*)
 - [x] **De kop: portret · naam · level** (SP) — de drie staan gecentreerd op één rij, de twee penningen even groot. De rechter toont je level; staat er een level-up klaar, dan gloeit hij goud, staat er "Level 12 → 13" onder en opent klikken het level-up-venster. Hij staat boven élk subtabblad, dus ook als je in je Boedel of je Berichten zit *(nagelopen 24 nov 2026: één rij, allebei 140 px)*
 - [ ] **Level-penning op XP** (SP) — speelt de campagne op XP en staat er geen level-up klaar, dan loopt de ring om de penning mee met hoe ver je bent en staat eronder "nog N XP". Op milestone is de ring leeg (er valt niets te vullen) en staat er "je huidige level". Ligt je XP onder de drempel van je eigen level, dan zegt de regel op het Personage-tabblad waar hij wél zou moeten staan
 - [ ] **De kop op een telefoon** (SP) — de drie blijven op één rij (portret 76px, penning 64px, geen regel eronder); de kop is ongeveer 100px hoog, dus je HP staat meteen in beeld. Niets schuift opzij
@@ -791,8 +791,8 @@ fout-uitvoert.
 - [ ] **Berichten** (DM) — bericht of brief sturen, per speler of party, sjablonen bewaren en hergebruiken, cinematic aanzetten
 - [ ] **Instellingen — titel** (DM) — campagnetitel, ondertitel en embleem; ze werken meteen door in kop en landingspagina
 - [x] **Instellingen — munten** (DM) — namen hernoemen (gp/sp/cp, plus electrum en platinum); de verhouding blijft 1 : 10 : 100 *(nagelopen 24 nov 2026: vijf velden — `inst-munt-fl/kn/cl/ep/pp` — dus ook electrum en platinum zijn te hernoemen. De verhouding zelf staat vast in de code (1 : 10 : 100) en is dezelfde dag uitvoerig nagemeten bij `parsePrijs`.)*
-- [x] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er vanavond meespeelt *(nagelopen 24 nov 2026 met een wegwerp-party: aanmaken zet hem meteen in de lijst ("ZZ Proefparty · 0 personages"), het kaartje heeft een Naam-veld, en verwijderen gaf 200. De drie echte party's bleven ongemoeid.)*
-- [x] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, personages, wie er vanavond speelt en de gedeelde beurs van díé party *(nagelopen 24 nov 2026: het venster toont Naam, Groepswachtwoord, **Personages**, **Waarvan actief** (alleen als er leden zijn) en **Gedeelde beurs** van díé party — met de muntvelden op `beurs-fl-<groepid>`, dus per party apart. Let op: het kopje heet *Waarvan actief*, niet *Speelt vanavond* zoals dit punt en CLAUDE.md beweerden.)*
+- [x] **Instellingen — party's** (DM) — aanmaken, hernoemen, verwijderen (met de waarschuwing), en wie er onder *Waarvan actief* meedoet *(nagelopen 24 nov 2026 met een wegwerp-party: aanmaken zet hem meteen in de lijst ("ZZ Proefparty · 0 personages"), het kaartje heeft een Naam-veld, en verwijderen gaf 200. De drie echte party's bleven ongemoeid.)*
+- [x] **Party-kaartje** (DM) — klik een party in de lijst; het venster toont naam, groepswachtwoord, **Personages**, **Waarvan actief** en de gedeelde beurs van díé party *(nagelopen 24 nov 2026: het venster toont Naam, Groepswachtwoord, **Personages**, **Waarvan actief** (alleen als er leden zijn) en **Gedeelde beurs** van díé party — met de muntvelden op `beurs-fl-<groepid>`, dus per party apart. Het kopje heet *Waarvan actief*; die naam is op 25 nov 2026 vastgelegd.)*
 - [ ] **Gevecht: deelnemer toevoegen** (DM) — het zoekveld is ook het naamveld: kies een monster uit de lijst, óf typ een eigen naam en voeg toe. Het kaartjes-lijstje is een zoekveld geworden, en de kolom heet *Initiative*
 - [ ] **Begroeting per dienst** (DM) — herberg, gokhuis en magizoöloog hebben hetzelfde veld: kop *Begroeting*, een tekstvak van twee regels met een voorbeeld erin, en geen uitleg meer eronder of in de kop
 - [ ] **Herberg aan een locatiekaartje** (DM) — koppel de herberg aan een locatie; opslaan bewaart het, en het veld toont de naam weer bij het heropenen
@@ -832,7 +832,7 @@ fout-uitvoert.
 - [ ] **Encounter bewerken** (DM) — geen backdrop meer (ook niet achter een lopend gevecht), negen canvas-thema's waarvan er altijd één geldt, en **Buit** wijst naar een vondst uit de Loot-tab
 - [ ] **Buit uit een gevecht** (DM) — koppel een vondst aan een encounter, start het gevecht, klik op buit verdelen: de vondst komt als verdeling te voorschijn, inclusief relikwiemunten, en staat daarna als onthuld te boek
 - [x] **Subtab-balken zijn gelijk** (DM) — Gevecht, Diensten en Instellingen dragen dezelfde balk: icoon mét label, en het boekje van het blok waar het over gaat. De dienstnamen zijn generiek (Gokhuis, Detective, Waarzegger), niet de namen die Grisburgh eraan gaf *(nagelopen 24 nov 2026: Gevecht 3, Diensten 10 en Instellingen 3 knoppen, alle drie icoon mét label)*
-- [x] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Speelt vanavond* *(nagelopen 24 nov 2026: ZZ Proefheld gekoppeld via het veld *Personage koppelen…*; hij stond daarna als chip in het kaartje en droeg `data.groep` van die party.)*
+- [x] **Party-kaartje: koppelen** (DM) — typ een naam bij *Personage koppelen*; hij verschijnt als lid en staat daarna ook onder *Waarvan actief* *(nagelopen 24 nov 2026: ZZ Proefheld gekoppeld via het veld *Personage koppelen…*; hij stond daarna als chip in het kaartje en droeg `data.groep` van die party.)*
 - [x] **Party-kaartje: losmaken** (DM) — kruisje bij een lid; de vraag noemt het aantal voorwerpkaartjes op zijn naam én wat er bij de party blijft staan. Na losmaken hoort hij bij geen party en ziet hij niets meer van de campagne *(nagelopen 24 nov 2026: het kruisje vroeg "ZZ Proefheld losmaken van ZZ Proefparty? Hij houdt zijn eigen blad, boedelregels en beurs, maar hoort daarna bij géén party — en ziet dus niets meer van deze campagne. Wat bij ZZ Proefparty blijft staan: · 1 voorwerpkaartje op zijn naam (2 stuks) · wat de party weet". Daarna stond `data.groep` leeg.)*
 - [x] **Party-kaartje: wachtwoord** (DM) — een wachtwoord zetten sluit het slotje op de regel in de lijst; leeg opslaan haalt het weg *(nagelopen 24 nov 2026: een wachtwoord zetten gaf `hasPassword: true` en sloot het slotje in de lijst; leeg opslaan zette hem weer op `false`.)*
 - [x] **Gedeelde beurs per party** (DM) — de beurs staat in het kaartje van elke party zelf; aanzetten of bijwerken raakt alleen díé party en de andere party's merken er niets van *(herschreven 24 nov 2026: het punt beschreef nog een lijst van álle party's onder elkaar in Instellingen. Sinds de party-kaartjes hoort de beurs bij de party waar hij over gaat. Nagemeten op een wegwerp-party: aan, 12 fl 5 kn, weer uit — en de drie echte party's stonden er voor en na byte-voor-byte hetzelfde bij.)*
@@ -1103,7 +1103,7 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 
 - Koppel een dier aan een speler (kaartje → Baasjes): het verschijnt op de Party-tab met een pootafdruk-penning en "van <voornaam>" eronder, en met een HP-ring zoals iedereen.
 - Koppel een NPC als metgezel: die krijgt een schild-penning in plaats van een pootafdruk, en zijn ras · klasse eronder.
-- Zet een speler op afwezig (Instellingen → Party's → Actieve spelers): zijn portret is gedimd met "NIET MEE" eronder. Hij doet dan ook niet mee met rust, loot en het vullen van een gevecht — dat hoort één verhaal te zijn.
+- Zet een speler op afwezig (Instellingen → Party's → Waarvan actief): zijn portret is gedimd met "NIET MEE" eronder. Hij doet dan ook niet mee met rust, loot en het vullen van een gevecht — dat hoort één verhaal te zijn.
 - Start een gevecht en geef iemand een conditie: dezelfde sprite en kleur als op zijn token verschijnen onder zijn portret in de partyrij én in de initiatieflijst (niet meer een eigen lijstje met `lock` voor restrained).
 - Markeer iemand als overleden: hij komt in de sectie *Gevallenen*, grijs, met naam en rol. Alleen kaartjes die de party kent; de sectie is inklapbaar en onthoudt dat.
 - Namen met een titel staan voluit: "Zuster Marelle" en "Jonkvrouw Elsje", niet "Zuster" en "Jonkvrouw".
@@ -2806,10 +2806,11 @@ zijn naam staat en wat bij de party blijft), een wachtwoord zetten en weghalen
 (het slotje in de lijst gaat mee), en de beurs per party — waarbij de drie echte
 party's er voor en na byte-voor-byte hetzelfde bij stonden.
 
-> **Twee namen die uit elkaar lopen.** Het kopje in het party-kaartje heet
-> *Waarvan actief*, terwijl dit document én CLAUDE.md *Speelt vanavond* zeggen
-> (en daarvóór *Actieve spelers*, en daarvóór *momenteel actief*). Een naam die
-> vier keer verschoven is, is het bespreken waard — welke het wordt is aan de DM.
+> **Eén naam, vastgelegd.** Het kopje in het party-kaartje heeft vier namen
+> gehad — *momenteel actief*, *Actieve spelers*, *Speelt vanavond* en
+> *Waarvan actief* — en de documentatie liep achter op het scherm. Op
+> 25 nov 2026 is **Waarvan actief** gekozen; dit document, CLAUDE.md en
+> `docs/todo.md` zeggen nu alle drie hetzelfde als de app.
 
 ## Achttiende ronde (24 nov 2026) — de Markt en de condities
 

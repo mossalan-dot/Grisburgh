@@ -214,7 +214,7 @@ dan weet je wat erin moet.
       - **Tafelscherm** aan, ingelogd en op tafelstand (`?display=1` of
         Instellingen → Tafelscherm). *De app kan dit zelf zien: een tablet die
         verbonden is zit in de campagne-room.*
-      - **Party** — staat de juiste groep actief, en klopt *Actieve spelers*
+      - **Party** — staat de juiste groep actief, en klopt *Waarvan actief*
         (afwezigen uitgevinkt)? Dat stuurt rust, loot en het vullen van een
         gevecht.
       - **Muziek** — Spotify gekoppeld, het juiste apparaat gekozen, en

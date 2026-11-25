@@ -811,7 +811,7 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > voordat het scherm opengaat. Een **sjabloon** wordt bij gebruik gekopieerd, dus
 > later sleutelen aan het sjabloon verandert niets aan wat al ergens ligt.
 > Deelnemers komen uit het lopende gevecht, of anders uit de spelers die
-> "momenteel actief" staan (zie aanwezigheid).
+> onder *Waarvan actief* staan (zie aanwezigheid).
 > **Koppeling aan een dungeonkamer werkt van twee kanten**: in de kamerzijbalk
 > (`render-dungeon.js`, sectie *Vondsten*) maak of koppel je er een, en in de
 > loot-editor kies je een dungeon + kamer. De vondsten leven in `loot.json`, niet
@@ -885,8 +885,9 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > **Aanwezigheid per sessie.** `groups[gid].afwezig` is de lijst met spelers die
 > **niet** meedoen (afwezigen bewaren, niet aanwezigen: dan doet een nieuw
 > personage automatisch mee). In te stellen bij Instellingen → Party's
-> ("Actieve spelers" — bewust niet "momenteel actief", dat las als de
-> actieve *party*). Server-helper `_aanwezigeSpelers()`; client houdt
+> (**Waarvan actief** — bewust niet "momenteel actief", dat las als de
+> actieve *party*; de naam is op 25 nov 2026 vastgelegd nadat hij vier keer
+> verschoven was). Server-helper `_aanwezigeSpelers()`; client houdt
 > `window._groepAfwezig` bij in `renderGroupSwitcher`. Van kracht bij lange/korte
 > rust, lootdeelnemers en het automatisch vullen van een gevecht — **niet** bij
 > wat de hele party betreft (character sheets, berichten, factieboons).
@@ -2578,7 +2579,7 @@ opgeslagen als JSON-string. Alles eromheen is afgeleid:
 > **Koppelen en losmaken is niet hetzelfde als aanwezigheid.** `data.groep` op
 > het personagekaartje is blijvend; `groups[gid].afwezig` is wie er vanavond
 > niet is. Die twee stonden onder elkaar zonder kop en lazen als één ding —
-> vandaar nu *Personages* en *Speelt vanavond* als aparte kopjes.
+> vandaar nu *Personages* en *Waarvan actief* als aparte kopjes.
 > De bevestiging bij losmaken haalt eerst
 > `GET /groups/:gid/lid/:charId/stand` op: hoeveel voorwerpkaartjes er op zijn
 > naam staan (en hoeveel stuks), plus wat er **bij de party** blijft staan
