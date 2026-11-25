@@ -3005,3 +3005,32 @@ ouder en blijven staan tot de DM zegt wat ermee moet.
 > **Les voor mezelf:** een proefkaartje verwijderen is niet hetzelfde als het
 > opruimen. Wat eraan hing — bezit, zichtbaarheid — blijft achter in de
 > groepsvelden. Voortaan eerst het eigendom weghalen, dan pas het kaartje.
+
+### De echte reparatie: verwijderen ruimt nu zelf op
+
+De DM, bij het zien van die twaalf regels: *"Vreemd als een relatie blijft
+bestaan als een van de entities is verwijderd."* Precies — het script is het
+opruimen van gisteren, de reparatie zit in de verwijderroute zelf.
+
+Die route ruimde `visibility`, `secretReveals`, `deceased`, `gevangenen` en
+`huurlingen` al op. Wat er niet in stond was het **bezit**: `itemOwners` en zijn
+twee ladingen, plus `flavourReveals` en `tierStand`. Dat is nu toegevoegd — en
+net zo belangrijk: de **prullenbak** bewaart ze, zodat terugzetten ook teruggeeft
+wie het voorwerp had. Een undo die het kaartje teruggeeft maar niet het bezit is
+een halve undo.
+
+Bewaakt door twee toetsen in `tests/bezit.test.js` (*Een verwijderd kaartje laat
+niets achter*), met een kanarie: haal de nieuwe bakken uit de opruimlus en de
+eerste valt om met de regel die blijft staan erbij.
+
+> **Een toets die niets toetst ziet eruit als een toets die slaagt.** De eerste
+> versie las de stand via `GET /api/dm-state` — een route die niet bestaat. Het
+> antwoord was een foutobject, de bak was `undefined`, en "er staat geen regel
+> meer" was triviaal waar: groen vinkje, nul bewijs. De kanarie bracht het aan
+> het licht, want die bleef óók groen. Nu leest de toets het bestand zelf.
+
+En wat er al lag is opgeruimd: `wezen-opruimen.js` kent naast de bakken op een
+personage-id nu ook de groepsvelden, en heeft vijftien regels weggehaald (zes
+zichtbaarheid, negen bezit) verdeeld over de drie party's. Kopie ernaast,
+tweede keer draaien zegt *"Niets verweesd"*, en de campagne staat nog op 288
+voorwerpen en 169 personages met het bestaande bezit ongemoeid.

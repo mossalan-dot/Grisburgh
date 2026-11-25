@@ -1176,6 +1176,21 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > (beurs, boedel, profiel, HP, lening) van een kaartje dat niet meer bestaat;
 > de groepsvelden blijven met rust. Draai hem altijd eerst zonder `--schrijf`.
 
+> **Een kaartje verwijderen laat niets achter.** De verwijderroute ruimde
+> `visibility`, `secretReveals`, `deceased`, `gevangenen` en `huurlingen` al op,
+> maar **niet het bezit**: gemeten op 25 nov 2026 stonden er in Grisburgh tien
+> regels waarin een speler een voorwerp bezat dat niet meer bestond, plus zes
+> zichtbaarheidsregels over verdwenen kaartjes. Niemand zag ze, en precies
+> daarom bleven ze staan — een relatie waarvan één kant weg is, is geen relatie
+> meer. Sindsdien gaan ook `itemOwners`, `itemCharges`, `itemMaxCharges`,
+> `flavourReveals` en `tierStand` mee, **en** de prullenbak bewaart ze: een undo
+> die het kaartje teruggeeft maar niet wie het had, is een halve undo. Bewaakt
+> door *Een verwijderd kaartje laat niets achter* in `tests/bezit.test.js`.
+> Wat er vóór die datum is blijven liggen ruimt
+> `node scripts/wezen-opruimen.js <campagne> --schrijf` op: die kent nu naast de
+> bakken op een personage-id ook de groepsvelden, want met de volledige
+> kaartjeslijst erbij valt er niets te raden.
+>
 > **Wat je uitdeelt gaat langs de échte spelersfilter.** Er is nog één export:
 > `GET /api/export/campagneboek` (DM-only) — een leesbaar boek, geen tweede app.
 > Hij gebruikt `filterEntityForPlayer` en `hoofdstukkenVoorSpeler` uit

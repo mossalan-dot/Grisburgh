@@ -1852,12 +1852,24 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
     type, entity: JSON.parse(JSON.stringify(dying)),
     groupsState: {}, dmNote: dmState.dmNotes?.[id] || null, deletedAt: Date.now(),
   };
+  // **Alles wat aan dit kaartje hing, en niets anders.** Deze bakken staan per
+  // party en op het id van het kaartje; blijven ze staan, dan bezit een speler
+  // een voorwerp dat niet meer bestaat en houdt een party zichtbaarheid over
+  // een kaartje dat weg is. Ze gaan hieronder weg en komen hier in de
+  // prullenbak, zodat terugzetten óók het bezit terugzet — een undo die het
+  // kaartje teruggeeft maar niet wie het had, is een halve undo.
   for (const [gid, g] of Object.entries(dmState.groups || {})) {
     trashItem.groupsState[gid] = {
-      visibility:   g.visibility?.[id],
-      secretReveal: g.secretReveals?.[id],
-      deceased:     g.deceased?.[id],
-      gevangen:     g.gevangenen?.[id],
+      visibility:     g.visibility?.[id],
+      secretReveal:   g.secretReveals?.[id],
+      deceased:       g.deceased?.[id],
+      gevangen:       g.gevangenen?.[id],
+      huurling:       g.huurlingen?.[id],
+      itemOwners:     g.itemOwners?.[id],
+      itemCharges:    g.itemCharges?.[id],
+      itemMaxCharges: g.itemMaxCharges?.[id],
+      flavourReveal:  g.flavourReveals?.[id],
+      tierStand:      g.tierStand?.[id],
     };
   }
   if (!dmState.trash) dmState.trash = [];
@@ -1916,11 +1928,16 @@ router.delete('/entities/:type/:id', requireDM, (req, res) => {
 
   entities[type] = (entities[type] || []).filter(e => e.id !== id);
   for (const gid of Object.keys(dmState.groups)) {
-    delete dmState.groups[gid].visibility[id];
-    delete dmState.groups[gid].secretReveals[id];
-    if (dmState.groups[gid].deceased) delete dmState.groups[gid].deceased[id];
-    if (dmState.groups[gid].gevangenen) delete dmState.groups[gid].gevangenen[id];
-    if (dmState.groups[gid].huurlingen) delete dmState.groups[gid].huurlingen[id];
+    const g = dmState.groups[gid];
+    delete g.visibility?.[id];
+    delete g.secretReveals?.[id];
+    // Deze vijf bleven achter: `itemOwners` en zijn twee ladingen, de verteld-
+    // stand van de roddels en de gekozen tier. Gemeten op 25 nov 2026 stonden
+    // er in Grisburgh tien bezitsregels naar voorwerpen die niet meer bestaan.
+    for (const bak of ['deceased', 'gevangenen', 'huurlingen', 'itemOwners',
+                       'itemCharges', 'itemMaxCharges', 'flavourReveals', 'tierStand']) {
+      if (g[bak]) delete g[bak][id];
+    }
   }
   delete dmState.dmNotes[id];
   storage.writeJSON('entities.json', entities);
@@ -1959,6 +1976,16 @@ router.post('/entities/restore/:id', requireDM, (req, res) => {
     if (s.gevangen) {
       if (!dmState.groups[gid].gevangenen) dmState.groups[gid].gevangenen = {};
       dmState.groups[gid].gevangenen[entity.id] = s.gevangen;
+    }
+    // Wat er bij het verwijderen afging, komt hier weer terug — bezit voorop:
+    // een voorwerp terugzetten zonder te weten wie het had, levert een kaartje
+    // op dat in niemands boedel staat.
+    for (const [veld, bak] of [['huurling', 'huurlingen'], ['itemOwners', 'itemOwners'],
+                               ['itemCharges', 'itemCharges'], ['itemMaxCharges', 'itemMaxCharges'],
+                               ['flavourReveal', 'flavourReveals'], ['tierStand', 'tierStand']]) {
+      if (s[veld] === undefined) continue;
+      if (!dmState.groups[gid][bak]) dmState.groups[gid][bak] = {};
+      dmState.groups[gid][bak][entity.id] = s[veld];
     }
   }
   if (dmNote !== null && dmNote !== undefined) {

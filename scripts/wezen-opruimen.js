@@ -11,9 +11,18 @@
 //   node scripts/wezen-opruimen.js <campagne>            # alleen tonen
 //   node scripts/wezen-opruimen.js <campagne> --schrijf  # opruimen
 //
-// Raakt alléén bakken aan die op een **personage-id** staan. De groepsvelden
-// (visibility, secretReveals, itemOwners) blijven met rust: die gaan over
-// kaartjes van elke soort, en daar zou dit script te grof zijn.
+// Twee soorten bak, en ze vragen een andere zeef:
+//  - bakken op een **personage-id** (beurs, HP, profiel, lening) — daarvoor is
+//    de lijst personages genoeg;
+//  - de **groepsvelden** (visibility, secretReveals, itemOwners, itemCharges,
+//    flavourReveals, tierStand, deceased, gevangenen, huurlingen) — die staan
+//    op het id van een kaartje van *elke* soort. Vroeger bleven die met rust,
+//    "want daar zou dit script te grof zijn". Met de volledige kaartjeslijst
+//    erbij valt er niets te raden: een sleutel die in géén van de vijf soorten
+//    voorkomt, hoort bij een kaartje dat niet meer bestaat.
+//
+// Sinds 25 nov 2026 ruimt de verwijderroute dit zelf op (en de prullenbak zet
+// het terug). Dit script is er voor wat er vóór die datum is blijven liggen.
 //
 // Bij --schrijf komt er een kopie naast: dm-state.voor-wezen.<datum>.json
 
@@ -38,6 +47,16 @@ for (const p of [padState, padEnt]) {
 const state = JSON.parse(fs.readFileSync(padState, 'utf8'));
 const ent   = JSON.parse(fs.readFileSync(padEnt, 'utf8'));
 const bestaat = new Set((ent.personages || []).map(e => e.id));
+// Alle kaartjes, van elke soort — de groepsvelden kennen dat onderscheid niet.
+const alleKaartjes = new Set();
+for (const t of Object.keys(ent)) for (const x of (ent[t] || [])) if (x?.id) alleKaartjes.add(x.id);
+
+// De groepsvelden met een kaartje-id als sleutel. `afwezig` is een lijst en
+// staat hieronder apart.
+const GROEPSBAKKEN = [
+  'visibility', 'secretReveals', 'flavourReveals', 'itemOwners', 'itemCharges',
+  'itemMaxCharges', 'tierStand', 'deceased', 'gevangenen', 'huurlingen',
+];
 
 // Bakken met een personage-id als sleutel.
 const BAKKEN = [
@@ -65,12 +84,46 @@ for (const id of Object.keys(state.tweespalt?.leningen || {})) {
   if (!bestaat.has(id)) meld(id, 'tweespalt.leningen');
 }
 
-if (!perWees.size) { console.log('Niets verweesd — alles wijst naar een bestaand kaartje.'); process.exit(0); }
+// ── En de groepsvelden ──
+const groepWees = [];
+for (const [gid, g] of Object.entries(state.groups || {})) {
+  const naam = g?.name || gid;
+  for (const bak of GROEPSBAKKEN) {
+    for (const id of Object.keys(g?.[bak] || {})) {
+      if (!alleKaartjes.has(id)) groepWees.push({ gid, naam, bak, id });
+    }
+  }
+  const weg = (g?.afwezig || []).filter(id => !alleKaartjes.has(id));
+  for (const id of weg) groepWees.push({ gid, naam, bak: 'afwezig', id });
+}
 
-console.log(`${perWees.size} verdwenen personage(s), ${totaal} achtergebleven vermelding(en):\n`);
-for (const [id, waar] of perWees) console.log(`  ${id}\n    ${waar.join(', ')}`);
+if (!perWees.size && !groepWees.length) {
+  console.log('Niets verweesd — alles wijst naar een bestaand kaartje.');
+  process.exit(0);
+}
+
+if (perWees.size) {
+  console.log(`${perWees.size} verdwenen personage(s), ${totaal} achtergebleven vermelding(en):\n`);
+  for (const [id, waar] of perWees) console.log(`  ${id}\n    ${waar.join(', ')}`);
+}
+if (groepWees.length) {
+  console.log(`\n${groepWees.length} groepsveld(en) op een kaartje dat niet meer bestaat:\n`);
+  const perParty = new Map();
+  for (const w of groepWees) {
+    if (!perParty.has(w.naam)) perParty.set(w.naam, []);
+    perParty.get(w.naam).push(`${w.bak} → ${w.id}`);
+  }
+  for (const [naam, rijen] of perParty) console.log(`  ${naam}\n    ${rijen.join('\n    ')}`);
+}
 
 if (!schrijf) { console.log('\n(proefdraai — voeg --schrijf toe om het echt op te ruimen)'); process.exit(0); }
+
+for (const w of groepWees) {
+  const g = state.groups?.[w.gid];
+  if (!g) continue;
+  if (w.bak === 'afwezig') g.afwezig = (g.afwezig || []).filter(id => id !== w.id);
+  else if (g[w.bak]) delete g[w.bak][w.id];
+}
 
 for (const bak of BAKKEN) {
   for (const id of Object.keys(state[bak] || {})) if (!bestaat.has(id)) delete state[bak][id];

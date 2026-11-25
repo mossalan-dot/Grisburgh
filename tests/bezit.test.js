@@ -116,4 +116,56 @@ describe('Bezit van een voorwerp', () => {
     assert.equal(rij.rol, 'Te koop');
     assert.equal(rij.tab, 'voorraad', 'de doorklik gaat naar het voorraadtabblad');
   });
+
+  // ── Wat er gebeurt als het kaartje weggaat ─────────────────────────────────
+  // Een relatie die blijft bestaan terwijl een van de twee kanten verdwenen is,
+  // is geen relatie meer. De verwijderroute ruimde `visibility`, `secretReveals`,
+  // `deceased`, `gevangenen` en `huurlingen` al op, maar **niet het bezit**:
+  // gemeten op 25 nov 2026 stonden er in Grisburgh tien regels waarin een speler
+  // een voorwerp bezat dat niet meer bestond. Niemand zag ze, en precies daarom
+  // bleven ze staan.
+  describe('Een verwijderd kaartje laat niets achter', () => {
+    let vw;
+
+    // Rechtstreeks uit het bestand: er is geen route die `itemOwners` kaal
+    // teruggeeft, en juist het ontbreken van een regel is wat we willen zien.
+    const bezitVanGroep = (gid) => {
+      const st = JSON.parse(fs.readFileSync(path.join(DATA_DIR, 'campaigns', 'grisburgh', 'dm-state.json'), 'utf8'));
+      return st?.groups?.[gid]?.itemOwners || {};
+    };
+
+    it('haalt het bezit weg zodra het voorwerp verdwijnt', async () => {
+      vw = (await req(server, 'POST', '/api/entities/voorwerpen',
+        { name: 'Vergeetding', data: { gebruik: 'stapelbaar' } }, dm)).body.id;
+      await req(server, 'PUT', `/api/items/${vw}/owner`,
+        { characterId: A, playerName: 'Eerste', qty: 2 }, dm);
+
+      const voor = (await req(server, 'GET', `/api/items/${vw}/bezit`, null, dm)).body;
+      assert.ok((voor.groepen || []).some(g => (g.rijen || []).some(r => r.characterId === A)),
+        'hij ligt bij Eerste');
+
+      await req(server, 'DELETE', `/api/entities/voorwerpen/${vw}`, null, dm);
+
+      const na = bezitVanGroep('groep1');
+      assert.ok(!(vw in na),
+        `na het verwijderen hoort er geen bezitsregel meer te staan, maar daar is hij: ${JSON.stringify(na[vw])}`);
+    });
+
+    it('en zet het terug als je hem uit de prullenbak haalt', async () => {
+      const id = (await req(server, 'POST', '/api/entities/voorwerpen',
+        { name: 'Spijtding', data: { gebruik: 'stapelbaar' } }, dm)).body.id;
+      await req(server, 'PUT', `/api/items/${id}/owner`,
+        { characterId: A, playerName: 'Eerste', qty: 3 }, dm);
+      await req(server, 'DELETE', `/api/entities/voorwerpen/${id}`, null, dm);
+      assert.ok(!(id in bezitVanGroep('groep1')), 'eerst weg');
+
+      const r = await req(server, 'POST', `/api/entities/restore/${id}`, {}, dm);
+      assert.equal(r.status, 200, JSON.stringify(r.body));
+
+      const terug = (await req(server, 'GET', `/api/items/${id}/bezit`, null, dm)).body;
+      const rij = (terug.groepen || []).flatMap(g => g.rijen || []).find(x => x.characterId === A);
+      assert.ok(rij, 'een undo die het kaartje teruggeeft maar niet wie het had, is een halve undo');
+      assert.equal(rij.aantal ?? rij.qty, 3, 'inclusief het aantal');
+    });
+  });
 });
