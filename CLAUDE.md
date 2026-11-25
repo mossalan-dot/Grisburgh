@@ -1458,6 +1458,14 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > dieper op de bladen van de open tegel; de herkomst nergens, en juist die
 > heeft gevolgen (hij zegt wat uit andermans boek komt).
 > Hersteld als `_tegelWorpPillen()`, `_tegelGeheimMerk()` en `_herkomstMerk()`.
+> **Nagelopen op 25 nov 2026 met `node scripts/css-nalopen.js --sinds <commit>`:
+> er is geen vierde.** Die stand vergelijkt wat de renderers vóór een verbouwing
+> uitstuurden met nu; alles wat eruit kwam bleek hernoemd (`houding-*` →
+> `tegel-houding-*`) of bewust vervangen (het lint van een favoriet werd een
+> ster, de level-upbalk werd een penning met een XP-ring). Dat is de vraag die
+> je na élke verbouwing stelt — niet "wat is dode CSS" (dat zijn er twaalfhonderd
+> en het is opruimschuld), maar "wat stuurde deze renderer eerst uit en nu niet
+> meer".
 > Komt er weer zo'n overstap, loop dan de oude renderer regel voor regel na:
 > wat daar op het beeld lag hoort ergens op de tegel terug — of bewust niet,
 > en dan hoort dát opgeschreven te staan.

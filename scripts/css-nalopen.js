@@ -13,7 +13,22 @@
 //   --gaten  (standaard) klassen die de code uitstuurt en die theme.css niet
 //            kent — de kant die kapotte schermen vindt;
 //   --dood   klassen die in theme.css staan en die geen renderer meer
-//            uitstuurt — de kant die achterblijvers na een verbouwing vindt.
+//            uitstuurt — de kant die achterblijvers na een verbouwing vindt;
+//   --sinds <commit>  wat een renderer sinds dát punt niet meer uitstuurt.
+//
+// Die laatste is de scherpste. `--dood` geeft in een stylesheet van 33k regels
+// ruim twaalfhonderd treffers, en dat is vooral opruimschuld: opmaak van
+// features die bewust verdwenen. De vraag die er echt toe doet is smaller —
+// **is er bij een verbouwing een signaal zoekgeraakt?** Dat is drie keer
+// gebeurd bij de overstap naar tegels (de schadepil, het geheim-merkteken, de
+// herkomsttag), en `--sinds` beantwoordt hem in één keer:
+//
+//   node scripts/css-nalopen.js --sinds d19b6eb~1
+//
+// Gedraaid op 25 nov 2026 tegen de commit vóór "Alle archief-tabbladen als
+// tegels": twaalf klassen, allemaal verklaard (zeven van de oude
+// bestiariumkaart die bladen werden, vier die `tegel-houding-*` gingen heten,
+// en het lint van een favoriet dat een ster werd). Geen verdwaald signaal meer.
 //
 // **Tailwind doet niet mee.** De app laadt Tailwind van een CDN, dus `px-3` en
 // `z-30` hoeven niet in theme.css te staan. Daarom kijkt de gatenkant alleen
@@ -30,6 +45,46 @@ const path = require('path');
 const WORTEL = path.join(__dirname, '..');
 const CSS = path.join(WORTEL, 'public/css/theme.css');
 const dood = process.argv.includes('--dood');
+
+// ── Wat een renderer sinds een bepaald punt niet meer uitstuurt ─────────────
+// Vergelijkt de klassen die de drie kaartrenderers uitstuurden met die van nu.
+// Let op: een klasse kan in een samengesteld attribuut staan
+// (`class="tegel-knop tegel-houding-knop${h ? ' heeft-houding' : ''}"`), dus we
+// lezen de **letterlijke** stukken van zo'n attribuut en niet alleen attributen
+// zonder `${`. Zonder dat meldde hij vier houding-klassen als verdwenen terwijl
+// ze alleen hernoemd waren.
+const RENDERERS = ['public/js/render-campagne.js', 'public/js/render-bestiarium.js',
+                   'public/js/render-spreuken.js', 'public/js/app.js'];
+
+function klassenVan(rev) {
+  const { execSync } = require('child_process');
+  const uit = new Set();
+  for (const f of RENDERERS) {
+    let t = '';
+    try { t = rev ? execSync(`git show ${rev}:${f}`, { encoding: 'utf8', maxBuffer: 1e8 }) : fs.readFileSync(f, 'utf8'); }
+    catch { continue; }
+    for (const m of t.matchAll(/class="([^"]*)"/g)) {
+      // De letterlijke stukken: alles buiten de ${…}-gaten.
+      for (const stuk of m[1].split(/\$\{[^}]*\}/)) {
+        for (const k of stuk.split(/\s+/)) if (/^[a-z][a-z0-9-]{2,}$/.test(k)) uit.add(k);
+      }
+    }
+  }
+  return uit;
+}
+
+const sindsIdx = process.argv.indexOf('--sinds');
+if (sindsIdx >= 0) {
+  const rev = process.argv[sindsIdx + 1];
+  if (!rev) { console.error('Geef een commit op: --sinds <commit>'); process.exit(1); }
+  const voor = klassenVan(rev), nu = klassenVan(null);
+  const weg = [...voor].filter(k => !nu.has(k)).sort();
+  console.log(`\n${voor.size} klassen uitgestuurd in ${rev} · ${nu.size} nu\n`);
+  console.log(`── sindsdien niet meer uitgestuurd (${weg.length}) ──\n`);
+  console.log(weg.map(k => '  ' + k).join('\n') || '  (niets)');
+  console.log('\nLoop ze na: is het hernoemd, vervangen, of zoekgeraakt?');
+  process.exit(0);
+}
 
 const css = fs.readFileSync(CSS, 'utf8');
 // Wat theme.css definieert. Een selector mag er samengesteld in staan

@@ -3713,3 +3713,42 @@ eigen toelichting staat `.skill-adj-btn` letterlijk. Commentaar wordt nu eerst
 gestript. Vanmiddag gebeurde precies hetzelfde bij de bewaker die
 `req.session?.campaignId` weigert. **Een bewaker die de bron leest, moet eerst
 het commentaar eruit halen** — anders houdt de uitleg de fout in leven.
+
+### Is er bij de verbouwing nog een signaal zoekgeraakt?
+
+Dat was de open vraag van gisteren, na drie keer dezelfde fout (de schadepil,
+het geheim-merkteken, de herkomsttag). De omgekeerde scan — *wat staat er in
+`theme.css` dat geen renderer meer uitstuurt* — gaf **1204** treffers, en dat is
+geen antwoord: in een stylesheet van 33k regels is dat vooral opmaak van
+features die bewust verdwenen. De eerste die ik natrok (`spell-damage-pill`)
+bleek precies dat: de commit heet letterlijk *"remove pill"*, vervangen door
+dobbelsteenkleur per schadesoort.
+
+De vraag moest dus smaller. Niet "wat is dood" maar **"wat stuurde een renderer
+vóór de verbouwing uit en nu niet meer"**. Dat is nu een eigen stand van het
+gereedschap:
+
+```bash
+node scripts/css-nalopen.js --sinds d19b6eb~1    # de commit vóór "alles als tegels"
+```
+
+Uitkomst: **geen enkel verdwaald signaal.** Alles wat hij opgeeft is hernoemd of
+bewust vervangen:
+
+| wat | waar het heen ging |
+|---|---|
+| 7 × `best-card-*` | de bladen van de bestiariumtegel (gisteren al nagelopen) |
+| 4 × `houding-*` | heet nu `tegel-houding-*` |
+| `tegel-lint` | het lint van een favoriet werd een gouden ster (`tegel-ster.is-aan`) |
+| 5 × `levelup-balk*` | de balk werd een penning in de kop, met een XP-ring |
+| 6 × `player-trait-custom-form*` | dat formulier draait nu op de huisstijlblokken |
+
+- [x] **Geen verloren signalen meer uit de tegel-overstap** — nagelopen met
+      `--sinds`; alle twaalf plus de latere vondsten zijn verklaard.
+
+*Eén valkuil in het gereedschap zelf, en hij kostte me bijna een vals alarm:*
+een klasse staat vaak in een samengesteld attribuut
+(`class="tegel-knop tegel-houding-knop${h ? ' heeft-houding' : ''}"`). Lees je
+alleen attributen zónder `${`, dan lijken vier houding-klassen verdwenen terwijl
+ze alleen hernoemd zijn. `--sinds` leest nu de letterlijke stukken tussen de
+gaten.
