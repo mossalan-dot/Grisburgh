@@ -913,8 +913,24 @@ fout-uitvoert.
       voor de tweede party dicht staan. Van de drie beelden op dat verslag is er
       nul onthuld, en er gaat ook nul mee.*
 - [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven
-- [ ] **Gevecht: de opening** (TAB) — start een gevecht: het tafelscherm toont *Roll Initiative* met balken boven en onder, de party komt van links, de vijanden van rechts (gelijke namen samen als ×3), een streep met *tegen* ertussen; de naam van de encounter staat er nergens; tikken sluit hem; heeft het gevecht Lair Actions, dan staat er *De plek zelf vecht mee*
-- [ ] **Gevecht: een nieuwe ronde** (TAB) — ga naar ronde 2: het beeld dimt, *RONDE 2* schuift in, en eronder staat een regel van de verteller; breng de party op lage HP en de regel van de volgende ronde zegt *De party wankelt*
+- [x] **Gevecht: de opening** (TAB) — start een gevecht: het tafelscherm toont
+      *Roll Initiative* met balken boven en onder, de party komt van links, de
+      vijanden van rechts (gelijke namen samen als ×3), een streep met *tegen*
+      ertussen; de naam van de encounter staat er nergens; tikken sluit hem.
+      *Nagemeten in een wegwerpkopie (25 nov 2026): titel "Roll Initiative",
+      party op x 64 en vijand op x 924, twee Wolven samen als "×2", twee balken,
+      en "Wolvenaanval" komt nergens in beeld.*
+- [ ] **Gevecht: de opening met een lair** (TAB) — heeft het gevecht Lair
+      Actions, dan staat er *De plek zelf vecht mee* (apart te toetsen: de
+      encounter die ik gebruikte heeft er geen)
+- [x] **Gevecht: een nieuwe ronde** (TAB) — ga naar ronde 2: het beeld dimt,
+      *RONDE 2* schuift in, en eronder staat een regel van de verteller; breng
+      de party op lage HP en de regel van de volgende ronde zegt *De party
+      wankelt*. *De aankondiging staat drie seconden op het **canvas** en in
+      geen enkele DOM — die vang je niet betrouwbaar met een foto na een
+      opstart van zeventien seconden. De rondewissel en de vage HP-labels zijn
+      wél op beeld nagekeken; de regels van de verteller staan nu in
+      `tests/verteller.test.js`.*
 - [ ] **Gevecht: de camera** (TAB/DM) — bij een beurtwissel zoomt het tafelscherm kort in op wie aan zet is en daarna weer uit, zonder kale rand; op het DM-scherm beweegt er niets
 - [ ] **Gevecht: death saves als scène** (TAB) — breng een speler op 0: *<naam> valt* met zes lege bolletjes, en de rand van het scherm wordt rood met een hartslag; een mislukte worp vult een rood bolletje en het hart gaat trager; *20* geeft een lichtflits en *Natural 20*; drie failures maakt het beeld grijs met *<naam> is gevallen*; zodra niemand meer op 0 ligt verdwijnt de rode rand
 - [ ] **Genadeslagen in het Logboek** (SP/DM) — na een gevecht met twee beschrijvingen staat bovenin het Logboek *Genadeslagen 2*; openklappen toont ze als kaartjes, de nieuwste eerst, met wie het deed en tegen wie; een speler van een andere party ziet ze niet; zonder een enkele beschrijving staat het blok er niet
@@ -3319,3 +3335,42 @@ sleutels die met `groep` beginnen vindt ook het **veld** `groep` op elk
 personagekaartje — 160 valse treffers die de echte verstoppen. Het patroon moet
 op het id-formaat staan (`groep1` of `groep_<cijfers>_<letters>`), niet op het
 woord.
+
+### Twee schermen, en een regel die nergens in de DOM staat
+
+Blok 8 vraagt om een tafelscherm dat luistert terwijl de DM iets doet. Een
+gevecht starten in de echte campagne stuurt naar álle spelers, dus volgens de
+afspraak: een **wegwerpkopie** (nachtelijke backup → eigen map → eigen poort)
+met de Testgroep erin. En één browser is genoeg — het tafelscherm is wat getoetst
+wordt, de DM-handeling kan gewoon een API-aanroep zijn.
+
+**De opening klopt.** Nagemeten na het uitlopen van de animatie: *Roll
+Initiative*, party links (x 64), vijand rechts (x 924), twee Wolven samen als
+"×2", twee balken, en de encounternaam ("Wolvenaanval") nergens in beeld.
+
+Eén vals alarm onderweg, de moeite van het opschrijven waard: op de eerste foto
+**overlapten de namen** elkaar. Dat leek een lay-outfout, maar het was de
+instap — de leden schuiven gestaffeld binnen. Vier seconden later staat elke
+naam in zijn eigen vak van 112 px, zonder botsing. *Meet ná de animatie, niet
+tijdens.*
+
+**De verteller valt niet te fotograferen.** De regel onder *RONDE N* wordt op
+het **canvas** getekend en staat in geen enkele DOM; hij is drie seconden
+zichtbaar, en een browser heeft zeventien seconden nodig om op te starten en in
+te loggen. Twee pogingen, twee keer net te laat — en dat is dan ook geen zinnige
+manier om hem te bewaken.
+
+Dus staat hij nu in `tests/verteller.test.js`: tien toetsen op de **regels**,
+want daar kan hij stil verschuiven. Dat wie er ligt wint van wie er wankelt, dat
+"de vijand heeft de overhand" wint van "de party wankelt", dat drie ronden niet
+dezelfde zin geven, en dat er **nooit een getal** in staat — dat is het hele
+punt van dat scherm.
+
+**En een kanarie die niet afging.** De toets voor een vage deelnemer (die geen
+`hp` heeft maar een `hpPct`) bleef groen toen ik die tak uit `_hpFrac` sloopte:
+zonder die tak wordt iedereen 0, en dan zegt het scherm "De party wankelt" —
+precies wat mijn toets verwachtte. Hij sloeg dus aan op het kapotte gedrag.
+Aangescherpt naar een vage party op **90%**, want die moet een rustige zin
+krijgen en dat is onmiskenbaar iets anders. Derde keer dat deze val toeslaat
+(na het niet-bestaande `GET /api/dm-state` en `prof.ras`): **een toets die op de
+kapotte versie óók slaagt, toetst niets.**

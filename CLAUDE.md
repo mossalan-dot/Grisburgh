@@ -660,6 +660,35 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > en `thema` per actie voor de kleur op tafel. Bewaakt door het tweede `describe`-blok
 > in `tests/klassekracht.test.js`.
 
+> **Een toets die op de kapotte versie óók slaagt, toetst niets.** Dit is nu
+> **drie keer** gebeurd, steeds anders vermomd: een toets die `GET
+> /api/dm-state` las (die route bestaat niet, dus elke bewering erover klopte),
+> een scan op `prof.ras` (het veld heet `origin`), en op 25 nov 2026 een toets
+> op de verteller met een **vage** deelnemer. Die laatste: haal je de
+> `hpPct`-tak uit `_hpFrac`, dan wordt zo'n deelnemer 0 en zegt het scherm *De
+> party wankelt* — precies wat de toets verwachtte. Hij sloeg dus aan op het
+> kapotte gedrag en bleef groen.
+> **Daarom hoort bij elke nieuwe toets een kanarie**, en bij een kanarie die
+> niét afgaat hoort de toets herschreven te worden naar een geval waarin goed en
+> fout **onmiskenbaar** verschillen — hier: een vage party op 90%, die een
+> rustige zin hoort te krijgen in plaats van "wankelt".
+>
+> **Wat je op een canvas tekent, kun je niet opzoeken.** De regel van de
+> verteller onder *RONDE N* staat in geen enkele DOM en is drie seconden
+> zichtbaar, terwijl een browser zeventien seconden nodig heeft om op te starten
+> en in te loggen. Zo'n moment vang je niet betrouwbaar met een foto; toets de
+> **regel** (`tests/verteller.test.js` knipt `_verteller` uit
+> `combat-canvas.js` en draait hem in een `vm`) en gebruik het beeld voor wat er
+> blíjft staan.
+>
+> **Twee schermen tegelijk hoeft meestal niet.** Voor alles wat het tafelscherm
+> toont is er één browser nodig — dat scherm is wat je toetst — en de
+> DM-handeling is gewoon een API-aanroep. Draai dat in een **wegwerpkopie**
+> (nachtelijke backup → eigen map → `GRISBURGH_DATA_DIR` → eigen poort) met een
+> leesbaar `dmPassword` erin: een gevecht starten in de echte campagne stuurt
+> naar álle spelers. En meet **ná** de animatie — op de eerste foto van de
+> opening leken de namen te overlappen, maar dat was de gestaffelde instap.
+>
 > **Valkuil, nog een keer:** ook `ps aux | grep "[s]erver.js" | xargs kill` in een
 > opdracht die zelf "server.js" bevat, raakt de eigen shell. Stop de testserver in
 > een aparte opdracht.
