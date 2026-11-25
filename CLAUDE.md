@@ -2959,6 +2959,16 @@ data/
 > geen gebruik) en de kopieën (`*.bak.*`, `*.voor-*`, `*.backup.*` — bevroren
 > verleden). Gemeten: 1.798 bestanden, 1.581 met gebruik, in 892 ms.
 > Bewaakt door twee toetsen in `tests/media.test.js`.
+>
+> **Twee bestanden hangen aan hun naam, niet aan een veld**, en die moet de scan
+> apart kennen: de portretvideo `{entityId}_video` (auth.js leidt hem af uit het
+> bestaan van het bestand) en de **plaat van een spreuk**, `spell-img-<index>`.
+> Die tweede ontbrak: op 25 nov 2026 meldde de scan in Grisburgh **390**
+> ongebruikte bestanden, waarvan **165 spreukplaten** — de hele spreukkunst van
+> de campagne. Na de reparatie zijn het er 225 (42 MB), en dat is een normale
+> staart: 188 uploads die nooit ergens aan gehangen zijn en 22 losgekoppelde
+> geluiden. Komt er een derde soort bij die op zijn naam gevonden wordt, dan
+> hoort hij in dezelfde lus onderaan `scanUsage()`.
 
 ---
 

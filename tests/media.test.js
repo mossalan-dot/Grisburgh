@@ -135,6 +135,24 @@ describe('Mediabibliotheek', () => {
   // Minimale geldige MP4 (ftyp-box op offset 4) — voldoende voor de magic-byte-sniff.
   const MP4_MIN = Buffer.concat([Buffer.from([0,0,0,0x18]), Buffer.from('ftypmp42'), Buffer.alloc(16)]);
 
+  // Zelfde conventie als de portretvideo hieronder, en die ontbrak: een
+  // spreukplaat staat op `spell-img-<index>` en wordt nergens als dataveld
+  // bewaard — de tegel leidt hem af uit het bestaan van het bestand. In
+  // Grisburgh meldde de scan daardoor 165 platen als wees: de hele
+  // spreukkunst van de campagne.
+  it('beschermt een spreukplaat (spell-img-<index>) tegen wees-verwijdering', async () => {
+    const up = await uploadReq(server, '/api/files/spell-img-fire-bolt', dmCookie, {
+      filename: 'firebolt.png', contentType: 'image/png', content: PNG_1PX,
+    });
+    assert.strictEqual(up.status, 200);
+
+    const del = await jsonReq(server, 'DELETE', '/api/media/spell-img-fire-bolt', null, dmCookie);
+    assert.strictEqual(del.status, 409,
+      'de plaat van een spreuk hangt aan zijn bestandsnaam en mag niet als wees verdwijnen');
+    const tekst = JSON.stringify(del.body);
+    assert.match(tekst, /Fire Bolt/i, 'en het antwoord hoort te zeggen bij welke spreuk hij hoort');
+  });
+
   it('beschermt de speler-portretvideo ({id}_video) tegen wees-verwijdering', async () => {
     // Maak een personage en upload de portretvideo op de vaste-naam-conventie.
     const ent = await jsonReq(server, 'POST', '/api/entities/personages', { name: 'Held', subtype: 'speler' }, dmCookie);

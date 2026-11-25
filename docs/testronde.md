@@ -3521,12 +3521,38 @@ van 7), en bij het terugrollen weer de nieuwe — **zonder herstart**, want
 geheugen staan hangen aan de mtime en vergelijken met `!==`, dus een oudere
 mtime verst ze net zo goed als een nieuwere.
 
-### De media-opruiming vindt wat hij moet vinden
+### De media-opruiming miste de halve spreukkunst
 
-Eén scan over 1963 bestanden: **750 ms**, 1573 in gebruik, **390 ongebruikt
-(79,3 MB)** — 366 webp, de rest geluid. Dat is 20% van de bibliotheek.
+Eén scan over 1963 bestanden duurt **750 ms**. Hij meldde er eerst **390 als
+ongebruikt**, en dat was te veel om te geloven — 20% van de bibliotheek. Terecht,
+want het klopte niet:
+
+| soort | aantal | oordeel |
+|---|---|---|
+| `spell-img-<index>` | **165** | **in gebruik** — de plaat van een spreuk hangt aan zijn bestandsnaam |
+| `media_*` | 188 | echte wezen: in de bibliotheek gezet, nooit ergens aan gehangen |
+| `snd_*` | 22 | echte wezen: geluid dat losgekoppeld is |
+| de rest | ~15 | het portret van een verwijderd kaartje, een concept, een dungeon |
+
+Een spreukplaat staat op `files/spell-img-<index>` en wordt **nergens als
+dataveld bewaard** — de tegel leidt hem af uit het bestáán van het bestand, en
+daarom houdt `_backfillMedia` die kopieën ook bewust buiten de bibliotheek. De
+scan kijkt alleen naar JSON-velden en zag ze dus allemaal als wees.
+
+Voor de portretvideo (`{id}_video`) stond die uitzondering er al, mét toets.
+Voor de spreukplaat ontbrak hij. Nu staat hij er, met een label dat de spreuk
+noemt, en bewaakt door *beschermt een spreukplaat tegen wees-verwijdering* in
+`tests/media.test.js` (kanarie nagelopen).
+
+**Gevaar was er vandaag niet** — `_deleteFileIfUnused` krijgt alleen id's
+waarvan net een verwijzing wegging, en niets loopt de hele bibliotheek langs.
+Maar wie het antwoord leest en ernaar handelt, gooit ze weg. *Een scan die
+"ongebruikt" zegt over iets dat in beeld staat, is erger dan geen scan.*
+
+Na de reparatie: **225 ongebruikt, 42 MB.** Dat is een normale staart voor een
+mediabibliotheek, en niets ervan hoeft weg.
 
 *Let op bij het zelf meten:* `isUsed(id)` draait de hele scan opnieuw voor dat
-ene id. Eén aanroep is ~40 ms en de enige aanroeper (`_deleteFileIfUnused`) doet
-er precies één — maar wie er een lus omheen zet, zoals ik eerst, meet 80
-seconden en denkt dat er iets stuk is. Gebruik `scanUsage(ids)` één keer.
+ene id. Eén aanroep is ~40 ms en de enige aanroeper doet er precies één — maar
+wie er een lus omheen zet, zoals ik eerst, meet 80 seconden en denkt dat er iets
+stuk is. Gebruik `scanUsage(ids)` één keer.
