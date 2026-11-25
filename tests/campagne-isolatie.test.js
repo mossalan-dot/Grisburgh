@@ -199,8 +199,13 @@ describe('Campagne-isolatie', () => {
     // De context loopt door over twee regels, want zo'n terugval is soms een
     // meerregelige expressie.
     const mag = /huidigeCampagne|getActiveCampaignId|catch\s*\{/;
+    // Commentaar telt niet mee. Een toelichting die uitlegt wáárom dit patroon
+    // weg moest, noemt het patroon nu eenmaal — en die mag de bewaker niet
+    // laten omvallen. (Gebeurde op 25 nov 2026 bij `_magBronTeksten`.)
+    const isCommentaar = (r) => /^\s*(\/\/|\*|\/\*)/.test(r);
     const fout = regels
       .map((r, i) => ({ r, ctx: r + regels[i + 1] + regels[i + 2] }))
+      .filter(x => !isCommentaar(x.r))
       .filter(x => x.r.includes('req.session?.campaignId') && !mag.test(x.ctx))
       .map(x => x.r.trim());
     assert.deepStrictEqual(fout, [],

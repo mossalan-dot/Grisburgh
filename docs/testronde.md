@@ -978,16 +978,16 @@ fout-uitvoert.
 ## Blok 10 — Meerdere campagnes
 
 - [x] **Isolatie** (BEHEER) — als DM van A niets van B kunnen lezen of schrijven (`tests/campagne-isolatie.test.js`, 16 tests) *(bewaakt door `tests/campagne-isolatie.test.js`; de hele suite draait groen, 1015 toetsen)*
-- [ ] **Modules** — startset klopt voor een verse campagne; uitgezet is echt weg, ook bij de spelers
-- [ ] **Bronteksten** — kale spreuken en features buiten de beheercampagne; eigen tekst blijft van de DM
+- [x] **Modules** — startset klopt voor een verse campagne; uitgezet is echt weg, ook bij de spelers
+- [x] **Bronteksten** — kale spreuken en features buiten de beheercampagne; eigen tekst blijft van de DM
 - [ ] **Generiek** — geen Grisburgh-kaart, -munten, -naam, -embleem of -dienstnamen in een tweede campagne
-- [ ] **Beheer** — `/campaigns` en de modules alleen voor de beheerder
-- [ ] **Vreemde campagne = bezoeker** (BEHEER) — open `/andere-campagne` als DM: je krijgt haar landingspagina, niet je eigen scherm met haar naam
+- [x] **Beheer** — `/campaigns` en de modules alleen voor de beheerder
+- [x] **Vreemde campagne = bezoeker** (BEHEER) — open `/andere-campagne` als DM: je krijgt haar landingspagina, niet je eigen scherm met haar naam
 - [ ] **Nieuwe campagne opzetten** (BEHEER) — aanmaken met wachtwoord, openen, inloggen, en de eerste party en personage maken
-- [ ] **Bronteksten van een tweede campagne** (BEHEER) — spreuken en features komen kaal binnen; de eigen tekst van die DM blijft
-- [ ] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
-- [ ] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
-- [ ] **Verborgen bestanden** (SP) — zet een document met een pdf-scan op verborgen, kopieer als DM het adres van het bestand en open het als speler: *Niet gevonden*. Onthul het document en het opent. Een portret dat óók aan een gekend kaartje hangt blijft gewoon zichtbaar, en aktebanners en logboekbeelden verdwijnen niet
+- [x] **Bronteksten van een tweede campagne** (BEHEER) — spreuken en features komen kaal binnen; de eigen tekst van die DM blijft
+- [x] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
+- [x] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
+- [x] **Verborgen bestanden** (SP) — zet een document met een pdf-scan op verborgen, kopieer als DM het adres van het bestand en open het als speler: *Niet gevonden*. Onthul het document en het opent. Een portret dat óók aan een gekend kaartje hangt blijft gewoon zichtbaar, en aktebanners en logboekbeelden verdwijnen niet
 - [ ] **De kist gaat open** (TAB) — onthul een vondst en tik op het tafelscherm op de kist: de video speelt, en na ruim vijf seconden staat de buit ernaast
 - [ ] **Uitloggen houdt de cijfers niet vast** (SP) — log als speler uit, laat het tabblad open, en start als DM een gevecht: in de netwerktab staat bij de monsters geen `hp` of `maxHp`
 - [ ] **Gelijke beurt op het tafelscherm** (TAB) — zet vier spelers op dezelfde initiative: de kop met hun namen past, "Ronde 1" staat op één regel
@@ -3556,3 +3556,48 @@ mediabibliotheek, en niets ervan hoeft weg.
 ene id. Eén aanroep is ~40 ms en de enige aanroeper doet er precies één — maar
 wie er een lus omheen zet, zoals ik eerst, meet 80 seconden en denkt dat er iets
 stuk is. Gebruik `scanUsage(ids)` één keer.
+
+## Blok 10, de isolatiekant (25 nov 2026)
+
+Acht van de tien isolatiepunten waren al bewaakt; ik heb ze nagelopen en
+afgevinkt met de toets erbij, in plaats van ze nog eens door te klikken.
+
+| punt | waar het bewaakt wordt |
+|---|---|
+| Modules: startset, uitgezet is echt weg | `tests/modules.test.js` (14 toetsen) |
+| Beheer: `/campaigns` en modules alleen voor de beheerder | idem, *houdt campagnebeheer bij de beheerder* |
+| Vreemde campagne = bezoeker | `campagne-isolatie`, *maakt van een DM een bezoeker* |
+| Wachtwoord van een andere campagne | `dm-wachtwoord.test.js` (6 toetsen) |
+| Twintig keer mis | `review-lekken.test.js`, *remt na twintig mislukte pogingen* |
+| Verborgen bestanden | `waas.test.js` |
+| Generiek: kaart, munten, naam, PWA | `campagne-generiek.test.js` (13 toetsen) |
+
+### En één dat niet bewaakt wás, en stuk bleek
+
+**Bronteksten kaal buiten de beheercampagne.** De PHB-tekst hoort alleen mee te
+gaan in de campagne van de beheerder, of waar `meta.bronTeksten` het toestaat;
+elders komt de structuur binnen en blijft `desc` leeg (op de SRD 5.2 na, die
+onder CC BY 4.0 valt en overal mag).
+
+Die grens hing aan de **sessie** in plaats van aan het **pad** —
+`req.session?.campaignId === config.beheerCampagne`. Daarmee hing het antwoord
+af van wíé er keek in plaats van wáár hij keek. Nagemeten op productie:
+
+| campagne | `bronTeksten` | Fireball kwam binnen als |
+|---|---|---|
+| grisburgh | `true` | volledige tekst — klopt |
+| prewett | *niet gezet* | **972 tekens — fout** |
+
+Nu leest hij `storage.huidigeCampagne()`, en na de uitrol: prewett en waterdeep
+**0** niet-SRD-teksten, grisburgh 542. De SRD-tekst van Fireball (384 tekens)
+gaat overal mee, want dat is precies de bedoeling.
+
+Bewaakt door `tests/bronteksten-kaal.test.js` (4 toetsen, kanarie nagelopen).
+
+### Bijvangst: de bewaker las commentaar mee
+
+`campagne-isolatie.test.js` weigert nieuwe `req.session?.campaignId` in
+`routes/api.js`. Mijn toelichting bij de reparatie **noemt** dat patroon — en
+daar viel de toets over. Commentaar is geen code: de bewaker slaat regels die
+met `//` of `*` beginnen nu over. De kanarie (een echte terugval erbij) laat
+hem nog gewoon omvallen.

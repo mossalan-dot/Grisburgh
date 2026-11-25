@@ -12538,7 +12538,14 @@ function _readBackgroundsSeed() {
 function _magBronTeksten(req) {
   const meta = storage.readJSON('meta.json');
   if (typeof meta.bronTeksten === 'boolean') return meta.bronTeksten;
-  return (req.session?.campaignId || storage.getActiveCampaignId()) === config.beheerCampagne;
+  // **De campagne komt uit het pad, niet uit de sessie** — zelfde regel als bij
+  // de socket-rooms. Hier stond `req.session?.campaignId`, en daarmee hing het
+  // antwoord af van wíé er keek in plaats van wáár hij keek: de DM van de
+  // beheercampagne die `/andere-campagne` opent kreeg de volledige PHB-tekst
+  // mee, terwijl die campagne juist kaal hoort binnen te komen. Gemeten op
+  // 25 nov 2026: Fireball kwam in prewett met 972 tekens beschrijving binnen.
+  // `meta.bronTeksten` hierboven is wél campagne-eigen en blijft leidend.
+  return storage.huidigeCampagne() === config.beheerCampagne;
 }
 
 // Eigen spreukteksten van de campagne: { index: { desc: [], higher_level: [] } }

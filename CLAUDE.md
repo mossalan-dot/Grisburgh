@@ -3411,6 +3411,13 @@ wie het pad raadde. Ze staan nu in `bronnen/` (buiten `public/`) en gaan via
   Aura" die van Nystul. Die staan er dus al — zonder `scripts/srd-2024/srd-namen.js`
   waren ze als nieuw toegevoegd (dubbel) én hadden ze hun SRD-tekst niet gekregen.
   Na het toevoegen van spreuken moet `srd-spelteksten.js --schrijf` opnieuw.
+- **De grens loopt langs het pad, niet langs de sessie.** `_magBronTeksten()`
+  las `req.session?.campaignId`, en daarmee hing het antwoord af van wíé er keek
+  in plaats van wáár hij keek: de DM van de beheercampagne die een andere
+  campagne opende kreeg daar de volledige PHB-tekst (gemeten 25 nov 2026 —
+  Fireball kwam in `prewett` binnen met 972 tekens). Nu `storage.huidigeCampagne()`.
+  `meta.bronTeksten` blijft leidend waar een campagne het zelf zet. Bewaakt door
+  `tests/bronteksten-kaal.test.js`.
 - **Wat de DM zelf schrijft is van hem** en gaat altijd mee, ook in een kale
   campagne: `spells.json` per campagne (`{ eigen: { <index>: { desc, higher_level } } }`),
   te bewerken in het spreukdetail (`PUT /bron/spreuk/:index`). Leeg opslaan wist
