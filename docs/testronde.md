@@ -2976,3 +2976,32 @@ wordt een kaartje (dan kun je erheen klikken), of het blijft een label.
 > blik op de data meer op dan een uur klikken: eerst het icoon van Unconscious,
 > nu deze 26. Een scan over een datamap vindt in één keer wat je op het scherm
 > alleen tegenkomt als je toevallig dát kaartje opent.
+
+### En de groepsvelden, die het opruimscript bewust overslaat
+
+`scripts/wezen-opruimen.js` zegt het zelf: hij raakt alleen bakken aan die op
+een **personage-id** staan, want de groepsvelden (`visibility`, `itemOwners`,
+`bestiarium`) gaan over kaartjes van elke soort en "daar zou dit script te grof
+zijn". Gedraaid op Grisburgh: *"Niets verweesd"* — voor zijn eigen deel klopt
+dat.
+
+Voor die groepsvelden gemeten wat hij laat liggen:
+
+| party | zichtbaarheid | bezit | bestiarium |
+|---|---|---|---|
+| Orphéan en Sarbek | 4 van 369 | 1 van 23 | — |
+| Cleopas, Mercule, Sharari en Lindar | 1 van 337 | 3 van 13 | — |
+| Testgroep | 1 van 402 | 6 van 23 | 1 van 13 |
+
+Twaalf regels die naar een kaartje wijzen dat niet meer bestaat. Ze doen geen
+kwaad — niemand ziet ze — maar *"Cleopas bezit een voorwerp dat er niet is"*
+staat wel in de data, en bij een volgende migratie is het ruis.
+
+**Eén ervan was van mij**: de bezitsregel van mijn proefvoorwerp *ZZ Proef
+Stapel* bij Cleopas, achtergebleven omdat ik het kaartje verwijderde terwijl de
+eigendomsregel nog stond. Meteen opgeruimd (backup ernaast). De andere elf zijn
+ouder en blijven staan tot de DM zegt wat ermee moet.
+
+> **Les voor mezelf:** een proefkaartje verwijderen is niet hetzelfde als het
+> opruimen. Wat eraan hing — bezit, zichtbaarheid — blijft achter in de
+> groepsvelden. Voortaan eerst het eigendom weghalen, dan pas het kaartje.
