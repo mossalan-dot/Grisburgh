@@ -3308,6 +3308,19 @@ sprite v=22): `orbit` `cog` `squirrel` `bug` `puzzle` `droplets`
 > trefwoorden staat op `https://unpkg.com/lucide-static@latest/tags.json`; dat
 > is de snelste weg naar "wat hebben ze voor X".
 
+> **Een conditie zonder icoon is onzichtbaar, én staat in de verkeerde groep.**
+> Het canvas tekent zijn merkteken alleen als `COND_ICON[id]` bestaat (de `if
+> (m)` slaat hem anders over), en `condGroep()` leidt de **groep** af uit de
+> kleur in diezelfde regel — zonder regel valt hij terug op 'conditie'. Op
+> 25 nov 2026 was `flying` de enige van de veertig zonder icoon: geen teken op
+> de token, en ingedeeld bij de gewone condities terwijl hij situationeel is —
+> precies de indeling die het commentaar in `dm-panel.js` zegt te hebben
+> rechtgezet. Nu `['bird', _SIT_STEEL]`; `bird` betekent in deze app al "dit
+> beest vliegt" (de beestenlijst in het Heldenboek), dus dezelfde betekenis.
+> Bewaakt door *Condities* in `tests/frontend-imports.test.js`: elke conditie
+> heeft een icoon, elk icoon hoort bij een bestaande conditie, en elk symbool
+> staat in de sprite.
+>
 > **Conditie-iconen** leven in `COND_ICON` (`combat-canvas.js`): per conditie een
 > `[sprite-icoon, kleur]`. Drie kleurgroepen — gekleurd = PHB-condition, goud
 > (`_CLASS_GOLD`) = klassefeature, staalblauw (`_SIT_STEEL`) = situationeel

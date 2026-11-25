@@ -3814,3 +3814,35 @@ landen.
 dienst mee die alleen in een **commentaarregel** genoemd wordt (`'facties' heeft
 géén sectie-loop`). Commentaar gaat er nu eerst uit — derde bewaker vandaag waar
 dat nodig bleek.
+
+### Welke lijsten moeten het met elkaar eens zijn?
+
+Na de woekeraar lag die vraag voor de hand, dus de andere koppelingen nagelopen:
+
+| wat | uitkomst |
+|---|---|
+| modules → secties, DM-tabs, spelertabs, logtabs | **alles bestaat** (31 modules) |
+| `COND_MET_PLAATJE` → de PNG's in `public/img/conditions/` | 18 om 18, **klopt** |
+| `CONDITIONS` → `COND_ICON` | **39 van de 40** |
+
+Die ene is `flying`, en het kost twee dingen tegelijk. Het canvas tekent een
+merkteken alleen als er een icoon is (`if (m)`), dus een vliegend wezen droeg
+géén teken. En `condGroep()` leidt de **groep** af uit de kleur in diezelfde
+regel — zonder regel viel hij terug op *conditie*, terwijl hij situationeel is.
+Dat is precies de indeling die het commentaar in `dm-panel.js` zegt te hebben
+rechtgezet ("`flying` stond hier bij de situaties en daar bij de condities");
+de hereniging via `condGroep` zette hem stilletjes terug in de verkeerde groep,
+omdat de bron die hij raadpleegt voor deze ene conditie leeg was.
+
+Nu `['bird', _SIT_STEEL]` — `bird` betekent in deze app al "dit beest vliegt",
+dus dezelfde betekenis op een ander scherm. Nagemeten op productie: icoon
+aanwezig, groep *situatie*, 40 om 40.
+
+- [x] **Elke conditie draagt een merkteken** — bewaakt door *Condities* in
+      `tests/frontend-imports.test.js` (elke conditie een icoon, elk icoon een
+      bestaande conditie, elk symbool in de sprite). Twee kanaries nagelopen.
+
+*Meetfout van mezelf onderweg:* mijn tweede telscript las alleen **onaangehaalde**
+sleutels en meldde er elf als "zonder icoon" — die hebben gewoon
+aanhalingstekens (`'bardic-inspiration':`). Vierde keer vandaag dat een te
+strak patroon een probleem suggereerde dat er niet was.

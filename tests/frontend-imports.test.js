@@ -537,3 +537,44 @@ describe('Elke knop heeft opmaak', () => {
       'deze knoppen dragen geen enkele klasse die theme.css kent:\n  ' + fout.join('\n  '));
   });
 });
+
+// **Elke conditie heeft een icoon, en dat is niet alleen opmaak.**
+// Het canvas tekent een merkteken op de token alleen als `COND_ICON[id]`
+// bestaat (`if (m)`), dus zonder regel draagt die conditie geen teken — stil.
+// En `condGroep()` leidt de **groep** af uit de kleur in diezelfde regel, dus
+// een conditie zonder icoon valt terug op 'conditie' ook als hij situationeel
+// is. Gemeten op 25 nov 2026: `flying` was de enige van de veertig zonder
+// icoon, en stond daardoor in de verkeerde groep — precies de indeling die het
+// commentaar in `dm-panel.js` zegt te hebben rechtgezet.
+describe('Condities', () => {
+  const knip = (src, naam, open, dicht) => {
+    const i = src.indexOf(naam);
+    assert.ok(i > 0, `${naam} niet gevonden`);
+    const a = src.indexOf(open, i);
+    let d = 0, b = a;
+    for (; b < src.length; b++) { if (src[b] === open) d++; else if (src[b] === dicht) { d--; if (!d) break; } }
+    return src.slice(a, b + 1).replace(/\/\/[^\n]*/g, '');   // commentaar eruit
+  };
+
+  it('geeft elke conditie een icoon', () => {
+    const src = fs.readFileSync(path.join(JS_DIR, 'conditions.js'), 'utf8');
+    const iconen = knip(src, 'const COND_ICON', '{', '}');
+    const met = new Set([...iconen.matchAll(/^\s*'?([a-z0-9-]+)'?\s*:/gm)].map(m => m[1]));
+    const ids = [...knip(src, 'const CONDITIONS', '[', ']').matchAll(/id:\s*'([a-z0-9-]+)'/g)].map(m => m[1]);
+
+    assert.ok(ids.length > 30, 'de conditielijst is niet leeg geraakt');
+    assert.deepEqual(ids.filter(i => !met.has(i)), [],
+      'deze condities krijgen geen merkteken op de token, en vallen in de verkeerde groep');
+    assert.deepEqual([...met].filter(i => !ids.includes(i)), [],
+      'deze iconen horen bij een conditie die niet meer bestaat');
+  });
+
+  it('wijst naar symbolen die in de sprite staan', () => {
+    const src = fs.readFileSync(path.join(JS_DIR, 'conditions.js'), 'utf8');
+    const sprite = fs.readFileSync(path.join(PUB_DIR, 'img', 'icons.svg'), 'utf8');
+    const iconen = knip(src, 'const COND_ICON', '{', '}');
+    const namen = [...iconen.matchAll(/\[\s*'([a-z0-9-]+)'/g)].map(m => m[1]);
+    const mist = [...new Set(namen)].filter(n => !sprite.includes(`id="icon-${n}"`));
+    assert.deepEqual(mist, [], 'deze conditie-iconen staan niet in icons.svg: ' + mist.join(', '));
+  });
+});

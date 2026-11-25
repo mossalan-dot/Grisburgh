@@ -144,6 +144,13 @@ export const COND_ICON = {
   haste:                ['fast-forward', _CLASS_GOLD],
   // Situationeel/positioneel: geen PHB-condition en geen klassefeature, maar wel
   // iets dat de worp verandert. Eigen tint zodat je de drie groepen uit elkaar houdt.
+  // Flying had als enige van de veertig geen icoon, en dat kost twee dingen:
+  // het canvas tekent niets (de `if (m)` slaat hem over, dus een vliegend
+  // wezen draagt geen merkteken) én `condGroep()` leidt de groep af uit de
+  // kleur hieronder — zonder regel viel hij terug op 'conditie' terwijl hij
+  // situationeel is. `bird` betekent in deze app al "dit beest vliegt"
+  // (de beestenlijst in het Heldenboek), dus dezelfde betekenis.
+  flying:                 ['bird',          _SIT_STEEL],
   dodging:                ['wind',          _SIT_STEEL],
   hidden:                 ['venetian-mask', _SIT_STEEL],
   readied:                ['hourglass',     _SIT_STEEL],

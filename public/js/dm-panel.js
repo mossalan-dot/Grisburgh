@@ -1,5 +1,5 @@
 import { api, huidigeCampagne } from './api.js?v=327';
-import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=45';
+import { init as canvasInit, update as canvasUpdate, stop as canvasStop, acGetal } from './combat-canvas.js?v=46';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 // ── DM Panel ──
@@ -15,7 +15,7 @@ function _redenVragen(vraag) {
 }
 
 // De condities staan op één plek; het spelerstabblad leest dezelfde lijst.
-import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=7';
+import { CONDITIONS, COND_ICON, condGroep } from './conditions.js?v=8';
 
 
 // Groepen voor de conditie-weergave. Op modulescope zodat de rij in het
