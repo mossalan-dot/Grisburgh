@@ -32,6 +32,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [x] **DM-ingang rechtsboven** (DM) — wachtwoordveld met label, Enter volstaat, verdwijnt zodra een speler een portret kiest
 - [x] **Partypijl op de landing** (SP) — gouden pijl valt op, tweede party bereikbaar
 - [x] **Kopbalk klapt in** (ALL) — maak het venster smaller en kijk of de tabs op iconen overgaan in plaats van over de titel te schuiven; ook direct na terugkeer uit tafelscherm *(nagelopen 24 nov 2026 op 390 px: de vier menuknoppen worden iconen en niets overlapt meer — de ontdekkingsmeter liep eerst 16 px over de partynaam heen en wijkt nu onder 560 px)*
+- [ ] **Ingelogd blijven** (ALL) — log in, sluit de browser helemaal en open hem weer: je bent nog ingelogd (de cookie heeft een vervaldatum van 30 dagen)
+- [ ] **Lege campagne** (ALL) — open een campagne zonder personages: midden op de pagina staat *Inloggen als Dungeon Master*
 
 ## Blok 2 — Archief
 
@@ -365,6 +367,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Dobbelknop van de DM** (DM) — buiten een lopende akte is de d20-knop rechtsonder weg; speel een akte af en hij staat er weer
 
 - [ ] **Missies op een kaartje** (DM) — koppel een gever aan een missie; zijn naam staat op het missiekaartje en de missie staat als blokje op zijn eigen kaartje, met status
+- [ ] **Plus achter een onbekende naam** (DM) — schrijf `[[Iemand Nieuw]]` in een kaartje, open het: achter de naam staat een plusje dat het kaartje maakt
+- [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
+- [ ] **Apostrof in een knop** (DM) — maak een monster `Ma'ar de "Wolf"` en klik in het Bestiarium op het kruisje: de vraag noemt hem met apostrof en aanhalingstekens; idem het plusje bij *Bigby's Hand* in het spreukenboek
+- [ ] **Kaartje na kaartje** (ALL) — open een kaartje en druk op → : het volgende kaartje uit het raster opent, ← gaat terug. Met een zoekterm actief blijft hij binnen die gefilterde lijst. Op een telefoon doet vegen hetzelfde
+- [ ] **Spreuk na spreuk** (ALL) — zelfde in het spreukvenster, binnen de filters die aanstaan
 
 ## Blok 3 — Logboek, kaarten en dungeons
 
@@ -578,6 +585,8 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Sluiten vanuit de balk** (ALL) — zowel bij een hoofdkaart als bij een dungeon staat het kruisje in de balk, in perkamentstijl; er zweeft geen zwarte knop meer over het beeld
 - [ ] **Dungeon vrijgeven aan een party** (DM) — toegang per groep; een speler zonder toegang ziet de kaart niet
 - [x] **Missiegever kiezen** (DM) — zoekveld *Gegeven door* in de missie-editor kent personages én organisaties; leeg laten mag *(nagelopen 25 nov 2026: een personage én een organisatie (Cassalanter Compagnie) kunnen allebei de gever zijn, en leeg laten mag. Alleen het id wordt bewaard; de naam zoekt de client erbij — één bron, zoals het hoort.)*
+- [ ] **Nieuwe dungeon tekenen** (DM) — kies *Tekenen* en *Aanmaken*: de dungeon gaat meteen open
+- [ ] **Niet waar het botst** (ALL) — op de wereldkaart en de dungeonkaart blijft slepen pannen, en in een tekstveld doen de pijltjes gewoon wat ze horen te doen
 
 ## Blok 4 — Spelerstabblad
 
@@ -647,6 +656,11 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Portent** (SP) — een Diviner rolt na een lange rust twee d20's (de chip toont ze); *Portent inzetten* biedt precies die getallen aan en haalt de gekozen weg; een tweede keer rollen kan pas na de volgende lange rust
 - [ ] **Arcane Ward** (SP) — een Abjurer vangt 5 HP op met de ward en laadt hem weer bij met een spell van niveau 3; hij komt nooit boven zijn maximum (2× level + INT)
 - [ ] **Pool dobbelstenen** (SP) — Zealot: *Warrior of the Gods* vraagt hoeveel d12, weigert meer dan de pool toelaat, en geneest de gerolde som; Celestial Patron: *Healing Light* idem met d6 tot je CHA-mod
+- [ ] **Prijzen in je eigen munt** (SP) — noem je munten Daalder/Stuiver/Duit, zet in een winkel "2 stuiver" en koop het als speler: er gaan 2 Stuivers af, en heb je er te weinig, dan zegt de melding "2 Stuiver" en niet "2 kn"
+- [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
+- [ ] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
+- [ ] **Brief bladeren** (ALL) — vegen blaadert door een lange brief; de pijltjes deden dat al
+- [ ] **Subtabbladen** (SP) — vegen wisselt tussen Party · Personage · Boedel · …; een veeg die in de voorwerp-carrousel begint hoort bij de carrousel en wisselt dus niet van tabblad
 
 ## Blok 5 — Diensten
 
@@ -741,6 +755,8 @@ fout-uitvoert.
 - [ ] Prijzen komen overal uit de configuratie van de dienst, met een terugval in muntsleutels (`fl`/`kn`/`cl`) en niet in muntnámen.
 - [ ] Temp HP van een bestelling telt niet op maar houdt de hoogste waarde, zoals de regels zeggen.
 - [ ] De Gock weigert onderzoek naar zichzelf; de magizoöloog weigert een wezen dat de party nog niet ontdekt heeft en een wezen dat al volledig bekend is.
+- [ ] **Verkoper in een herberg** (DM) — vink bij een personage *Verkoper* aan, bewaar, kies bij *Verkoopt bij* een herberg: die herberg heeft nu een tabblad *Voorraad* en in de editor een tabblad *Winkel*
+- [ ] **Voorraad aanvullen** (DM) — open een winkel zonder voorraad: onder "Geen voorraad beschikbaar" staat een knop die de editor op *Winkel* opent, met een lege regel klaar
 
 ## Blok 6 — Meesterkamer: spelen
 
@@ -781,6 +797,7 @@ fout-uitvoert.
 - [x] **Rust met herberg-prijs** (DM/SP) — overnachten in de herberg schrijft de prijs per speler af *(nagelopen 24 nov 2026 — en dit punt viel eerst om: `overnachtingPrijs` stond op `"2"` en `parsePrijs()` las een kaal getal als niets, dus de party sliep gratis terwijl de editor 2,00 toonde. Rechtgezet; nu gaat er 2 fl per speler af, 8 fl voor vier.)*
 - [x] **Rustgebeurtenis per speler** (SP) — iedere speler krijgt zijn eigen voorval; het tafelscherm toont de lijst *(nagelopen 24 nov 2026: vier spelers, vier verschillende voorvallen in het antwoord van de lange rust ("Reizende minstreel", "Vreemde paddenstoelen", …). Wat het tafelscherm ervan toont blijft handwerk.)*
 - [ ] **Kaartje kiezen bij een gevecht** (DM) — bij Monster én Medestander kun je nu een kaartje kiezen; wie op de kaart als vijand of bondgenoot staat, staat bovenaan
+- [ ] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
 
 ## Blok 7 — Meesterkamer: sfeer en beheer
 
@@ -863,6 +880,11 @@ fout-uitvoert.
 - [ ] **Instellingen — openingspagina** (DM) — de campagne uit het overzicht halen en terugzetten
 - [ ] **Instellingen — Ctrl+S** (DM) — sneltoets slaat op zolang het paneel in beeld is; Enter in een veld ook
 - [ ] **Helpteksten in de Meesterkamer** (DM) — de uitleg per DM-tab openen en bewerken
+- [ ] **Koppelen** (DM) — Instellingen → Muziek: client-id invullen, *Koppelen met Spotify*, toestemming geven. Je komt terug in de campagne met een melding "Spotify gekoppeld als …"; het adres in de balk bevat daarna geen `?code=` meer
+- [ ] **Zoeken en toevoegen** (DM) — Aktes → regie-script → muzieknoot: typ een titel, kies een resultaat. De stap staat in het script met naam en artiest, en met "— herhalen" als je dat vinkje aan had
+- [ ] **Starten tijdens het spelen** (DM) — muzieknoot in de regie-balk: de muziek begint op het gekozen apparaat. Nog een keer klikken start 'm opnieuw
+- [ ] **Geen Spotify open** (DM) — zet alles uit en klik de stap aan: je krijgt "Geen actief Spotify-apparaat gevonden", geen stille mislukking
+- [ ] **Herhalen** (DM) — een stap met herhalen blijft doorspelen; zonder herhaling stopt hij na het nummer
 
 ## Blok 8 — Tafelscherm en realtime
 
@@ -961,6 +983,10 @@ fout-uitvoert.
 - [ ] **Gevecht: de afloop** (TAB/DM) — beëindig een gevecht met een beschrijving en een Natural 20 erin: het tafelscherm toont *Overwinning*, rondes en minuten, wie er tegenover stond, de beschrijving als citaat en *stond op met een Natural 20*; tikken sluit hem; het verslag in het Logboek heeft dezelfde citaat en regel
 - [ ] **Gevecht: eigen klanken** (TAB) — hang bij Geluiden → Momenten een bestand aan *Roll Initiative* en aan *How do you want to do this?*; de opening en de klap spelen dat bestand in plaats van de gemaakte klank
 - [ ] **Wat voorafging: muziek** (TAB) — zonder instelling een lage drone met een dreun bij de titel; hang je bij Geluiden → Momenten → *Terugblik* een bestand, dan zwelt dát aan en sterft het weg aan het eind
+- [ ] **De kist gaat open** (TAB) — onthul een vondst en tik op het tafelscherm op de kist: de video speelt, en na ruim vijf seconden staat de buit ernaast
+- [ ] **Uitloggen houdt de cijfers niet vast** (SP) — log als speler uit, laat het tabblad open, en start als DM een gevecht: in de netwerktab staat bij de monsters geen `hp` of `maxHp`
+- [ ] **Gelijke beurt op het tafelscherm** (TAB) — zet vier spelers op dezelfde initiative: de kop met hun namen past, "Ronde 1" staat op één regel
+- [ ] **Tafelscherm als speler** (TAB) — zet *Geluid uit* op het tafelscherm, ververs de tablet en tik er één keer op: het meldt zich als apparaat en de muziek komt daar uit
 
 ## Blok 9 — Uitvoer en onderhoud
 
@@ -988,48 +1014,22 @@ fout-uitvoert.
 - [x] **Wachtwoord van een andere campagne** (BEHEER) — zetten vanaf het campagnekaartje en er daarna mee inloggen
 - [x] **Twintig keer mis** (ALL) — tik twintig keer een fout wachtwoord op de landingspagina: de volgende poging (ook een goede) zegt "Te veel mislukte pogingen"; een ander apparaat aan tafel kan gewoon inloggen. Draai je zonder Caddy ervoor, dan geldt het voor iedereen op hetzelfde adres
 - [x] **Verborgen bestanden** (SP) — zet een document met een pdf-scan op verborgen, kopieer als DM het adres van het bestand en open het als speler: *Niet gevonden*. Onthul het document en het opent. Een portret dat óók aan een gekend kaartje hangt blijft gewoon zichtbaar, en aktebanners en logboekbeelden verdwijnen niet
-- [ ] **De kist gaat open** (TAB) — onthul een vondst en tik op het tafelscherm op de kist: de video speelt, en na ruim vijf seconden staat de buit ernaast
-- [ ] **Uitloggen houdt de cijfers niet vast** (SP) — log als speler uit, laat het tabblad open, en start als DM een gevecht: in de netwerktab staat bij de monsters geen `hp` of `maxHp`
-- [ ] **Gelijke beurt op het tafelscherm** (TAB) — zet vier spelers op dezelfde initiative: de kop met hun namen past, "Ronde 1" staat op één regel
-- [ ] **Ingelogd blijven** (ALL) — log in, sluit de browser helemaal en open hem weer: je bent nog ingelogd (de cookie heeft een vervaldatum van 30 dagen)
 - [ ] **Wizard na het inloggen** (DM) — maak een nieuwe campagne, log in via de landingspagina zonder te herladen: de opstartwizard staat er meteen
 - [ ] **Class in de wizard** (DM) — tik in de wizard "rogue" als class; op het blad van dat personage staat de keuzelijst op *Rogue*
-- [ ] **Prijzen in je eigen munt** (SP) — noem je munten Daalder/Stuiver/Duit, zet in een winkel "2 stuiver" en koop het als speler: er gaan 2 Stuivers af, en heb je er te weinig, dan zegt de melding "2 Stuiver" en niet "2 kn"
-- [ ] **Verkoper in een herberg** (DM) — vink bij een personage *Verkoper* aan, bewaar, kies bij *Verkoopt bij* een herberg: die herberg heeft nu een tabblad *Voorraad* en in de editor een tabblad *Winkel*
-- [ ] **SRD-monster in een gevecht** (DM) — in een verse campagne: nieuw gevecht, *+ Monster*, typ "Guard": hij staat in de lijst met "SRD 5.2 · CR 1/8", en na kiezen staat hij in je monsterbibliotheek met AC 16
-- [ ] **Plus achter een onbekende naam** (DM) — schrijf `[[Iemand Nieuw]]` in een kaartje, open het: achter de naam staat een plusje dat het kaartje maakt
 - [ ] **Wizard dichtdoen** (DM) — open de wizard in een lege campagne en druk Escape (of het kruisje): hij is weg en komt bij de volgende inlog niet terug
 - [ ] **Wizardvolgorde** (DM) — zet bij *Wat heeft jouw campagne nodig?* de Tempels aan: de volgende stap vraagt ook hoe de tempel heet
 - [ ] **HP in de wizard** (DM) — vul bij het eerste personage Max HP 17 in: op zijn blad staat 17/17
-- [ ] **Lege campagne** (ALL) — open een campagne zonder personages: midden op de pagina staat *Inloggen als Dungeon Master*
-- [ ] **Voorraad aanvullen** (DM) — open een winkel zonder voorraad: onder "Geen voorraad beschikbaar" staat een knop die de editor op *Winkel* opent, met een lege regel klaar
-- [ ] **Nieuwe dungeon tekenen** (DM) — kies *Tekenen* en *Aanmaken*: de dungeon gaat meteen open
 - [ ] **Adres van een campagne** (BEHEER) — tik bij *Nieuwe campagne* als naam "Het Zoute Moeras": het adres wordt `het-zoute-moeras`
-- [ ] **Privéberichten blijven privé** (SP) — open de landingspagina in een incognitovenster zonder in te loggen, en stuur als DM een bericht aan een speler: het komt aan bij die speler en nergens anders (`tests/review-lekken.test.js` doet hetzelfde met een kale socket)
 - [x] **Spotify-token** (SP) — open als speler `/api/spotify/token?campagne=<id>` in de adresbalk: 403, ook als Spotify gekoppeld is; het tafelscherm (DM-login) speelt gewoon af *(nagelopen 24 nov 2026: als speler geeft `/api/spotify/token?campagne=grisburgh` een 403)*
-- [ ] **Verborgen verbindingen** (SP) — koppel als DM een verborgen NPC aan een zichtbare locatie via *Verbindingen*, en open als speler de netwerktab bij die locatie: zijn naam staat nergens in `links`
-- [ ] **Charges in de eigen party** (SP) — zet als DM een andere party actief en laat een speler een charge van een staf gebruiken: na verversen staat het bolletje nog steeds verbruikt
-- [ ] **Apostrof in een knop** (DM) — maak een monster `Ma'ar de "Wolf"` en klik in het Bestiarium op het kruisje: de vraag noemt hem met apostrof en aanhalingstekens; idem het plusje bij *Bigby's Hand* in het spreukenboek
 - [ ] **Helpteksten afschermen** (BEHEER) — nog te bouwen: een tweede DM hoort de uitleg niet te kunnen herschrijven (`docs/todo.md`)
 
 ---
 
 ### Muziek (Spotify)
 
-- [ ] **Koppelen** (DM) — Instellingen → Muziek: client-id invullen, *Koppelen met Spotify*, toestemming geven. Je komt terug in de campagne met een melding "Spotify gekoppeld als …"; het adres in de balk bevat daarna geen `?code=` meer
-- [ ] **Zoeken en toevoegen** (DM) — Aktes → regie-script → muzieknoot: typ een titel, kies een resultaat. De stap staat in het script met naam en artiest, en met "— herhalen" als je dat vinkje aan had
-- [ ] **Starten tijdens het spelen** (DM) — muzieknoot in de regie-balk: de muziek begint op het gekozen apparaat. Nog een keer klikken start 'm opnieuw
-- [ ] **Geen Spotify open** (DM) — zet alles uit en klik de stap aan: je krijgt "Geen actief Spotify-apparaat gevonden", geen stille mislukking
-- [ ] **Tafelscherm als speler** (TAB) — zet *Geluid uit* op het tafelscherm, ververs de tablet en tik er één keer op: het meldt zich als apparaat en de muziek komt daar uit
-- [ ] **Herhalen** (DM) — een stap met herhalen blijft doorspelen; zonder herhaling stopt hij na het nummer
 
 ### Bladeren met vegen en pijltjes
 
-- [ ] **Kaartje na kaartje** (ALL) — open een kaartje en druk op → : het volgende kaartje uit het raster opent, ← gaat terug. Met een zoekterm actief blijft hij binnen die gefilterde lijst. Op een telefoon doet vegen hetzelfde
-- [ ] **Spreuk na spreuk** (ALL) — zelfde in het spreukvenster, binnen de filters die aanstaan
-- [ ] **Brief bladeren** (ALL) — vegen blaadert door een lange brief; de pijltjes deden dat al
-- [ ] **Subtabbladen** (SP) — vegen wisselt tussen Party · Personage · Boedel · …; een veeg die in de voorwerp-carrousel begint hoort bij de carrousel en wisselt dus niet van tabblad
-- [ ] **Niet waar het botst** (ALL) — op de wereldkaart en de dungeonkaart blijft slepen pannen, en in een tekstveld doen de pijltjes gewoon wat ze horen te doen
 
 ## Bevindingen
 
@@ -3556,6 +3556,29 @@ mediabibliotheek, en niets ervan hoeft weg.
 ene id. Eén aanroep is ~40 ms en de enige aanroeper doet er precies één — maar
 wie er een lus omheen zet, zoals ik eerst, meet 80 seconden en denkt dat er iets
 stuk is. Gebruik `scanUsage(ids)` één keer.
+
+## Blok 10 opgeruimd (25 nov 2026)
+
+Blok 10 heet *Meerdere campagnes*, maar er was in de loop van het jaar van
+alles bij aangegroeid dat daar niets mee te maken had: de wizard, Spotify, het
+vegen, een apostrof in een knop. 26 punten zijn verhuisd naar het blok waar je
+ze zou zoeken — niets veranderd aan de tekst, alleen verplaatst (1175 items
+vóór en na).
+
+| naar | wat |
+|---|---|
+| Blok 1 | ingelogd blijven, een lege campagne |
+| Blok 2 | de plus bij een onbekende naam, verborgen verbindingen, een apostrof in een knop, kaartje-na-kaartje, spreuk-na-spreuk |
+| Blok 3 | een nieuwe dungeon tekenen, vegen waar het botst |
+| Blok 4 | je eigen munt, charges in je eigen party, subtabbladen, bladeren door een brief, privéberichten |
+| Blok 5 | een verkoper in een herberg, voorraad aanvullen |
+| Blok 6 | een SRD-monster in een gevecht |
+| Blok 7 | de vijf Spotify-punten |
+| Blok 8 | de kist die opengaat, gelijke beurt, tafelscherm als speler, uitloggen houdt de cijfers niet vast |
+
+Wat blijft is wat er hoort: een verse campagne opzetten, haar adres, generiek
+blijven, de helpteksten afschermen — en de vijf punten over de opstartwizard,
+want die draait bij uitstek in een nieuwe campagne.
 
 ## Blok 10, de isolatiekant (25 nov 2026)
 
