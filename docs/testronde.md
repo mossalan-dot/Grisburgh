@@ -2908,3 +2908,38 @@ gelaten, en weer verwijderd.
 > *"moet als DM ook kunnen — aanvragen kan ook aan tafel."* Dus mag het nu
 > allebei: de reden om die kolom dicht te houden (er zou "aangevraagd" staan
 > zonder dat iemand iets vroeg) gaat niet op als iemand het gewoon hardop zegt.
+
+## Eenentwintigste ronde (25 nov 2026) — Unconscious was zijn bed kwijt
+
+In `meta.condities` van Grisburgh stond één regel:
+
+```json
+{"id":"unconscious","label":"Unconscious","groep":"conditie","desc":"","icoon":"sparkle"}
+```
+
+Die regel is een **artefact**, en hij deed echt iets: `zetEigenCondities()`
+schuift wat de DM invulde over de conditie uit het boek, en `icoon` was
+ingevuld. Unconscious droeg dus overal een generieke `sparkle` in plaats van
+zijn bed — op elk token bij een death save, in de picker van de DM en op het
+spelerstabblad.
+
+**Niemand heeft dat gekozen.** De editor is juist zorgvuldig: bij een
+meegeleverde conditie begint het verborgen icoonveld **leeg** (`cond?.icoon ||
+(uitBoek ? '' : 'sparkle')`), dus hij stuurde `icoon: ''`. Het was
+`_conditieUit()` op de server die daar `|| 'sparkle'` van maakte. Eén keer de
+editor openen en opslaan — zonder iets te wijzigen — was genoeg.
+
+Rechtgezet aan twee kanten: de server stuurt het veld alleen nog mee als het
+gevuld is (een nieuwe conditie valt aan de clientkant alsnog terug op
+`sparkle`), en de regel is uit `meta.json` gehaald. Nagemeten: `COND_ICON`
+staat weer op `["bed","#c0c0b8"]`, de tekst uit het boek staat er nog, en de
+conditie geldt niet langer als *aangepast*.
+
+Bewaakt door drie toetsen in `tests/condities-eigen.test.js`: een rij zonder
+icoon mag het icoon uit het boek niet vervangen, een nieuwe conditie krijgt er
+wél een, en een kanarie op `_conditieUit` die omvalt zodra dat `|| 'sparkle'`
+terugkomt.
+
+> **Waar dit vandaan kwam:** ik was de deur *Conditions* in Naslag aan het
+> nalopen en keek eerst naar de data. Dat is de goedkoopste meting die er is —
+> één regel in `meta.json` vertelde wat drie schermen lieten zien.

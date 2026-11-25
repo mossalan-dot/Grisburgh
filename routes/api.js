@@ -3104,10 +3104,18 @@ function _conditieUit(rauw) {
   if (!id) return null;
   const groep = _COND_GROEPEN.includes(rauw.groep) ? rauw.groep : 'conditie';
   const kleur = /^#[0-9a-f]{6}$/i.test(String(rauw.kleur || '')) ? String(rauw.kleur) : '';
+  // **Geen icoon verzinnen.** Dit veld schuift bij een meegeleverde conditie
+  // over het origineel heen (zie `zetEigenCondities` in conditions.js: alleen
+  // wat de DM invulde wint). Een standaard `sparkle` betekende dus dat één keer
+  // opslaan zonder iets te kiezen het échte icoon weggooide — in Grisburgh
+  // raakte Unconscious zo zijn bed kwijt, op elk token bij een death save.
+  // Laat hij het leeg, dan blijft het icoon van het boek staan; een nieuwe
+  // conditie valt aan de clientkant alsnog terug op `sparkle`.
+  const icoon = String(rauw.icoon || '').trim().slice(0, 40);
   return {
     id, label, groep,
     desc: String(rauw.desc || '').trim().slice(0, 600),
-    icoon: String(rauw.icoon || '').trim().slice(0, 40) || 'sparkle',
+    ...(icoon ? { icoon } : {}),
     ...(kleur ? { kleur } : {}),
   };
 }
