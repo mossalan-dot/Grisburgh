@@ -76,5 +76,44 @@ for (const v of (loot?.events || [])) {
 const q = lees('quests.json');
 for (const m of (q?.quests || q || [])) kijk(`missie "${m.title || m.naam}" · gever`, m.geverId);
 
+// ── Bestanden: geluiden, backdrops, dungeonbeelden, beelden in verslagen ────
+// Een id dat naar een verdwenen bestand wijst is net zo stil als een id dat
+// naar een verdwenen kaartje wijst: de klank speelt niet, het beeld laadt niet,
+// en er komt geen foutmelding.
+const bestaandeBestanden = new Set();
+try {
+  for (const f of fs.readdirSync(`${D}/files`)) bestaandeBestanden.add(f.replace(/\.[a-z0-9]+$/i, ''));
+} catch { /* geen files-map */ }
+const kijkBestand = (waar, id) => {
+  const s = String(id || '').trim();
+  if (!s) return;
+  gecheckt++;
+  if (!bestaandeBestanden.has(s)) mis.push([`${waar} (bestand)`, s]);
+};
+const snd = lees('sounds.json') || {};
+const loopGeluid = (o, pad) => {
+  if (!o || typeof o !== 'object') return;
+  for (const [k, v] of Object.entries(o)) {
+    if (typeof v === 'string' && /^(file|media|snd)_/.test(v)) kijkBestand(`geluid ${pad}.${k}`, v);
+    else if (v && typeof v === 'object') loopGeluid(v, `${pad}.${k}`);
+  }
+};
+loopGeluid(snd, 'sounds');
+for (const c of (enc?.encounters || [])) kijkBestand(`encounter "${c.name}" · backdrop`, c.backdropId);
+const dm = lees('dungeon-maps.json') || {};
+const dmaps = dm.maps || dm.dungeons || [];
+const dIds = new Set(dmaps.map((m) => m.id));
+for (const m of dmaps) {
+  kijkBestand(`dungeon "${m.name}" · beeld`, m.imageId);
+  for (const r of (m.rooms || [])) {
+    if (r.trapNaar?.mapId && !dIds.has(r.trapNaar.mapId)) {
+      gecheckt++;
+      mis.push([`dungeon "${m.name}" · kamer "${r.name}" · doorgang`, r.trapNaar.mapId]);
+    }
+  }
+}
+const ar = lees('archief.json') || {};
+for (const s2 of (ar.sessieLog || [])) for (const im of (s2.images || [])) kijkBestand(`sessieverslag "${s2.korteSamenvatting || s2.id}" · beeld`, im?.id);
+
 console.log(`${gecheckt} verwijzingen nagelopen · ${mis.length} wijzen nergens heen`);
 for (const [waar, id] of mis) console.log(`  ${waar} → ${id}`);

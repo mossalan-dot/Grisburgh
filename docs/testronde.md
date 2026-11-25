@@ -3073,3 +3073,28 @@ Geen van drieën is een fout in de app — het zijn verwijzingen die bleven staa
 toen de bestanden verdwenen. Wat ermee moet is aan de DM; de scan staat in
 `/tmp/sweep.js`-vorm in deze ronde beschreven en kan zo in
 `scripts/verwijzingen-nalopen.js` worden opgenomen als het vaker nodig is.
+
+### Opgeruimd, met toestemming van de DM
+
+| wat | aantal | wat ervoor in de plaats komt |
+|---|---|---|
+| `standard.win`, `.loss`, `.nextRound`, `.nextTurn` | 4 | de sleutel is weg, dus de app valt terug op zijn eigen klank |
+| emotes van **Sarbek** | 4 | de rijen zijn weg; hun labels staan hieronder bewaard |
+| een emoterij van **Orphéan** zonder label én zonder bestand | 1 | weg |
+| `backdropId` op een encounter naar een verdwenen bestand | 12 | leeggemaakt; de zes encounters met een bestáánde backdrop houden hem |
+| doodlopende doorgang *Pastorie van Velurut · W3: Ontvangsthal* | 1 | de `trapNaar` is weg, de kamer blijft |
+
+De vier emotes van Sarbek heetten **Verbazing** 😮, **Succes** 🍀, **Verwond** 🤕
+en **Tjilp tjilp mofo** 🤬. Hun geluidsbestanden waren verdwenen, maar een
+emoteknop verschijnt op zijn **label** (`emoteLibrary.filter(e => e.label)`) —
+dus die vier knoppen stonden er en deden niets. Weghalen is dan eerlijker dan
+ze laten staan; de namen staan hier zodat ze terug te zetten zijn als de
+bestanden ooit opnieuw geüpload worden.
+
+Drie backups ernaast (`sounds`, `encounters`, `dungeon-maps`). Na afloop zegt de
+scan: **"Alles wijst ergens heen."**
+
+De sweep zelf woont nu in `scripts/verwijzingen-nalopen.js` in plaats van in
+`/tmp`: dat script loopt sindsdien óók de geluiden, backdrops, dungeonbeelden,
+doorgangen en de beelden in de sessieverslagen na — 1.774 verwijzingen in één
+keer.
