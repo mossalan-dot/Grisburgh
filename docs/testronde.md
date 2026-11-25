@@ -3156,3 +3156,35 @@ tijdlijn) staat daar `window.app.bronLink`. Nu hier ook: *"Deze spreuk staat
 niet in de bibliotheek van deze campagne"* met **Lees hem elders** eronder, op
 allebei de paden — de lazy fetch die niets vindt, en een eigen spreuk zonder
 tekst. Proefregel daarna weer weg.
+
+### Overgenomen en omgezet, op verzoek van de DM
+
+*"Ja graag overnemen cq wijzigen."*
+
+- **Virtue** staat nu als eigen spreuk in de campagne (`eigen-virtue`), met
+  herkomst **Overgenomen** en de vindplaats in de tekst. De werking staat er in
+  eigen woorden — een samenvatting van de mechaniek, niet de prozatekst uit het
+  boek. Sharari's boekregel wijst ernaar.
+- **Orphéan** heeft de bibliotheekversie van *Dissonant Whispers*
+  (`dissonant-whispers`) in plaats van zijn privékopie; zijn verworven-level
+  (6) is meeverhuisd.
+
+Daarna zegt de scan: **81 regels in 11 boeken, 0 onbekend.**
+
+### En de derde keer hetzelfde patroon
+
+Bij het nakijken van die tag bleek hij **nergens op de tegel te staan**. De
+markers van een spreukkaartje — *Eigen* / *Zelf verzonnen* / *Aangepast* /
+*Overgenomen*, plus Ritual, Concentration en *Naslag* — wonen in `_card()`, de
+renderer van vóór de tegels.
+
+Ritual, Concentration en de wegwijzer bleken wél bereikbaar: die staan op de
+bladen van de open tegel. De **herkomst** stond nergens meer — en juist die
+heeft gevolgen: het is de enige plek waar staat wat overgeschreven is uit
+andermans boek en dus niet mee de deur uit mag als campagnes ooit materiaal
+delen. `_herkomstMerk()` zet hem terug op de dichte tegel, onder de
+levelpenning, met overgenomen materiaal in het rood.
+
+Dat is nu **drie keer** dezelfde fout (schadepil, geheim-merkteken, herkomst).
+CLAUDE.md zegt het daarom scherper: wat op de oude kaart lag hoort ergens op de
+tegel terug — of bewust niet, en dan hoort dát opgeschreven te staan.

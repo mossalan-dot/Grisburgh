@@ -1372,13 +1372,20 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > te doen; zie de valkuil bij de Verbindingen-tab hieronder).
 
 > **Wat een tegel laat zien is een eigen keuze — kijk wat de kaart had.**
-> Bij de overstap naar tegels (4 nov 2026) zijn twee signalen stil
-> achtergebleven in de oude `.entity-card`-renderer: de **schadepil** van een
-> wapen (de AC-pil van een harnas ging wél mee) en de pil **Geheim onthuld**
-> die een speler laat zien bij wélk kaartje iets nieuws staat. Allebei op
-> 24 nov 2026 hersteld als `_tegelWorpPillen()` en `_tegelGeheimMerk()`.
+> Dit is nu **drie keer** misgegaan, steeds hetzelfde: een signaal dat op de
+> oude `.entity-card` stond bleef bij de overstap in die renderer achter,
+> zonder dat iets stuk leek. De schadepil van een wapen (de AC-pil van een
+> harnas ging wél mee), de pil *Geheim onthuld* waarmee een speler ziet bij
+> wélk kaartje iets nieuws staat, en de herkomsttag van een eigen spreuk
+> (*Eigen* / *Zelf verzonnen* / *Aangepast* / *Overgenomen*) — die laatste op
+> 25 nov 2026 hersteld als `_herkomstMerk()` in `render-spreuken.js`. Ritual,
+> Concentration en de wegwijzer naar buiten bleken wél bereikbaar, één tik
+> dieper op de bladen van de open tegel; de herkomst nergens, en juist die
+> heeft gevolgen (hij zegt wat uit andermans boek komt).
+> Hersteld als `_tegelWorpPillen()`, `_tegelGeheimMerk()` en `_herkomstMerk()`.
 > Komt er weer zo'n overstap, loop dan de oude renderer regel voor regel na:
-> wat daar op het beeld lag hoort ergens op de tegel terug.
+> wat daar op het beeld lag hoort ergens op de tegel terug — of bewust niet,
+> en dan hoort dát opgeschreven te staan.
 >
 > **Zichtbaarheid zit op het kaartje en geldt voor de actieve party.** Dat is de
 > regel in de hele app, en een dungeon week ervan af: die had een venster met

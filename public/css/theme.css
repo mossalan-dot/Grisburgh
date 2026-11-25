@@ -35227,3 +35227,21 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
   box-shadow: 0 1px 4px rgba(20,12,4,0.35);
 }
 .tegel .tegel-geheim .icon { width: 13px; height: 13px; }
+
+/* ── Waar een spreuk vandaan komt, op de tegel ──────────────────────────────
+   Linksonder boven de naamband, tegenover het vinkje "staat in je boek" dat
+   rechtsboven hangt. Overgenomen materiaal in het rood: dat is de enige van de
+   vier die iets betekent als campagnes ooit spreuken met elkaar delen. */
+.spreuk-tegel .spreuk-tegel-herkomst {
+  /* Onder de levelpenning linksboven: daar is ruimte, en de naamband onderaan
+     is op een spreuktegel korter dan op een archieftegel — daar botste hij. */
+  position: absolute; left: 8px; top: 36px; z-index: 6;
+  font-family: 'Cinzel', serif; font-size: 8px; font-weight: 700;
+  letter-spacing: .04em; text-transform: uppercase;
+  color: #2a1a08; background: rgba(242,232,210,0.92);
+  border: 1px solid rgba(196,168,122,0.7); border-radius: 9px;
+  padding: 2px 7px; box-shadow: 0 1px 3px rgba(20,12,4,0.3);
+}
+.spreuk-tegel .spreuk-tegel-herkomst--overgenomen {
+  color: #f2e8d2; background: rgba(150,32,32,0.92); border-color: rgba(220,140,140,0.7);
+}

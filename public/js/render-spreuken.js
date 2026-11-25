@@ -347,6 +347,20 @@ function _boekKnop(s) {
     title="${inBoek ? 'Staat in je spreukenboek' : (wacht ? 'De DM moet dit nog goedkeuren' : 'Vraag de DM om deze spreuk')}">${icon(inBoek ? 'check' : (wacht ? 'hourglass' : 'plus'))}</button>`;
 }
 
+// **Waar een spreuk vandaan komt, hoort op de tegel.** Op de oude kaart stond
+// dat als tag (*Eigen*, *Zelf verzonnen*, *Aangepast*, *Overgenomen* in het
+// rood); bij de overstap naar tegels bleef hij in `_card()` achter. Ritual,
+// Concentration en de wegwijzer naar buiten staan nog wél op de bladen één tik
+// dieper, maar de herkomst nergens — en dat is juist de enige die gevolgen
+// heeft: hij zegt wat overgeschreven is uit andermans boek en dus niet mee de
+// deur uit mag als campagnes ooit materiaal delen.
+function _herkomstMerk(s) {
+  if (s.source !== 'eigen') return '';
+  const label = _HERKOMST_LABEL[s.herkomst] || 'Eigen';
+  const rood = s.herkomst === 'overgenomen' ? ' spreuk-tegel-herkomst--overgenomen' : '';
+  return `<span class="spreuk-tegel-herkomst${rood}" title="${esc(label)} \u2014 van deze campagne">${esc(label)}</span>`;
+}
+
 function _tegel(s) {
   const id = esc(s.index);
   const school = _school(s);
@@ -370,6 +384,7 @@ function _tegel(s) {
       <div class="card-accent bar-spreuken"></div>
       ${beeld}${niv}
       ${inBoek ? `<span class="spreuk-tegel-merk" title="Staat in je spreukenboek">${icon('check')}</span>` : ''}
+      ${_herkomstMerk(s)}
       <div class="tegel-naamband"><span class="card-name">${esc(s.name)}</span></div>
     </div>`;
   }
