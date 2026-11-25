@@ -12356,7 +12356,12 @@ function _ensureAmbiance(data) {
 }
 // Geldige serviceAmbiance-keys: huidige diensten, per-factie (factie:<id> tegen
 // meta.facties) en de rust-loops. Vervangt de oude vaste _DIENST_KEYS-lijst.
-const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo'];
+// De woekeraar hoort hier ook bij: hij is een hele dienst met een eigen
+// sectie, module en DM-tab. Hij stond wél in `_DIENST_AMB_LABELS` (de
+// client vraagt dus om zijn loop) maar niet hier en niet in de Geluiden-tab,
+// dus de DM kon hem er nooit een geven en de server zou hem geweigerd
+// hebben. Precies de 3-plekken-regel, op één plek nagekomen.
+const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'magizoo', 'woekeraar'];
 // Eenmalige geluiden bij een moment in het spel — geen sfeerloop, dus een eigen
 // plek in sounds.json (`momenten`) i.p.v. serviceAmbiance.
 // Korte klanken bij één moment. Bewust géén sfeerloop (zie serviceAmbiance):

@@ -673,7 +673,6 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Tempel** (SP/DM) — goden met priester en domein, Zegening kopen, Eed zweren met cinematic; een eed blokkeert de andere; heffen en verbreken werken
 - [x] **Magizoöloog** (SP/DM) — huisdier adopteren, prijs in de eigen munt, cooldown, het dier verschijnt bij de party *(nagelopen 24 nov 2026: met `adopteerbaar` aan verschijnt Jip in de kooi met zijn prijs netjes omgerekend (250 cl → 2 fl 5 kn). De adoptie zelf is daarna wél gedaan, met de bevestigingsvensters afgevangen: 2 fl 5 kn van de gedeelde beurs en Jip liep met de party mee. Alles teruggezet.)*
 - [ ] **Facties & Aanzien** (SP/DM) — renown opbouwen, rangen, boons toekennen, titels; de speler ziet zijn stand
-- [ ] **Heeren van de Nacht** (SP/DM) — rangen, klussen genereren, advocaat inschakelen, betalen, uitslag verwerken
 - [ ] **Verzegelde uitnodigingsbrief** (DM) — per factie of dienst versturen; de speler krijgt de tweetraps reveal met lakzegel
 - [ ] **Toegang per groep** (DM) — per dienst en per party zichtbaar/beschikbaar zetten; de speler ziet het verschil meteen
 - [x] **Markt: achtergrond** (ALL) — achter de Markt staat de gevel van een van je winkels, met het bijschrift *Gevel van …*; verlaat de Markt en kom terug, dan is het een andere. Een winkel die deze party niet kent komt er nooit achter te staan *(nagelopen 24 nov 2026 — het bijschrift ontbrak en is alsnog gebouwd: "Gevel van Bobs Tattoos", gecentreerd 10 px boven de onderrand)*
@@ -724,7 +723,6 @@ fout-uitvoert.
 **De schakelaar en de akte**
 
 - [ ] **Verborgen betekent dicht, ook zonder scherm** (DM+speler) — zet een dienst op *verborgen* en laat de speler zijn openstaande tabblad gebruiken: elke schrijfactie komt terug met "Deze dienst is nu niet beschikbaar voor je groep" (403). Gecontroleerd voor herberg, Tweespalt, Gock, Ursula, tempel en magizoöloog — veertien routes.
-- [ ] **De Heeren doen dat niet** (DM+speler) — blijft open: hun drie spelersroutes hebben geen slot. Wordt opgelost doordat de Heeren een gewone factie worden, zie `docs/voorstel-facties.md`.
 - [ ] **Facties: de schakelaar werkt** (DM) — zet Facties op *verborgen*: de knop in het Diensten-menu blijft weg (hij kwam terug zodra er één onthulde factie was), `GET /facties` geeft niets meer terug en het prikbord is leeg, want een missie komt altijd van een factie. Op *zichtbaar* zie je het slot, zoals bij de andere diensten.
 - [ ] **De akte sluit nu ook de route** (DM+speler) — zet een dienst in de akte-editor op onbereikbaar terwijl een speler zijn tabblad open heeft: zijn verzoek komt terug met "Daar kan je gezelschap nu niet heen" (403). Geldt voor alle veertien routes, en *De Markt* staat nu ook in dat lijstje — die kon je er eerst niet eens aanvinken.
 - [ ] **Kopen bij een winkel die je niet kent** (speler) — kan niet meer: kopen, verkopen en onderhandelen toetsen nu of de party het winkelkaartje kent én of het deze akte bereikbaar is. (In Grisburgh staat per party één van de negen winkels op verborgen; die hoort dicht te zitten.) De DM komt er langs.
@@ -746,8 +744,10 @@ fout-uitvoert.
 
 - [ ] **Diensten-knop licht op bij de Markt** (ALL) — sta je in de Markt, dan staat *Diensten* in de balk aan.
 - [ ] **De Markt zegt het als de party er niet bij kan** (speler) — zet de Markt in de akte onbereikbaar, of verlaat de stad: je krijgt dezelfde "niet bereikbaar"-melding als bij de andere diensten in plaats van een leeg overzicht.
-- [ ] **De Heeren zijn te bereiken** (ALL) — *nu nog stuk:* de sectie bestaat (`#section-heeren`), heeft een eigen DM-tab, routes, rangen, klussen en boetes, maar staat in geen enkel menu en er is nergens een knop die ernaartoe schakelt. Ook niet voor de DM.
-- [ ] **Elke dienst kan uit als module** (BEHEER) — *nu nog stuk voor de Heeren:* die staat niet in `lib/modules.js` en is dus per campagne niet uit te zetten, terwijl de andere acht dat wel zijn.
+- [x] **Elke dienst kan uit als module** (BEHEER) — elke dienst-sectie heeft een
+      module en kan dus uit. *De uitzondering die hier stond ("nu nog stuk voor
+      de Heeren") is vervallen: die dienst bestaat niet meer. Bewaakt door
+      `tests/diensten-drie-plekken.test.js`.*
 
 **Wat goed stond**
 
@@ -3773,3 +3773,44 @@ charges van een ander (403).
 `tests/speler-prive.test.js`, vijf toetsen, twee kanaries nagelopen — de een
 geeft de aantekening van wie dan ook terug, de ander schrijft in de actieve
 groep. Allebei vallen ze op hun eigen toets om.
+
+## Blok 5: een dienst die maar op één plek stond (25 nov 2026)
+
+### Eerst opgeruimd: de Heeren van de Nacht
+
+Drie punten in dit blok gingen over een dienst die in september is **opgeheven**
+— compleet met de aantekening *"nu nog stuk"*. Nagekeken: er is geen sectie
+meer, geen module, geen spelersroute; alleen de **briefstijl** `heeren` (de
+schaduwbrief) leeft nog, want brieven die er al liggen dragen dat thema.
+
+Die drie punten zijn geschrapt. Een testlijst die vraagt om iets wat niet meer
+bestaat, kost elke ronde opnieuw tijd en zegt niets.
+
+### En toen viel de woekeraar op
+
+CLAUDE.md waarschuwt dat een nieuwe dienst op **drie plekken** moet landen,
+anders speelt zijn sfeerloop gewoon niet:
+
+| plek | wat hij doet |
+|---|---|
+| `_DIENST_SVC_KEYS` (`routes/api.js`) | de server laat de sleutel toe in `serviceAmbiance` |
+| `_DIENST_AMB_LABELS` (`app.js`) | de client **vraagt** de loop zodra je die sectie opent |
+| `_DIENSTEN` (`dm-panel.js`) | de rij waar de DM hem instelt |
+
+De **woekeraar** stond alleen in de tweede. Hij is een volwaardige dienst — eigen
+sectie, eigen module, eigen DM-tab — dus de client vroeg netjes om zijn loop,
+maar de DM had geen rij om er een te kiezen en de server zou de sleutel
+geweigerd hebben. Niet te zien: een loop die niet speelt klinkt als een dienst
+zonder muziek.
+
+Nu staat hij op alle drie de plekken, en belangrijker: `tests/diensten-drie-plekken.test.js`
+houdt ze voortaan gelijk. De volgende dienst kan niet meer in twee van de drie
+landen.
+
+- [x] **Elke dienst staat op alle drie de plekken** — bewaakt, kanarie nagelopen
+      (woekeraar weer uit de serverlijst halen laat hem omvallen).
+
+*En nog een keer dezelfde val in het gereedschap:* mijn eerste lezer telde een
+dienst mee die alleen in een **commentaarregel** genoemd wordt (`'facties' heeft
+géén sectie-loop`). Commentaar gaat er nu eerst uit — derde bewaker vandaag waar
+dat nodig bleek.

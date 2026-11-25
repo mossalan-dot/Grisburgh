@@ -9206,6 +9206,7 @@ async function _renderGeluiden() {
     { key: 'herberg', label: 'Herberg' }, { key: 'tempel', label: 'Tempels' },
     { key: 'tweespalt', label: 'Gokhuis' }, { key: 'gock', label: 'Detective' },
     { key: 'ursula', label: 'Waarzegger' }, { key: 'magizoo', label: 'Magizoöloog' },
+    { key: 'woekeraar', label: 'Geldschieter' },
   ];
   const facties = window.app?.state?.meta?.facties || [];
   const _REST = [
