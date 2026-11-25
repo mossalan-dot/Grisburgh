@@ -159,7 +159,7 @@ async function opening(d = {}) {
         ${rest > 0 ? `<div class="gr-op-figuur gr-op-meer" style="--i:${zicht.length}">+${rest}</div>` : ''}
       </div>
     </div>
-    ${d.lair ? `<div class="gr-op-lair">${ic('mountain')} De plek zelf vecht mee</div>` : ''}`;
+    ${d.lair ? `<div class="gr-op-lair">${ic('mountain')} Lair Action</div>` : ''}`;
   let klaar = false;
   const sluit = () => { if (klaar) return; klaar = true; _weg(el, 1100); };
   el.addEventListener('click', sluit);

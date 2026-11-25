@@ -28,7 +28,7 @@ import './summons.js?v=5';
 import './klassekracht.js?v=15';
 import './bastion.js?v=11';
 import './stemronde.js?v=9';
-import './gevecht-regie.js?v=10';
+import './gevecht-regie.js?v=11';
 
 // ── Icon helper ──
 // Renders an inline SVG <use> reference from /img/icons.svg.
@@ -311,7 +311,7 @@ function _displayModeAan() {
   // ligt (bij `?display=1` wordt de rol pas na het opstarten bekend) — en dan
   // stond de DM-versie erop, met de HP en AC van elk monster. Opnieuw ophalen,
   // nu als tafelscherm.
-  api.getCombat().then(c => { if (c) window.dmPanel?.onCombatUpdated?.(c); }).catch(() => {});
+  window._displayGevechtInhalen();
   // En een kist die openstaat: die kwam alleen over de socket, dus na een
   // herlaadbeurt halverwege het claimen was hij weg.
   fetch('/api/combat/loot?tafel=1&campagne=' + encodeURIComponent(campagneUitUrl()))
@@ -319,6 +319,27 @@ function _displayModeAan() {
     .then(d => { if (d && window._isDisplayMode) window._lootCinematic?.(d); })
     .catch(() => {});
 }
+
+// **Een tafelscherm dat midden in een gevecht opstart, moet de stand ophalen —
+// en aan alle twee de kanten afleveren.** `combat:updated` voedt zowel het
+// gevechtsscherm (`dmPanel.onCombatUpdated`) als de regie
+// (`_gevechtRegie.onCombat`), maar bij het opstarten ging alleen de eerste mee.
+// Gevolg: de rode rand en de hartslag van iemand die op 0 ligt kwamen er niet
+// op — terwijl die juist uit het gevecht zélf afgeleid worden zodat ze een
+// herlaadbeurt overleven. Gemeten op 25 nov 2026: een vers geladen tafelscherm
+// met een speler op 0 HP en twee failures liet niets zien, en bleef dat de hele
+// scène doen tot er toevallig een volgende update langskwam.
+//
+// Dit raakt twee ingangen: `?display=1` (via `_displayModeAan`) en een scherm
+// dat al op tafel lag en gewoon herlaadt (die komt alleen langs
+// `_initDisplayMode`). Daarom één functie, door allebei aangeroepen.
+window._displayGevechtInhalen = () => {
+  api.getCombat().then(c => {
+    if (!c) return;
+    window.dmPanel?.onCombatUpdated?.(c);
+    window._gevechtRegie?.onCombat?.(c);
+  }).catch(() => {});
+};
 
 function _displayModeInlossen() {
   if (window._isDisplayMode || _displayGevraagd !== '1') return;
@@ -13161,6 +13182,10 @@ function _initDisplayMode() {
   }).catch(() => {});
   _buildIdleEmbers(_huidigeSfeer);
   _spotifyTafelspeler();
+  // Een scherm dat al op tafel lag en gewoon herlaadt komt niet langs
+  // `_displayModeAan`, dus hier ook: anders begint het zonder de stand van een
+  // gevecht dat al loopt.
+  window._displayGevechtInhalen();
   // Het tafelscherm heeft een eigen, volledige gevechtsweergave (.co-display in
   // dm-panel.js) — nooit geminimaliseerd. Voorheen werd hier 'minimized' gezet
   // terwijl socket-client.js het er bij elke combat:updated weer afhaalde; die

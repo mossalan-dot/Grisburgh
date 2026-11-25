@@ -465,6 +465,16 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 >   /combat/hwywtdt/antwoord` `{id, tekst}` door die speler of door de DM (die
 >   typt wat er hardop gezegd werd); leeg = zonder woorden, `annuleer` = intrekken.
 >   Tafel krijgt `gevecht:hwywtdt:display` met `fase` vraag/antwoord/stil/weg.
+>   **Een tafelscherm dat midden in een gevecht opstart haalt de stand in.**
+>   `combat:updated` voedt twee consumenten — `dmPanel.onCombatUpdated` én
+>   `_gevechtRegie.onCombat` — maar bij het **opstarten** ging alleen de eerste
+>   mee, en dus kwam de rode rand met de hartslag van iemand op 0 HP er niet op
+>   (gemeten 25 nov 2026). `window._displayGevechtInhalen()` in `app.js` is nu
+>   de enige plek die hem ophaalt en levert aan allebei. Let op de **twee
+>   ingangen**: `?display=1` loopt via `_displayModeAan`, maar een scherm dat al
+>   op tafel lag en gewoon herlaadt leest zijn stand uit `localStorage` en komt
+>   alleen langs `_initDisplayMode`. Bewaakt door
+>   `tests/tafelscherm-gevecht.test.js`.
 > - **Afloop** — `DELETE /combat` stuurt eerst `gevecht:afloop` (`_afloopVan`)
 >   en dan pas het lege gevecht. Alleen wat de app weet: rondes, minuten, wie er
 >   tegenover stond, wie viel of opstond, de beschrijvingen en het aantal Lair

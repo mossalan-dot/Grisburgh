@@ -920,9 +920,12 @@ fout-uitvoert.
       *Nagemeten in een wegwerpkopie (25 nov 2026): titel "Roll Initiative",
       party op x 64 en vijand op x 924, twee Wolven samen als "×2", twee balken,
       en "Wolvenaanval" komt nergens in beeld.*
-- [ ] **Gevecht: de opening met een lair** (TAB) — heeft het gevecht Lair
-      Actions, dan staat er *De plek zelf vecht mee* (apart te toetsen: de
-      encounter die ik gebruikte heeft er geen)
+- [x] **Gevecht: de opening met een lair** (TAB) — heeft het gevecht Lair
+      Actions, dan staat er **Lair Action** in de opening. *Nagemeten met een
+      lair op de Wolvenaanval: de regel staat er, binnen beeld, en de
+      lairregels zélf lekken niet — die kiest de DM pas tijdens het gevecht.
+      Stond eerst als "De plek zelf vecht mee"; op verzoek van de DM de gewone
+      PHB-term, zoals de afspraak ook zegt.*
 - [x] **Gevecht: een nieuwe ronde** (TAB) — ga naar ronde 2: het beeld dimt,
       *RONDE 2* schuift in, en eronder staat een regel van de verteller; breng
       de party op lage HP en de regel van de volgende ronde zegt *De party
@@ -932,7 +935,17 @@ fout-uitvoert.
       wél op beeld nagekeken; de regels van de verteller staan nu in
       `tests/verteller.test.js`.*
 - [ ] **Gevecht: de camera** (TAB/DM) — bij een beurtwissel zoomt het tafelscherm kort in op wie aan zet is en daarna weer uit, zonder kale rand; op het DM-scherm beweegt er niets
-- [ ] **Gevecht: death saves als scène** (TAB) — breng een speler op 0: *<naam> valt* met zes lege bolletjes, en de rand van het scherm wordt rood met een hartslag; een mislukte worp vult een rood bolletje en het hart gaat trager; *20* geeft een lichtflits en *Natural 20*; drie failures maakt het beeld grijs met *<naam> is gevallen*; zodra niemand meer op 0 ligt verdwijnt de rode rand
+- [x] **Gevecht: death saves — de rand en de hartslag** (TAB) — ligt er iemand
+      op 0, dan wordt de rand van het scherm rood met een hartslag, en die gaat
+      **trager** naarmate het slechter gaat. *Nagemeten: 1050 ms bij nul
+      failures, 1400 bij één, 1900 bij twee, en bij drie verdwijnt hij — dan is
+      hij niet meer aan het sterven.* En sinds vandaag ook op een scherm dat
+      **midden in het gevecht opstart**; zie hieronder.
+- [ ] **Gevecht: death saves — de momenten** (TAB) — *<naam> valt* met zes lege
+      bolletjes, een mislukte worp vult een rood bolletje, *20* geeft een
+      lichtflits en *Natural 20*, en drie failures maakt het beeld grijs met
+      *<naam> is gevallen*. *Nog te doen: dat zijn doorlopende momenten van een
+      paar seconden op het canvas — zelfde probleem als de verteller.*
 - [ ] **Genadeslagen in het Logboek** (SP/DM) — na een gevecht met twee beschrijvingen staat bovenin het Logboek *Genadeslagen 2*; openklappen toont ze als kaartjes, de nieuwste eerst, met wie het deed en tegen wie; een speler van een andere party ziet ze niet; zonder een enkele beschrijving staat het blok er niet
 - [ ] **Gevecht: de afloop** (TAB/DM) — beëindig een gevecht met een beschrijving en een Natural 20 erin: het tafelscherm toont *Overwinning*, rondes en minuten, wie er tegenover stond, de beschrijving als citaat en *stond op met een Natural 20*; tikken sluit hem; het verslag in het Logboek heeft dezelfde citaat en regel
 - [ ] **Gevecht: eigen klanken** (TAB) — hang bij Geluiden → Momenten een bestand aan *Roll Initiative* en aan *How do you want to do this?*; de opening en de klap spelen dat bestand in plaats van de gemaakte klank
@@ -3374,3 +3387,37 @@ Aangescherpt naar een vage party op **90%**, want die moet een rustige zin
 krijgen en dat is onmiskenbaar iets anders. Derde keer dat deze val toeslaat
 (na het niet-bestaande `GET /api/dm-state` en `prof.ras`): **een toets die op de
 kapotte versie óók slaagt, toetst niets.**
+
+### Het tafelscherm begon zonder het gevecht dat al liep
+
+Bij het nameten van de death saves bleek de rode rand er wél te komen ná een
+socket-update, maar **niet** op een scherm dat vers opstart terwijl er al iemand
+op 0 ligt. CLAUDE.md belooft juist het tegenovergestelde: die rand en die
+hartslag worden uit het gevecht zélf afgeleid, "dus ook na een herladen".
+
+De oorzaak: `combat:updated` voedt twee consumenten — het gevechtsscherm
+(`dmPanel.onCombatUpdated`) én de regie (`_gevechtRegie.onCombat`, die de rand
+en de hartslag zet). Bij het **opstarten** haalde het tafelscherm het gevecht
+wel op, maar gaf het alleen aan de eerste door. De regie hoorde er dus niets
+over, en bleef zwijgen tot er toevallig een volgende update langskwam.
+
+Dat is precies het verkeerde signaal om te missen: het zegt dat er iemand
+doodgaat. En het treft de twee momenten waarop het het hardst nodig is — het
+scherm dat na een haperende wifi herlaadt, en het scherm dat halverwege een
+gevecht pas op tafel gelegd wordt.
+
+- [x] Leg een tafelscherm neer terwijl er al een speler op 0 ligt: de rand is
+      rood en het hart klopt, met het juiste tempo voor het aantal failures.
+      *Nagemeten na de reparatie: ernst 2, 1900 ms, over het hele scherm.*
+
+`window._displayGevechtInhalen()` is nu de enige plek die de stand ophaalt, en
+hij levert aan **allebei** de kanten. Hij wordt aangeroepen vanuit `?display=1`
+én vanuit `_initDisplayMode` — een scherm dat gewoon herlaadt komt namelijk niet
+langs de eerste. Bewaakt door `tests/tafelscherm-gevecht.test.js`, met een
+kanarie op allebei die ingangen.
+
+### En de lairregel heet gewoon Lair Action
+
+Stond als *De plek zelf vecht mee*. Op verzoek van de DM de gewone PHB-term —
+en dat is ook wat de afspraak zegt: als de term in de PHB voorkomt, staat hij
+in het Engels.
