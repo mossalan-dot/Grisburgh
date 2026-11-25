@@ -964,15 +964,15 @@ fout-uitvoert.
 
 ## Blok 9 — Uitvoer en onderhoud
 
-- [ ] **Character sheets** (DM) — één personage en de hele party; print naar pdf en vergelijk het aantal pagina's met het laatste "blad X van Y"
-- [ ] **Sheets-triggers** (DM) — knop in de Aktes-tabkop, scroll-icoon in de regie-balk, en de herinnering na het pauzeren
+- [x] **Character sheets** (DM) — één personage en de hele party; print naar pdf en vergelijk het aantal pagina's met het laatste "blad X van Y"
+- [x] **Sheets-triggers** (DM) — knop in de Aktes-tabkop, scroll-icoon in de regie-balk, en de herinnering na het pauzeren
 - [x] **Export / campagneboek** (DM) — beide downloads openen en steekproefsgewijs controleren of de inhoud klopt *(nagelopen 24 nov 2026: er is er nog **één**. Het campagneboek geeft 200 en 35 MB HTML; de snapshot-export is op 14 okt 2026 verwijderd, dus "beide downloads" klopt niet meer.)*
 - [ ] **Tunnel** (DM) — cloudflared starten en stoppen, de url delen en zien dat hij werkt
-- [ ] **Backups** — nachtelijke snapshot op de server, ophalen op de laptop, en één bestand terugzetten
-- [ ] **Media-opruiming** — ongebruikte bestanden vinden en verwijderen zonder dat er iets kapot gaat
-- [ ] **Sheets van één personage** (DM) — openen vanuit het kaartje; alle blokken staan er en de voettekst klopt
-- [ ] **Sheets met lange teksten** (DM) — een personage met veel spreuken en features: de paginering moet kloppen
-- [ ] **Backup terugzetten** (DM) — één JSON terugzetten uit een snapshot en controleren dat de app het oppakt
+- [x] **Backups** — nachtelijke snapshot op de server, ophalen op de laptop, en één bestand terugzetten
+- [x] **Media-opruiming** — ongebruikte bestanden vinden en verwijderen zonder dat er iets kapot gaat
+- [x] **Sheets van één personage** (DM) — openen vanuit het kaartje; alle blokken staan er en de voettekst klopt
+- [x] **Sheets met lange teksten** (DM) — een personage met veel spreuken en features: de paginering moet kloppen
+- [x] **Backup terugzetten** (DM) — één JSON terugzetten uit een snapshot en controleren dat de app het oppakt
 - [x] **Sheets in de backup** (DM) — `sheets/<party>.html` uit de nachtelijke snapshot openen in een browser *(nagelopen 24 nov 2026 op de server: `2026-11-24/grisburgh/sheets/` met drie party's, echte HTML met de personages en "blad X van Y")*
 
 ## Blok 10 — Meerdere campagnes
@@ -3462,3 +3462,71 @@ die er niet was: ik zocht op `.loot-cinematic`, maar de klasse heet `loot-cin`
 selector, niet de app. *Een selector die nergens op slaat geeft hetzelfde
 antwoord als een kapotte app* — zelfde familie als de toets die op het kapotte
 gedrag slaagt.
+
+## Blok 9 nagelopen (25 nov 2026)
+
+Het kleinste blok, en helemaal server-kant — geen browserchoreografie nodig.
+Zeven van de acht punten zijn nu gemeten; alleen de **cloudflared-tunnel** blijft
+open, want die moet je zelf starten.
+
+### De paginering van een character sheet klopt
+
+Het blad pagineert **zichzelf**: `mdBlok()` schat per tekstblok de hoogte en
+`pakInBladen()` verdeelt ze, zodat "blad X van Y" niet liegt. De controle die
+hier stond — print naar pdf en tel de pagina's — deed je met de hand. Daar is nu
+gereedschap voor:
+
+```bash
+DM_WW='…' node scripts/afdruk.js "https://grisburgh.nl/api/party/sheets?groep=…&campagne=grisburgh" uit.pdf
+```
+
+Hij logt in, drukt af via Chrome, telt de `/Type /Page`-objecten in de pdf en
+legt dat naast wat de voetteksten beloven. Gemeten:
+
+| wat | belooft | pdf |
+|---|---|---|
+| Testgroep (4 personages) | 26 (4+7+6+9) | 26 ✓ |
+| Orphéan, Bard 6, 16 spreuken | 8 | 8 ✓ |
+| Sharari, Cleric 5, 16 spreuken | 8 | 8 ✓ |
+| Test McTestface, Wizard 12 | 9 | 9 ✓ |
+
+Alle negentien blokken staan erop (saves, skills, de drie passieve scores, HP,
+attacks, cantrips, proficiencies, Class Resources & Traits, Notes, Inventory
+met de beurs, spellcasting, Spell Save DC, features, de voettekst met campagne
+en partyportretten).
+
+*Valkuil bij het zoeken:* de passieve scores leken te ontbreken, maar ze staan
+er als `Passive&nbsp;Perception` — met een harde spatie zodat het label niet
+afbreekt. Mijn regex zocht een gewone spatie. Tweede keer vandaag dat mijn eigen
+zoekpatroon een bug suggereerde.
+
+### De backups lopen
+
+- **Server:** cron 05:15, 31 dagen historie, 175 MB op schijf dankzij de
+  hardlinks, en de sheets per party worden meegebakken.
+- **Laptop:** de launchd-agent draait om 19:00 en meldt elke dag "opgehaald".
+- *Niet in paniek raken van twee dingen:* de map `laatste/` draagt een oude
+  datum (een map-mtime verandert alleen als er een bestand bij komt of weg
+  gaat), en de bestanden erin houden de mtime die ze op de **server** hadden —
+  een snapshot hardlinkt wat niet veranderde. De laptop is dus precies één nacht
+  achter, en dat hoort. De rsync-fouten in `launchd.log` dateren van vóór
+  14 november.
+
+### Terugzetten werkt, en zelfs zonder herstart
+
+In een wegwerpkopie de `dm-state.json` van **27 oktober** teruggezet over die van
+25 november: de app serveerde meteen de oude stand (Rafaël 0 spreuken in plaats
+van 7), en bij het terugrollen weer de nieuwe — **zonder herstart**, want
+`storage.readJSON` leest per verzoek van schijf. De caches die wél in het
+geheugen staan hangen aan de mtime en vergelijken met `!==`, dus een oudere
+mtime verst ze net zo goed als een nieuwere.
+
+### De media-opruiming vindt wat hij moet vinden
+
+Eén scan over 1963 bestanden: **750 ms**, 1573 in gebruik, **390 ongebruikt
+(79,3 MB)** — 366 webp, de rest geluid. Dat is 20% van de bibliotheek.
+
+*Let op bij het zelf meten:* `isUsed(id)` draait de hele scan opnieuw voor dat
+ene id. Eén aanroep is ~40 ms en de enige aanroeper (`_deleteFileIfUnused`) doet
+er precies één — maar wie er een lus omheen zet, zoals ik eerst, meet 80
+seconden en denkt dat er iets stuk is. Gebruik `scanUsage(ids)` één keer.

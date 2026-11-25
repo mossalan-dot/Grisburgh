@@ -1792,6 +1792,11 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > gekalibreerd op een geprinte pdf) en `pakInBladen()` verdeelt de blokken over bladen, zodat
 > "blad X van Y" niet liegt. Controle: print naar pdf en vergelijk het aantal fysieke
 > pagina's met het laatste "blad X van Y" — die moeten gelijk zijn.
+> Dat doet **`node scripts/afdruk.js <url> <uit.pdf>`** (met `DM_WW`): hij logt in, drukt af
+> via Chrome, telt de `/Type /Page`-objecten in de pdf en legt dat naast de voetteksten.
+> Gemeten op 25 nov 2026: Testgroep 26 = 26, en de drie zwaarste bladen (8/8/9) kloppen.
+> Let op: de campagne haalt hij uit `?campagne=` en níét uit het pad — een sheet-url begint
+> met `/api/…`, dus het eerste padstuk is "api".
 > **Markdown in bronteksten:** `mdInline()` doet `**vet**`, `*cursief*` en `_cursief_`;
 > `mdBlok()` doet daarnaast `|`-tabellen (Nathair's Mischief) en `###`-kopjes. **Beurs:** zelfde regel als `_effectiveCurrency()` — staat de
 > gedeelde beurs aan, dan is dát de partybeurs en telt `playerCurrency` niet mee.
