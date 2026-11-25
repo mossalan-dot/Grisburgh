@@ -343,6 +343,40 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
 
 ## Nog te verzinnen
 
+- [ ] **De featurelijst sorteren als er meerdere subclasses aan staan.**
+      Vink je in het Heldenboek twee of drie subclasses aan, dan liggen hun
+      features door de hele lijst verspreid: alles staat op level, en juist het
+      verschil tussen die subclasses — de reden dat je ze aanvinkt — verdwijnt
+      in de bulk. Een knopje met twee standen zou genoeg zijn:
+      · **op level** (de standaard, zoals nu — je leest de tijdlijn van één
+        personage);
+      · **per sectie** — eerst de class zelf, dan elke subclass onder zijn
+        eigen kop.
+      Dat tweede is precies de vergelijking waarvoor de vinkjes bedoeld zijn
+      ("wat krijgt een Berserker dat een Zealot niet krijgt?"), en het is ook
+      het enige wat de aanvinkbare kolom nu niet waarmaakt.
+      **Waar het landt:** `_vaardigLijst` in `render-vaardigheden.js` bouwt de
+      kaartjes al mét hun `sub`-veld (daar hangt de ondertitel aan), dus de
+      sectie-indeling is af te leiden zonder nieuwe data. De keuze hoort bij de
+      kijker en niet bij de campagne — dus `localStorage`, zoals de
+      uitgewaaierde favorietenstapel. Gevraagd door de DM, 25 nov 2026.
+
+- [ ] **Een kaartje mag een alias dragen.** Harmen Jonker ís in het geheim
+      Hugo Grisburgh II — en dát is meteen het geheim. Nu kan dat alleen als
+      twee losse kaartjes of als een regel tekst; de app weet niet dat het om
+      één persoon gaat.
+      **Wat het raakt, als we het bouwen:** `[[Hugo Grisburgh II]]` zou naar
+      Harmens kaartje moeten wijzen (de naamindex in `_buildEntityIndex` kent
+      nu één naam per kaartje), zoeken zou op allebei moeten vinden, en wélke
+      naam een party ziet hangt af van een geheimregel — dezelfde machinerie
+      als `geheim: {id, gid}` bij een betrokkene, die een verbinding laat
+      verdwijnen tot hij onthuld is.
+      **Dat het nu al speelt, staat in de data:** de scan van
+      `scripts/verwijzingen-nalopen.js` vond `[[Hugo II Grisburgh]]` als naam
+      zonder kaartje, verwezen vanaf Hugo Grisburgh én Isabella Grisburgh. Die
+      link doet dus niets, terwijl hij aan tafel als een link leest.
+      Nog niet uitgedacht — eerst kauwen. Opgeschreven 25 nov 2026.
+
 - [ ] **Een gerechtshof als dienst.** Uit de Heeren komt één idee dat het waard
       is om te bewaren: een boete die je kunt aanvechten, met een advocaat die
       met je Persuasion-bonus afdingt. Dat hoort niet bij een factie maar bij
