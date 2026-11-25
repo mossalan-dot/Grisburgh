@@ -86,7 +86,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Eigen spreukbeschrijving** (DM) — uitklap in het spreukdetail: schrijf een tekst, sla op, herlaad — hij blijft en vervangt de bron; leeg opslaan zet hem terug
 - [x] **Overleden markeren** (DM) — kaartje markeren; de speler ziet het meteen (`entity:deceased`), party en archief tonen hem als overleden *(nagelopen 24 nov 2026 met twee sessies tegelijk (speler en DM): de speler kreeg `entity:updated {deceased:true}` en `entity:deceased {name:"Dummy Drakenbaard"}` binnen zonder te herladen, en het terugdraaien net zo.)*
 - [x] **Geheimen onthullen** (DM) — een geheim vrijgeven komt live binnen bij de speler (`entity:secret`) zonder herladen; terugdraaien verbergt het weer *(nagelopen 24 nov 2026 met twee sessies tegelijk: op t+19s onthulde de DM een geheim van Ārslän en bij de speler verscheen het merkteken op de tegel (plus de toast *Geheim van Ārslän onthuld*); op t+49s draaide de DM het terug en verdween het weer — beide keren zonder herladen. **Hier zat wel een gat:** de tegel had helemaal geen merkteken meer; zie het verslag hieronder.)*
-- [ ] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret) en blijft na herladen. Terugvinden kan op twee plekken: open het zoekvenster en typ niets — je bladwijzers staan er onder *Jouw bladwijzers* — en in het tabblad zelf staat een chip **★ Bladwijzers** in de filterbalk die de lijst terugbrengt tot wat je gemarkeerd hebt
+- [x] **Bladwijzers** (SP) — ☆ wordt ★ (duidelijk zichtbaar op elk portret) en blijft na herladen. Terugvinden kan op twee plekken: open het zoekvenster en typ niets — je bladwijzers staan er onder *Jouw bladwijzers* — en in het tabblad zelf staat een chip **★ Bladwijzers** in de filterbalk die de lijst terugbrengt tot wat je gemarkeerd hebt
 - [x] **Korte zoekterm** (ALL) — typ één letter: je krijgt alleen kaartjes waarvan de naam daarmee begint, niet de halve campagne. Vanaf twee letters telt de hele naam mee, vanaf drie ook de teksten *(nagelopen 24 nov 2026 op 169 personages: "b" gaf er 21 — twaalf waarvan de naam ermee begint en negen waarvan een wóórd erin ermee begint (Alfira en Ramella **B**leekhamer), en niets anders. "elf" gaf er 47, dus daar tellen rol, volk en class mee; "smid" vond kaartjes die het woord alleen in hun tekst hebben.)*
 - [x] **Globaal zoeken** — sneltoets of vergrootglas; het venster is perkament (niet donker); resultaten uit alle types door elkaar, klikken opent het juiste kaartje; als speler zie je alleen wat vrijgegeven is *(nagelopen 24 nov 2026: het venster is perkament (#f8f0de), resultaten staan per soort onder elkaar en elke regel draagt een `onclick` naar het juiste kaartje. Wat een **speler** er ziet is niet meegemeten — dat vraagt een tweede sessie.)*
 - [x] **Spreuken en bestiarium in het zoeken** (ALL) — zoek op een spreuknaam of een monster: ze staan onder eigen kopjes, met een chip om erop te filteren, en klikken opent het spreukvenster respectievelijk het statblock *(nagelopen 24 nov 2026: "fireball" gaf een kopje *Spreuken*, "goblin" een kopje *Bestiarium*, en er staan negen chips om op soort te filteren (Alles · Personages · … · Spreuken · Bestiarium · Naslag) die ook echt filteren.)*
@@ -101,14 +101,14 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Voorraadrijen even breed** (DM) — een regel mét gekoppeld kaartje is even breed als een regel zonder; het vinkje houdt zijn plek
 - [ ] **Prijzen met een komma in de winkel** (SP) — zet `1,50` als prijs in de voorraad en koop er twee: er gaat 3 florinde af
 - [ ] **Wisselend assortiment ververst op rust** (DM/SP) — zet *Toon steeds maar een deel*, vul `1d8` bij aantal en kies *na een lange rust*: de schappen blijven gelijk tot je rust, en daarna ligt er iets anders. Met `3` liggen er altijd precies drie; *nooit meer dan* begrenst de worp
-- [ ] **De speler ziet niet wat er níét ligt** (SP) — bij een wisselend assortiment krijgt de speler alleen de actieve regels; de kolom *In schap* is DM-only en de rest van de voorraad is voor hem onzichtbaar. Kopen van iets dat er niet ligt lukt niet, ook niet als je de naam kent
-- [ ] **Elke party haar eigen schappen** (DM/SP) — laat party 1 rusten: de schappen van party 2 blijven staan. En wat een speler ziet hangt aan zíjn party, niet aan de party waar de DM naar kijkt
+- [x] **De speler ziet niet wat er níét ligt** (SP) — bij een wisselend assortiment krijgt de speler alleen de actieve regels; de kolom *In schap* is DM-only en de rest van de voorraad is voor hem onzichtbaar. Kopen van iets dat er niet ligt lukt niet, ook niet als je de naam kent
+- [x] **Elke party haar eigen schappen** (DM/SP) — laat party 1 rusten: de schappen van party 2 blijven staan. En wat een speler ziet hangt aan zíjn party, niet aan de party waar de DM naar kijkt
 - [ ] **Inkopen vraagt eerst** (DM) — vink twee regels aan met een bedrag en druk op Inkopen: je krijgt een opsomming met het totaal en de vraag of je doorgaat. Annuleren verandert niets; doorgaan geeft een melding in beeld ("2 voorwerpen ingekocht voor 5,00") en de lijst schuift niet naar boven weg
 - [ ] **Aantal in de schappen is een bereik** (DM) — vul 2 tot en met 5 in: er ligt elke verversing een aantal daartussen, nooit meer dan er in de voorraad zit
 - [ ] **Deelt schappen met** (DM) — wijs een andere winkel aan in de keuzelijst: onder het veld staat met welke winkel je deelt, klikbaar naar dat kaartje. Beide winkels tonen daarna dezelfde selectie en verversen tegelijk. Zet je de koppeling leeg, dan krijgt deze winkel weer een eigen selectie — de voorraadlijst blijft ongemoeid
 - [ ] **Eén kaartje per voorraadregel** (DM) — koppel hetzelfde voorwerpkaartje aan een tweede regel: dat wordt geweigerd met de melding aan welke regel het al hangt
 - [ ] **Kaartje dat verdwijnt zegt dat** (ALL) — laat een geopend kaartje ondertussen verwijderen of verbergen en ververs het venster: er staat "Dit kaartje is niet meer beschikbaar" in plaats van oude inhoud waar je niets mee kunt
-- [ ] **Diensten betalen uit de partybeurs** (SP) — zet de gedeelde beurs aan en maak de eigen beurs leeg. Een voorspelling bij Ursula, een opdracht bij De Gock, een inzet of lening bij de Tweespalt en een boete bij De Heeren gaan allemaal van de partybeurs; het bedrag dat je daarna in beeld ziet klopt ook. Zet de gedeelde beurs uit en het gaat weer van de eigen
+- [x] **Diensten betalen uit de partybeurs** (SP) — zet de gedeelde beurs aan en maak de eigen beurs leeg. Een voorspelling bij Ursula, een opdracht bij De Gock, een inzet of lening bij de Tweespalt en een boete bij De Heeren gaan allemaal van de partybeurs; het bedrag dat je daarna in beeld ziet klopt ook. Zet de gedeelde beurs uit en het gaat weer van de eigen
 - [ ] **Te weinig geld zegt hoeveel** (SP/DM) — koop iets van 500 fl met 12,50 op zak: er staat "Niet genoeg geld — je komt 487 Florinde 5 Knaker tekort". Bij *Afrekenen* door de DM staat hetzelfde tekort in het paneel. Met de gedeelde beurs aan wordt die gemeten, niet de eigen
 - [ ] **Inkoopbedrag is per stuk** (DM) — neem drie stuks over à 2,00: er wordt 6 florinde bijgeschreven, en naast het veld staat `= 6,00`
 - [ ] **Kolomkoppen in de voorraad** (DM) — de kolommen heten *In schap*, *Uitverkocht* en *Afrekenen*, niet ✦, UV en —
@@ -116,7 +116,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Inkopen** (DM) — de knop heet *Inkopen*; na afloop staat er hoeveel er ingekocht is en is de lijst bijgewerkt. Met de gedeelde beurs aan gaat het geld naar de partybeurs, anders naar de speler
 - [ ] **Knoppen onder de bewerkmodus** (DM) — *Opslaan*, *Verwijderen* en *Annuleren* staan met icoon én woord; verwijderen is rood
 - [ ] **Stapelbaar kopen levert het aantal dat je betaalt** (SP) — koop er drie van een stapelbaar voorwerp: er gaat drie keer de prijs af én er staan er drie in je boedel. Koop daarna nog eens: de winkel is niet "uitverkocht"
-- [ ] **Gedeelde beurs betaalt in de winkel** (SP) — zet de gedeelde beurs aan, maak je eigen beurs leeg en koop iets: het lukt en het geld gaat van de partybeurs. Verkopen aan de winkel schrijft ook dáár bij
+- [x] **Gedeelde beurs betaalt in de winkel** (SP) — zet de gedeelde beurs aan, maak je eigen beurs leeg en koop iets: het lukt en het geld gaat van de partybeurs. Verkopen aan de winkel schrijft ook dáár bij
 - [ ] **Gedeeld voorwerp heeft geen aantal-knopjes** (SP) — een voorwerp op *Meerdere spelers — ieder één exemplaar* toont in de Boedel géén − en +; die gaven een foutmelding omdat de server een aantal daar niet aanpast
 - [ ] **De Boedel is een raster** (SP) — open Boedel met een stuk of zes voorwerpen: ze staan als kleine kaartjes in twee kolommen (telefoon) of drie (breed), met de zeldzaamheidsrand uit het archief, ×N bij een stapel en ⚡ n/m bij charges. Klik er een: het venster toont beeld, beschrijving, charges, aantal en *Geven aan…*; ← / → bladert naar het buurkaartje. Verbruik een charge in het venster: het venster én het kaartje eronder lopen mee. Geef het weg: het venster gaat dicht en het kaartje is weg
 - [ ] **Personages als tegels** (ALL) — open Personages: kleine kaartjes met alleen beeld en naam. Tik er een: hij wordt 2×2 groot (de rest schuift opzij), en elke volgende tik draait hem naar het volgende blad (gegevens, beschrijving, roddels, geheimen; een speler ziet alleen wat verteld/onthuld is en lege bladen bestaan niet). Het vergrootknopje laat het detailvenster uit de tegel groeien, sluiten laat het erin terugkrimpen; Escape maakt de tegel weer klein. Zoek op een woord uit een roddel en open die tegel: hij staat meteen op het roddelblad
@@ -3885,3 +3885,43 @@ elementen, **nul kaartjes boven hun eigen kop**.
 over, dus het raster was leeg en ik dacht even dat de functie zelf stuk was. De
 foto liet het echte probleem zien, de meting niet — precies andersom dan
 gisteren bij de verteller.
+
+## Blok 2: wie mag aan wiens karakter? (25 nov 2026)
+
+Vijf punten uit dit blok bleken al bewaakt en zijn afgevinkt met de toets erbij:
+wat een speler in de schappen ziet en niet kan kopen (`winkel-schappen`, 6
+toetsen), dat elke party haar eigen schappen houdt en ze na een lange rust
+verversen (idem), en dat zowel een winkel als een dienst uit de **partybeurs**
+betaalt zodra die aanstaat (`winkel-en-rust`, `diensten-beurs`). Bladwijzers
+staan in het spelersprofiel, en dat is aan beide kanten afgeschermd — lezen en
+schrijven allebei.
+
+### En toen de hele familie in één keer
+
+Die laatste controle riep de bredere vraag op: **elke route met een karakter-id
+in zijn pad moet weten van wie dat karakter is.** Anders komt speler A aan het
+blad, de beurs, de post of de Rage van speler B — binnen dezelfde campagne, dus
+de campagne-isolatie vangt dat niet.
+
+Nagelopen: ruim veertig routes, **allemaal afgeschermd**. Geen gat. Maar de
+controle komt in **zes** gedaanten voor, en dat is geen slordigheid maar
+geschiedenis:
+
+| vorm | waar |
+|---|---|
+| `requireDM` als middleware | de meeste DM-routes |
+| `req.session.characterId !== …` | de klassieke |
+| `req.characterId !== …` | `attachRole` zet dat veld óók |
+| `_magRage(req, id)` | een eigen helper |
+| `_playerGroupId(…) !==` | via de party van het karakter |
+| `if (req.role !== 'dm') return 403` | hetzelfde DM-slot, in het lichaam |
+
+- [x] **Geen enkele karakter-route zonder slot** — bewaakt door
+      `tests/karakter-routes.test.js`. Hij vindt niets nieuws; hij voorkomt iets
+      nieuws. Kanarie: een verzonnen `GET /characters/:characterId/kanarie`
+      zonder controle laat hem omvallen.
+
+Die toets heeft zelf ook een slot: hij telt hoeveel routes hij onderzocht en
+valt om onder de 25. *Een toets die nul routes bekijkt slaagt altijd* — dezelfde
+val als een controle op een veld dat niet bestaat, en die kwam vandaag al vier
+keer langs.
