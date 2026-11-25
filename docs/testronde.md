@@ -384,17 +384,17 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 ### Bastion (module, standaard uit)
 
 - [ ] **Bastion: uit is weg** (DM) — zolang de module uit staat is er in *Avontuur* geen *Bastion* en bij Instellingen geen blok Bastion; zet hem aan bij Instellingen → Campagnes en beide verschijnen
-- [ ] **Bastion: stichten** (DM) — kies Testgroep in de kiezer, typ een naam en sticht: de kop toont de naam, *Special facilities 0/N* (N = 2 per lid vanaf level 5, 4 vanaf 9) en twee basic facilities, Bedroom (Cramped) en Kitchen (Roomy)
-- [ ] **Bastion: voorrekenen** (DM) — *+ Special facility* toont alle 29 per level; een facility boven het hoogste level van de party, met een prerequisite of die er al staat draagt een rode regel en een gestippelde rand, en kiezen kan toch (de melding zegt wat er opviel)
-- [ ] **Bastion: override** (DM) — potlood → vul bij *Special facilities* 1 in: de chip wordt rood bij 2 facilities; maak het veld leeg en het getal wordt weer uitgerekend
+- [x] **Bastion: stichten** (DM) — kies Testgroep in de kiezer, typ een naam en sticht: de kop toont de naam, *Special facilities 0/N* (N = 2 per lid vanaf level 5, 4 vanaf 9) en twee basic facilities, Bedroom (Cramped) en Kitchen (Roomy) *(nagelopen 25 nov 2026 met een wegwerp-bastion in de Testgroep: stichten gaf de naam, **Bedroom (cramped)** en **Kitchen (roomy)** als basic facilities, en *Special facilities 0/4* — vier, want de party is lv12 · lv3 · lv3 · lv1 en alleen de twaalf telt mee (2 vanaf level 5, 4 vanaf 9). Een tweede bastion voor dezelfde party gaf 409.)*
+- [x] **Bastion: voorrekenen** (DM) — *+ Special facility* toont alle 29 per level; een facility boven het hoogste level van de party, met een prerequisite of die er al staat draagt een rode regel en een gestippelde rand, en kiezen kan toch (de melding zegt wat er opviel) *(nagelopen 25 nov 2026: de kandidatenlijst noemt alle **29** special facilities, elk met wat eraan opvalt — "Prerequisite: Arcane Focus of gereedschap als Spellcasting Focus" bij de Arcane Study. Kiezen kan tóch: de route gaf 200 en zette de opmerking in het antwoord. De app rekent voor, de DM beslist.)*
+- [x] **Bastion: override** (DM) — potlood → vul bij *Special facilities* 1 in: de chip wordt rood bij 2 facilities; maak het veld leeg en het getal wordt weer uitgerekend *(nagelopen 25 nov 2026: `slotsOverride: 1` zette de teller op 1 terwijl er twee facilities stonden (`{afgeleid:4, totaal:1, override:true}`); leegmaken rekende hem weer uit naar 4.)*
 - [ ] **Bastion: voorstellen** (SP) — log in als Test McTestface, open Avontuur → Bastion: geen plusknoppen of potloden; tik *Research* bij een Library: er staat een zandloper met *Voorgesteld door Test McTestface* en een vak *Wat precies?*
 - [ ] **Bastion: vastgelegd blijft vast** (SP) — leg als DM *Craft* vast op de Smithy; bij de speler staan de orders van die kaart grijs met een slotje, en via de API geeft een poging 409
 - [ ] **Bastion: de turn meldt zich** (DM) — doe zeven lange rusten met Testgroep: de DM krijgt een melding *N nachten sinds de vorige Bastion Turn* en bovenaan staat een gouden banier, ook bij de speler (zonder knop)
-- [ ] **Bastion: turn afronden** (DM) — *Turn afronden*, schrijf een uitslag bij de Smithy: de turn staat in het Logboek met order, notitie, wie hem gaf en de uitslag; de orders zijn weg en de teller staat op 0/7; de speler leest dezelfde regel
-- [ ] **Bastion: opheffen** (DM) — potlood → *Bastion opheffen* vraagt eerst bevestiging met het aantal turns dat verdwijnt; annuleren laat alles staan
+- [x] **Bastion: turn afronden** (DM) — *Turn afronden*, schrijf een uitslag bij de Smithy: de turn staat in het Logboek met order, notitie, wie hem gaf en de uitslag; de orders zijn weg en de teller staat op 0/7; de speler leest dezelfde regel *(nagelopen 25 nov 2026: een Craft-order op de Smithy ("Een proefopdracht", vastgelegd door de DM) en daarna *Turn afronden* — de turn staat als regel 1 in het log met facility, order, notitie en wie hem gaf; de orders zijn eraf en de nachtteller staat op 0 van de 7.)*
+- [x] **Bastion: opheffen** (DM) — potlood → *Bastion opheffen* vraagt eerst bevestiging met het aantal turns dat verdwijnt; annuleren laat alles staan *(nagelopen 25 nov 2026: `DELETE /bastion` zonder bevestiging geeft 400 "Bevestig het opheffen"; met `?zeker=1` lukt het en is het bastion weg.)*
 
 ### Vaardigheden (archieftab)
-- [ ] Archief → Vaardigheden toont kaartjes voor class features, subclass features, species traits, feats, Epic Boons en backgrounds; de tellers boven kloppen met wat je ziet
+- [x] Het **Heldenboek** heeft zeven deuren met hun aantal erop: Classes (14, met 135 subclasses), Species (59), Backgrounds (124), Feats & Epic Boons (277), Spells (523), Conditions (40) en Familiars (116); die tellingen kloppen met `GET /progression` *(herschreven en nagelopen 25 nov 2026: het punt beschreef nog één lijst met soort-chips. Sinds het Heldenboek deuren heeft open je eerst een deur en dan een houder — bij Ranger staan zijn tien subclasses als aanvinkbare lijst (drie pagina's van vier, elk met zijn boekcode) naast de classkaart, met de featurekaartjes eronder, elk met zijn level in een penning.)*
 - [ ] Klik op een soort-chip → alleen die soort, en de bronnen- en levellijst eronder loopt mee (bij Feats is er geen level)
 - [x] Zoek op "unarmored defense" → de Barbarian- én de Monk-versie staan er allebei, elk met hun eigen klasse eronder *(nagelopen 24 nov 2026: twee kaartjes, sleutels `class|Barbarian|…` en `class|Monk|…`)*
 - [x] Een background is één kaartje met zijn vijf onderdelen in het detailvenster, niet zestien keer "Ability Scores" *(nagelopen 24 nov 2026: één Acolyte-kaartje, nul losse "Ability Scores")*
@@ -412,7 +412,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Vaardigheden: een eigen feat toevoegen laat de 51 meegeleverde feats en 12 Epic Boons staan (tellers boven kloppen nog)
 - [ ] Vaardigheden (DM): verwijderen vraagt om bevestiging en haalt hem uit de lijst
 - [ ] Een kaartje met eigen afbeelding toont die in plaats van het silhouet; de herkomst-tag staat erbij (rood bij *Overgenomen*)
-- [ ] Vaardigheden: alle vier de subklassen van een klasse staan erin (bijv. Ranger → Hunter, Beast Master, Fey Wanderer, Gloom Stalker); die zonder SRD-tekst dragen de chip *Naslag*
+- [x] Vaardigheden: alle subklassen van een klasse staan erin — de Ranger heeft er in Grisburgh **tien** (Hunter, Beast Master, Fey Wanderer, Gloom Stalker, Horizon Walker, Monster Slayer, Swarmkeeper, Drakewarden, Hollow Warden, Winter Walker), elk met de code van zijn boek *(nagelopen 25 nov 2026. De chip *Naslag* is bij deze class nergens te zien: alle 54 subclass-features hebben hier eigen tekst. Die chip hoort bij een feature zónder tekst.)*
 - [ ] Vaardigheden: een background toont zijn feat als klikbare verwijzing ("Feat. **Magic Initiate** (Cleric)") die dat feat-kaartje opent
 - [ ] Heldenboek → Backgrounds → Azorius Functionary, op de kaart naar *Eigenschappen* en in het venster: *Azorius Guild Spells* toont een cursieve Prerequisite-regel en een echte tabel met klikbare spreuknamen, onder het etiket over de volle breedte — geen sterretjes, pijpen of [[haken]]
 - [ ] Heldenboek → Backgrounds → Dimir Operative → *False Identity*: de d8-tabel is één tabel met kop "d8 / Reason for Infiltration", geen losse regels met pijpen
@@ -2854,3 +2854,28 @@ zijn party op verborgen. Dat is de zichtbaarheidsfilter die doet wat hij moet.
 
 Alles teruggezet: `dm-state.json` verschilt in geen enkele sleutel van de
 momentopname.
+
+## Twintigste ronde (25 nov 2026) — het Heldenboek en het bastion
+
+**Het Heldenboek heeft zeven deuren**, niet vijf zoals de documentatie zei:
+Classes (14, met 135 subclasses), Species (59), Backgrounds (124), Feats & Epic
+Boons (277), Spells (523), Conditions (40) en Familiars (116) — en die tellingen
+kloppen met `GET /progression`. Achter een class staat zijn kaart met de plaat,
+de subclasses als aanvinkbare lijst ernaast (de Ranger heeft er tien, drie
+pagina's van vier, elk met zijn boekcode) en de featurekaartjes eronder met hun
+level in een penning.
+
+**Een bastion van begin tot eind**, met een wegwerp-exemplaar in de Testgroep:
+stichten (Bedroom cramped + Kitchen roomy, 0/4 slots), de 29 kandidaten met hun
+opmerkingen, een facility mét prerequisite die je tóch mag kiezen, een
+Craft-order op de Smithy, de turn afronden (regel 1 in het log, orders eraf,
+teller op 0/7), een override op het aantal slots en weer terug, en opheffen —
+dat laatste weigert netjes zonder bevestiging. Daarna was `bastion.json` weer
+leeg en `dm-state.json` gelijk aan de momentopname.
+
+> **Twee dingen die bij het meten als fout lazen en het niet zijn.** Een Smithy
+> kent `["craft","maintain"]` en niet alleen Craft: *Maintain* kan bij elke
+> facility, dus `ordersVan()` zet hem er altijd bij. En de order van een
+> facility staat in het antwoord **op die facility** (`f.order`, met
+> `doorNaam`), niet in een losse `orders`-map — die map is de opslag, niet de
+> uitvoer.
