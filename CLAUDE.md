@@ -4595,6 +4595,18 @@ plaats van twee — elke rust één te veel.
   zonder achtergrond, en niemand zag het omdat er geen foutmelding is. Een scan
   op klassen die de JS gebruikt maar die `theme.css` niet kent brengt dit soort
   gaten boven.
+- **Een knop zonder opgemaakte klasse is geen knop.** `theme.css` kent
+  duizenden klassen; staat de naam die een element draagt er niet bij, dan
+  gebeurt er niets en klaagt er niemand. De ±-knopjes bij *Aantal:* op een
+  trait (`.skill-adj-btn`) stonden zo als kale tekens van **9×24 px** in een
+  rij die verder wél opgemaakt was — niet te zien als knop, en op een telefoon
+  niet te raken. Bewaakt door *Elke knop heeft opmaak* in
+  `tests/frontend-imports.test.js`, dat alleen naar `<button>` kijkt: dat is de
+  categorie met gevolgen. **Let op bij het schrijven van zo'n bewaker:** strip
+  eerst het CSS-commentaar. Een toelichting noemt de klasse waar hij over gaat,
+  en dan telt die naam als "bekend" terwijl er geen regel meer staat — de
+  kanarie bleef daardoor groen. Zelfde val als bij de bewaker die
+  `req.session?.campaignId` weigert.
 - **Een klasse die nergens bestaat geeft geen foutmelding.**
   `node scripts/css-nalopen.js` loopt het na, twee kanten op. **`--gaten`** (de
   standaard) zoekt klassen die de code uitstuurt en die `theme.css` niet kent —

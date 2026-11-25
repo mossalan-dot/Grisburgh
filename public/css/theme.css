@@ -35355,3 +35355,45 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
   color: #4a3418;
   white-space: pre;
 }
+
+/* ── De ±-knopjes bij "Aantal:" op een trait ──────────────────────────────────
+   `.skill-adj-btn` had geen enkele regel: de − en de + stonden als kale tekens
+   van 9×24 px in een rij die verder wél opgemaakt is (`.trait-uses-config`,
+   `.trait-uses-label`, `.trait-uses-count-cfg` staan er allemaal). Geen
+   foutmelding, want een klasse die niet bestaat zwijgt — gevonden met
+   `scripts/css-nalopen.js` op 25 nov 2026.
+   Twee dingen misten: ze zagen er niet uit als iets waar je op drukt, en 9 px
+   is op een telefoon niet te raken. Vorm geleend van `.kk-mini`, de kleine
+   knop die deze app elders gebruikt. */
+.skill-adj-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  font-family: 'Cinzel', serif;
+  font-size: 15px;
+  line-height: 1;
+  color: #3a2410;
+  background: rgba(255, 255, 255, 0.5);
+  border: 1px solid #c4a87a;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.15s, border-color 0.15s;
+}
+.skill-adj-btn:hover {
+  background: rgba(196, 168, 122, 0.35);
+  border-color: #9a7a3a;
+}
+.skill-adj-btn:active { background: rgba(196, 168, 122, 0.55); }
+/* Op het donkere spelersdashboard leest perkament niet; daar de lichte variant. */
+.player-dashboard[data-klasse] .skill-adj-btn {
+  color: rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.25);
+}
+.player-dashboard[data-klasse] .skill-adj-btn:hover {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 255, 255, 0.4);
+}

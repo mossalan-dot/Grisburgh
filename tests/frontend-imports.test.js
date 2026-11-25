@@ -489,3 +489,51 @@ describe('Commentaar in template literals', () => {
       'backtick in een HTML-commentaar — die sluit de template literal:\n  ' + fout.join('\n  '));
   });
 });
+
+// **Een knop die geen enkele opgemaakte klasse draagt, is geen knop.**
+// `theme.css` kent duizenden klassen; staat de naam die een element draagt er
+// niet bij, dan gebeurt er niets en klaagt er niemand. Zo stonden de ±-knopjes
+// bij *Aantal:* op een trait (`.skill-adj-btn`) als kale tekens van 9×24 px in
+// een rij die verder wél opgemaakt was — gevonden met `scripts/css-nalopen.js`
+// op 25 nov 2026, en de enige in zijn soort.
+//
+// Deze bewaker kijkt alleen naar **knoppen**, want dat is de categorie met
+// gevolgen: je ziet niet dat je erop kunt drukken, en op een telefoon is 9 px
+// niet te raken. Tailwind-klassen tellen niet mee (die komen van een CDN), en
+// samengestelde namen (`best-card-niv--${k}`) evenmin: hun staart valt niet te
+// kennen.
+describe('Elke knop heeft opmaak', () => {
+  it('draagt minstens één klasse die theme.css kent', () => {
+    // **Commentaar eerst eruit.** Een toelichting noemt de klasse waar hij over
+    // gaat (`.skill-adj-btn` staat zo in zijn eigen uitleg), en dan telt die
+    // naam als "bekend" terwijl er geen regel meer staat. Daarmee bleef deze
+    // bewaker groen toen ik de regel bij wijze van kanarie weghaalde.
+    const css = fs.readFileSync(path.join(PUB_DIR, 'css', 'theme.css'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, ' ');
+    const bekend = new Set();
+    for (const m of css.matchAll(/\.([a-zA-Z][a-zA-Z0-9_-]{2,})/g)) bekend.add(m[1]);
+
+    const bestanden = fs.readdirSync(JS_DIR).filter(f => f.endsWith('.js'));
+    const stammen = new Set();
+    for (const f of bestanden) {
+      const t = fs.readFileSync(path.join(JS_DIR, f), 'utf8');
+      for (const m of t.matchAll(/([a-zA-Z][a-zA-Z0-9_-]*-)\$\{/g)) stammen.add(m[1]);
+    }
+    const viaStam = (n) => [...stammen].some(s => n.startsWith(s));
+    const tailwind = /^(text|px|py|pt|pb|mt|mb|ml|mr|flex|grid|w|h|gap|top|left|right|bottom|z|absolute|relative|hidden|block|inline)-?/;
+
+    const fout = [];
+    for (const f of bestanden) {
+      const t = fs.readFileSync(path.join(JS_DIR, f), 'utf8');
+      for (const m of t.matchAll(/<button\s+class="([^"$]+)"/g)) {
+        const klassen = m[1].trim().split(/\s+/).filter(Boolean);
+        const kaal = klassen.filter(k => !bekend.has(k) && !viaStam(k) && !tailwind.test(k));
+        if (kaal.length === klassen.length) {
+          fout.push(`${f}:${t.slice(0, m.index).split('\n').length}  ${klassen.join(' ')}`);
+        }
+      }
+    }
+    assert.deepEqual(fout, [],
+      'deze knoppen dragen geen enkele klasse die theme.css kent:\n  ' + fout.join('\n  '));
+  });
+});

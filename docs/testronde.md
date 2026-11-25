@@ -3684,3 +3684,32 @@ en kreeg `undefined` terug — het statblok zit genest onder `statblock`. Dat ha
 ik bijna als "de tekst is eraf geknipt" gelezen. Derde keer vandaag dat een
 verkeerd geraden veldnaam een bug suggereerde; lees de vorm voor je er een
 oordeel aan hangt.
+
+### De enige knop zonder opmaak
+
+De gatenscan uit blok 7 (`scripts/css-nalopen.js`) gaf 152 klassen die de code
+uitstuurt en `theme.css` niet kent. De meeste zijn JS-haken — een klasse om een
+element terug te vinden, niet om het op te maken. Gescheiden op "wordt hij
+ergens opgezocht vanuit JS?" bleven er een kleine veertig over, en daarvan is
+**één** categorie die echt telt: een `<button>`.
+
+`.skill-adj-btn` — de − en + bij *Aantal:* op een trait — had geen enkele
+regel. Nagemeten op productie: **9×24 px**, transparant, geen rand, geen
+radius. De rij eromheen (`.trait-uses-config`), het label en de teller hebben
+allemaal wél opmaak; alleen de twee knoppen niet. Je zag dus niet dat je erop
+kon drukken, en op een telefoon is 9 px niet te raken.
+
+Opgelost met de vorm van `.kk-mini`, de kleine knop die deze app elders
+gebruikt: 26×26, Cinzel, perkament met een rand — en een lichte variant voor
+het donkere spelersdashboard. Nagemeten na de uitrol.
+
+- [x] **Elke knop ziet eruit als een knop** — bewaakt door *Elke knop heeft
+      opmaak* in `tests/frontend-imports.test.js`. Er was er precies één; de
+      toets houdt het zo.
+
+*En nog een keer dezelfde val:* mijn kanarie bleef groen toen ik de nieuwe
+CSS-regel weghaalde. Oorzaak: de bewaker las ook **CSS-commentaar**, en in mijn
+eigen toelichting staat `.skill-adj-btn` letterlijk. Commentaar wordt nu eerst
+gestript. Vanmiddag gebeurde precies hetzelfde bij de bewaker die
+`req.session?.campaignId` weigert. **Een bewaker die de bron leest, moet eerst
+het commentaar eruit halen** — anders houdt de uitleg de fout in leven.
