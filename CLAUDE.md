@@ -1202,6 +1202,23 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > bakken op een personage-id ook de groepsvelden, want met de volledige
 > kaartjeslijst erbij valt er niets te raden.
 >
+> **Een party verwijderen laat ook niets achter** (25 nov 2026). Dezelfde regel
+> als bij een kaartje, en hij gold hier nog niet: `DELETE /groups/:id` deed
+> alleen `delete dmState.groups[id]`. Niet alles van een party staat daarin —
+> de **akte-zichtbaarheid** heeft een eigen bestand (`chapter-visibility.json`)
+> en een **dungeon** houdt zijn mist (`reveals`), zijn `partyAccess` en zijn
+> `partyCompleted` per party bij. In Grisburgh stond er nog een akte-instelling
+> van een party die allang weg was; niemand zag hem, en precies daarom bleef hij
+> staan. `_partyResten(gid)` in `routes/api.js` is nu de enige plek die weet
+> waar een party nog meer woont, en `scripts/wezen-opruimen.js` kent dezelfde
+> lijst voor wat er al ligt.
+> **De prullenbak blijft met rust.** Die verwijst óók naar party's die niet meer
+> bestaan (`trash[].groupsState`), maar dat is een bevroren verleden: een undo
+> die de party-stand niet meer kent is een halve undo. Een scan op verweesde
+> party-ids moet die bak dus overslaan — anders meldt hij vier "fouten" die
+> precies goed staan.
+> Bewaakt door `tests/party-verwijderen.test.js`.
+>
 > **Wat je uitdeelt gaat langs de échte spelersfilter.** Er is nog één export:
 > `GET /api/export/campagneboek` (DM-only) — een leesbaar boek, geen tweede app.
 > Hij gebruikt `filterEntityForPlayer` en `hoofdstukkenVoorSpeler` uit

@@ -901,7 +901,17 @@ fout-uitvoert.
 - [ ] **Rage op de tablet** (TAB) — een speler gaat in Rage: het tafelscherm wordt rood, drie klauwsporen trekken over het beeld, het portret en *RAGE* slaan in, en daarna blijft linksonder een merkteken staan tot de Rage dooft; de andere spelers krijgen een melding, niet de brul zelf
 - [ ] **Klassekrachten op de tablet** (TAB) — elke kracht heeft een eigen moment: stralen bij Cleric en Paladin, golven bij Bard en Druid, snelheidslijnen bij Action Surge, inkt bij de Monk, een vizier bij de Ranger, een haal bij de Rogue, een tovercirkel bij Wizard/Sorcerer/Artificer en stralen eldritch-licht bij de Warlock; een gerolde uitkomst telt op in beeld, en een toestand laat linksonder een merkteken achter
 - [ ] **Wat voorafging** (DM/TAB) — open een akte, druk in de regie-balk op *Terugblik* en kies *Op het tafelscherm*; de tablet speelt het laatste zichtbare verslag af als trailer (titel, akte, tekst woord voor woord over de beelden, citaat, wie je ontmoette, "gaat het verder") en gaat daarna vanzelf terug naar sfeer
-- [ ] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste verslag op verborgen en een personage uit dat verslag op verborgen; de terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat
+- [x] **Wat voorafging: alleen wat de party kent** (DM) — zet het nieuwste
+      verslag op verborgen en een personage uit dat verslag op verborgen; de
+      terugblik pakt het verslag dáárvoor, en het verborgen personage staat niet
+      bij *Wie u ontmoette* — ook niet als zijn naam in de tekst staat.
+      *Nagerekend op de echte campagne (25 nov 2026) in plaats van door te
+      klikken: dezelfde akte geeft de ene party drie gezichten en de andere één,
+      en dat verschil klopt precies met de zichtbaarheid van die kaartjes
+      (de god staat `visible` bij de ene, `hidden` bij de andere). De
+      kiezerslijst verschilt 30 tegen 12, en dat komt van de zeven aktes die
+      voor de tweede party dicht staan. Van de drie beelden op dat verslag is er
+      nul onthuld, en er gaat ook nul mee.*
 - [ ] **Wat voorafging: bediening** (TAB) — tikken springt naar het volgende shot, Escape sluit, en de monitorknop in de regie-balk breekt een lopende terugblik af; *Zelf bekijken* speelt hem alleen op het DM-scherm, met *Voorbeeld* linksboven
 - [ ] **Gevecht: de opening** (TAB) — start een gevecht: het tafelscherm toont *Roll Initiative* met balken boven en onder, de party komt van links, de vijanden van rechts (gelijke namen samen als ×3), een streep met *tegen* ertussen; de naam van de encounter staat er nergens; tikken sluit hem; heeft het gevecht Lair Actions, dan staat er *De plek zelf vecht mee*
 - [ ] **Gevecht: een nieuwe ronde** (TAB) — ga naar ronde 2: het beeld dimt, *RONDE 2* schuift in, en eronder staat een regel van de verteller; breng de party op lage HP en de regel van de volgende ronde zegt *De party wankelt*
@@ -3280,3 +3290,32 @@ onderdeel zetten.
 En een bijvangst die in de lijst hoort: in Grisburgh staat op dit moment **geen
 enkele beurs rood**, en je kunt er ook geen instellen — de twee beursroutes
 klemmen op nul. Een schuld ontstaat alleen door te veel uit te geven.
+
+### Een party verwijderen liet wél iets achter
+
+Bij het narekenen van de terugblik viel in `chapter-visibility.json` een
+party-id op dat in `dm-state.json` niet meer bestaat — een akte die dichtstond
+voor een party die allang weg is. Dat bestand bleek het topje: een scan over
+alle campagnebestanden op party-ids vond drie plekken waar een party buiten
+`dmState.groups` woont.
+
+| plek | wat | oordeel |
+|---|---|---|
+| `chapter-visibility.json` | welke aktes dicht staan | **wees** — opgeruimd |
+| `dungeon-maps.json` | `reveals` (de mist), `partyAccess`, `partyCompleted` | nu schoon, maar werd ook niet opgeruimd |
+| `dm-state.json → trash[].groupsState` | de stand bij een weggegooid kaartje | **hoort zo** — een bevroren verleden |
+
+- [x] Verwijder een party die een akte dicht had staan en een dungeon bezocht:
+      haar akte-instelling, haar mist, haar toegang en haar "uitgespeeld"
+      verdwijnen mee. De prullenbak blijft ongemoeid.
+- [x] `node scripts/wezen-opruimen.js <campagne>` meldt nu ook party's die niet
+      meer bestaan, en schrijft alleen de bestanden die echt veranderen.
+
+Op productie gedraaid: één wees opgeruimd, kopie ernaast. Daarna nagemeten dat
+de terugblik nog precies hetzelfde zegt (30 en 12 verslagen).
+
+**Eén valkuil bij het scannen zelf**, want ik liep er eerst in: zoeken op
+sleutels die met `groep` beginnen vindt ook het **veld** `groep` op elk
+personagekaartje — 160 valse treffers die de echte verstoppen. Het patroon moet
+op het id-formaat staan (`groep1` of `groep_<cijfers>_<letters>`), niet op het
+woord.

@@ -97,10 +97,43 @@ for (const [gid, g] of Object.entries(state.groups || {})) {
   for (const id of weg) groepWees.push({ gid, naam, bak: 'afwezig', id });
 }
 
-if (!perWees.size && !groepWees.length) {
-  console.log('Niets verweesd — alles wijst naar een bestaand kaartje.');
+// ── Party's die niet meer bestaan ───────────────────────────────────────────
+// Niet alles van een party staat in `groups[id]`. De akte-zichtbaarheid heeft
+// een eigen bestand en een dungeon houdt zijn mist, zijn toegang en zijn
+// "uitgespeeld" per party bij — en `DELETE /groups/:id` ruimde dat tot
+// 25 nov 2026 geen van beide op. De **prullenbak** blijft met rust: die is een
+// bevroren verleden, en een undo die de party-stand niet meer kent is een halve.
+const bestaandeParty = new Set(Object.keys(state.groups || {}));
+const padCv  = path.join(map, 'chapter-visibility.json');
+const padDng = path.join(map, 'dungeon-maps.json');
+const lees = (pad) => { try { return JSON.parse(fs.readFileSync(pad, 'utf8')); } catch { return null; } };
+const cv  = lees(padCv);
+const dng = lees(padDng);
+const partyWees = [];
+for (const gid of Object.keys(cv || {})) {
+  if (!bestaandeParty.has(gid)) partyWees.push({ bestand: 'chapter-visibility.json', gid,
+    wat: `${Object.keys(cv[gid] || {}).length} akte-instelling(en)` });
+}
+for (const m of (dng?.maps || [])) {
+  for (const gid of Object.keys(m.reveals || {})) {
+    if (!bestaandeParty.has(gid)) partyWees.push({ bestand: 'dungeon-maps.json', gid, wat: `mist op "${m.name}"` });
+  }
+  for (const veld of ['partyAccess', 'partyCompleted']) {
+    for (const gid of (m[veld] || [])) {
+      if (!bestaandeParty.has(gid)) partyWees.push({ bestand: 'dungeon-maps.json', gid, wat: `${veld} op "${m.name}"` });
+    }
+  }
+}
+if (!perWees.size && !groepWees.length && !partyWees.length) {
+  console.log('Niets verweesd — alles wijst naar een bestaand kaartje en een bestaande party.');
   process.exit(0);
 }
+
+if (partyWees.length) {
+  console.log(`\n── party's die niet meer bestaan (${partyWees.length}) ──`);
+  for (const w of partyWees) console.log(`  ${w.gid}  ${w.bestand.padEnd(24)} ${w.wat}`);
+}
+
 
 if (perWees.size) {
   console.log(`${perWees.size} verdwenen personage(s), ${totaal} achtergebleven vermelding(en):\n`);
@@ -117,6 +150,33 @@ if (groepWees.length) {
 }
 
 if (!schrijf) { console.log('\n(proefdraai — voeg --schrijf toe om het echt op te ruimen)'); process.exit(0); }
+
+if (partyWees.length) {
+  const weg = new Set(partyWees.map(w => w.gid));
+  const vandaag = new Date().toISOString().slice(0, 10);
+  // Alleen schrijven wat echt verandert. Een bestand herschrijven dat niets
+  // verweesds bevat levert een kopie op die niemand nodig heeft, en het is
+  // nodeloos risico op het enige moment dat dit script iets kapot kán maken.
+  const bewaar = (pad, data, geraakt) => {
+    if (!geraakt) return;
+    fs.copyFileSync(pad, pad.replace(/\.json$/, `.voor-wezen.${vandaag}.json`));
+    fs.writeFileSync(pad, JSON.stringify(data, null, 2));
+  };
+  let cvRaak = 0;
+  for (const gid of weg) if (cv && cv[gid]) { delete cv[gid]; cvRaak++; }
+  bewaar(padCv, cv, cvRaak);
+
+  let dngRaak = 0;
+  for (const m of (dng?.maps || [])) {
+    for (const gid of weg) if (m.reveals && m.reveals[gid]) { delete m.reveals[gid]; dngRaak++; }
+    for (const veld of ['partyAccess', 'partyCompleted']) {
+      if (!Array.isArray(m[veld])) continue;
+      const over = m[veld].filter(g => !weg.has(g));
+      if (over.length !== m[veld].length) { m[veld] = over; dngRaak++; }
+    }
+  }
+  bewaar(padDng, dng, dngRaak);
+}
 
 for (const w of groepWees) {
   const g = state.groups?.[w.gid];

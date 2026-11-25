@@ -11576,9 +11576,39 @@ router.delete('/groups/:id', requireDM, (req, res) => {
   if (dmState.activeGroup === id) return res.status(400).json({ error: 'Wissel eerst van groep voor je deze verwijdert' });
   delete dmState.groups[id];
   storage.writeJSON('dm-state.json', dmState);
+  // **Een party verwijderen laat niets achter** — zelfde regel als bij een
+  // kaartje. Niet alles van een party staat in `groups[id]`: de
+  // akte-zichtbaarheid heeft een eigen bestand, en een dungeon houdt zijn mist,
+  // zijn toegang en zijn "uitgespeeld" per party bij. Gemeten op 25 nov 2026
+  // stond er in Grisburgh nog een akte-instelling van een party die al weg was.
+  // De **prullenbak** blijft met rust: die is een bevroren verleden, en een
+  // undo die de party-stand niet meer kent is een halve undo.
+  const opgeruimd = _partyResten(id);
   req.app.get('io').to(_campagneRoom(req)).emit('groups:updated', { groups: groupInfoList(dmState), activeGroup: dmState.activeGroup });
-  res.json({ ok: true });
+  res.json({ ok: true, opgeruimd });
 });
+
+// Wat er van een party overblijft buiten `dmState.groups`. Eén plek, zodat de
+// verwijderroute en `scripts/wezen-opruimen.js` niet uit elkaar lopen.
+function _partyResten(gid) {
+  const uit = {};
+  try {
+    const cv = _readChapterVisibility();
+    if (cv[gid]) { delete cv[gid]; _writeChapterVisibility(cv); uit.akteZichtbaarheid = 1; }
+  } catch { /* geen bestand, niets te doen */ }
+  try {
+    const dm = storage.readJSON('dungeon-maps.json') || {};
+    let raak = 0;
+    for (const m of (dm.maps || [])) {
+      if (m.reveals && m.reveals[gid]) { delete m.reveals[gid]; raak++; }
+      for (const veld of ['partyAccess', 'partyCompleted']) {
+        if (Array.isArray(m[veld]) && m[veld].includes(gid)) { m[veld] = m[veld].filter(x => x !== gid); raak++; }
+      }
+    }
+    if (raak) { storage.writeJSON('dungeon-maps.json', dm); uit.dungeons = raak; }
+  } catch { /* idem */ }
+  return uit;
+}
 
 // ── Archief ──
 
