@@ -11247,11 +11247,13 @@ function _buildCombatKnapzakPanel(simpleItems, currency, ownership, voorwerpen, 
   const myItems   = voorwerpen.filter(item => item.id in myItemMap);
   const cNames    = window._muntNamen();
 
+  // Eén minteken vooraan bij een schuld — zie `window._muntDelen` in app.js.
+  const _cd = window._muntDelen(currency);
   const currencyHtml = `
     <div class="co-currency-row">
-      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.fl)}</span><span class="co-currency-val">${currency.fl ?? 0}</span></span>
-      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.kn)}</span><span class="co-currency-val">${currency.kn ?? 0}</span></span>
-      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.cl)}</span><span class="co-currency-val">${currency.cl ?? 0}</span></span>
+      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.fl)}</span><span class="co-currency-val">${_cd.negatief ? '−' : ''}${_cd.fl}</span></span>
+      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.kn)}</span><span class="co-currency-val">${_cd.kn}</span></span>
+      <span class="co-currency-item"><span class="co-currency-label">${esc(cNames.cl)}</span><span class="co-currency-val">${_cd.cl}</span></span>
     </div>`;
 
   const claimedHtml = myItems.length ? myItems.map(item => {

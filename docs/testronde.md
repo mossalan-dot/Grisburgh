@@ -888,7 +888,15 @@ fout-uitvoert.
 - [ ] **Buit bijgeschreven** (SP) — sluit een verdeling met alleen geld: de melding noemt het hele bedrag met de muntnamen ("4 Silver · 2 Copper"), en de speler las eerder *Er is buit!* — geen "Alle items zijn verdeeld" als er nooit een voorwerp in zat
 - [ ] **Gevechtsbalk op de telefoon** (SP) — met je beurt aan zet staat *Jij bent aan zet* op één regel naast de ronde
 - [ ] **Wifi even weg** (SP) — zet een telefoon even offline, onthul intussen een kaartje en gun een level; zodra hij terug is staat de naam erbij en de level-upbalk erop, zonder verversen
-- [ ] **Een beurs in de min** (DM/SP) — zet een speler op een negatieve beurs en verdeel buit: hij krijgt precies zijn aandeel erbij, en de beurs toont één minteken vooraan ("−3 gp · 6 sp")
+- [x] **Een beurs in de min** (SP) — een schuld toont **één** minteken vooraan:
+      "−3 Florinde · 6 Knaker · 8 Centeling", niet drie losse mintekens. Geldt in
+      de Boedel, in een winkel en in de korte pil. *Let op: je kunt een negatieve
+      beurs niet **instellen** — `PATCH /party-currency` en `/player-currency`
+      klemmen op nul. Hij ontstaat alleen door meer uit te geven dan er in zit
+      (`_deductCurrency` klemt bewust niet: dat is de woekeraar).*
+- [ ] **Buit op een beurs in de min** (DM/SP) — verdeel buit over een speler die
+      rood staat: hij krijgt precies zijn aandeel erbij, dus de schuld slinkt met
+      dat bedrag
 - [ ] **Tablet na herstart** (TAB) — server herstarten en kijken of de tablet ingelogd blijft en zijn kamer terugvindt
 - [ ] **Rage op de tablet** (TAB) — een speler gaat in Rage: het tafelscherm wordt rood, drie klauwsporen trekken over het beeld, het portret en *RAGE* slaan in, en daarna blijft linksonder een merkteken staan tot de Rage dooft; de andere spelers krijgen een melding, niet de brul zelf
 - [ ] **Klassekrachten op de tablet** (TAB) — elke kracht heeft een eigen moment: stralen bij Cleric en Paladin, golven bij Bard en Druid, snelheidslijnen bij Action Surge, inkt bij de Monk, een vizier bij de Ranger, een haal bij de Rogue, een tovercirkel bij Wizard/Sorcerer/Artificer en stralen eldritch-licht bij de Warlock; een gerolde uitkomst telt op in beeld, en een toestand laat linksonder een merkteken achter
@@ -3243,3 +3251,32 @@ groen — die toetst de regel, niet wie hem aanroept. Gevonden door op productie
 te meten; nu bewaakt door `tests/fouten-bedrading.test.js`, dat een echt
 verzoek naar een echte server stuurt. Allebei de toetsen met een kanarie
 nagelopen.
+
+### Drie mintekens zijn een rekenfout
+
+Blok 8 ingegaan via de meting in plaats van de muis. *Een beurs in de min* leek
+een opmaakdetail, maar het zat echt fout — en precies op de plek waar een speler
+naar zijn geld kijkt.
+
+`fromCl()` op de server slaat een schuld **ondertekend per onderdeel** op: 368
+centelingen schuld wordt `{fl:-3, kn:-6, cl:-8}`. `formatCl` en `_muntKort`
+hielden daar rekening mee (allebei met een comment erbij dat drie mintekens als
+een rekenfout lezen), maar twee weergaven plakten de velden **zelf** aan elkaar:
+
+- de beurs in de **Boedel** (`−3 Florinde · −6 Knaker · −8 Centeling`);
+- de beurs in een **winkel**, dezelfde fout.
+
+Beide lopen nu langs één nieuwe helper, `window._muntDelen(cur)`, die de
+onderdelen positief teruggeeft met één vlag erbij. De derde vindplaats zat in de
+gevechts-knapzak — dat is voorlopig onbereikbare code, maar hij is meegerepareerd
+zodat de fout niet terugkeert als die tabs ooit terugkomen.
+
+Nagemeten op productie: `−3 Florinde · 6 Knaker · 8 Centeling`. Bewaakt door
+`tests/munten-min.test.js`, dat behalve de rekenkunde ook toetst **dát** die twee
+weergaven de helper gebruiken — een regel die een weergave kan omzeilen is geen
+regel. Twee kanaries nagelopen: de velden weer los afdrukken, en het teken op elk
+onderdeel zetten.
+
+En een bijvangst die in de lijst hoort: in Grisburgh staat op dit moment **geen
+enkele beurs rood**, en je kunt er ook geen instellen — de twee beursroutes
+klemmen op nul. Een schuld ontstaat alleen door te veel uit te geven.

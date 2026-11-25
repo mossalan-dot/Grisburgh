@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=327';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=465";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=466";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=158";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=42';
 import { renderDungeon } from './render-dungeon.js?v=83';
@@ -13,7 +13,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=220';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=113";
-import { initDmPanel } from "./dm-panel.js?v=441";
+import { initDmPanel } from "./dm-panel.js?v=442";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=7';
 import './media-picker.js?v=22';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
@@ -82,15 +82,23 @@ window._muntAfk = (sleutel) => {
   if (l[0] === sleutel[0]) return sleutel;
   return l.replace(/[^a-z\u00e0-\u024f]/g, '').slice(0, 2) || sleutel;
 };
-window._muntKort = (cur, sep = ' · ', leeg) => {
-  // Een beurs in de min staat als −3 / −6 / −8 opgeslagen; één minteken vooraan
-  // leest als een schuld, drie mintekens als een rekenfout.
-  const totaal = (cur?.fl || 0) * 100 + (cur?.kn || 0) * 10 + (cur?.cl || 0);
+// **Een beurs in de min staat ondertekend opgeslagen**: `fromCl()` op de server
+// maakt van een schuld van 368 centelingen `{fl:-3, kn:-6, cl:-8}`. Wie die drie
+// onderdelen los afdrukt zet er dus drie mintekens neer, en dat leest als een
+// rekenfout in plaats van als een schuld. `formatCl` en `_muntKort` deden het al
+// goed, maar de beurs in de Boedel en die in een winkel plakten de velden zelf
+// aan elkaar — en dat is nou juist de plek waar een speler naar zijn geld kijkt.
+// Eén helper, zodat de volgende weergave het niet opnieuw zelf uitrekent.
+window._muntDelen = (cur) => {
+  const totaal = (Number(cur?.fl) || 0) * 100 + (Number(cur?.kn) || 0) * 10 + (Number(cur?.cl) || 0);
   const a = Math.abs(totaal);
-  const delen = { fl: Math.floor(a / 100), kn: Math.floor((a % 100) / 10), cl: a % 10 };
+  return { negatief: totaal < 0, fl: Math.floor(a / 100), kn: Math.floor((a % 100) / 10), cl: a % 10 };
+};
+window._muntKort = (cur, sep = ' · ', leeg) => {
+  const delen = window._muntDelen(cur);
   const d = ['fl', 'kn', 'cl'].filter(k => delen[k]).map(k => `${delen[k]} ${window._muntAfk(k)}`);
   if (!d.length) return leeg ?? `0 ${window._muntAfk('cl')}`;
-  return (totaal < 0 ? '−' : '') + d.join(sep);
+  return (delen.negatief ? '−' : '') + d.join(sep);
 };
 
 // Waar de tekst een plaatsnaam noemt, is dat de naam van de campagne — Grisburgh
@@ -6835,15 +6843,18 @@ function _invRender() {
     const deeltMsg = pc?.enabled && others.length > 0
       ? `${esc(_invState.charName)} deelt zijn aardse vermogen met ${others.map(n => esc(n)).join(', ')}`
       : pc?.enabled ? `${esc(_invState.charName)} deelt zijn aardse vermogen met de groep` : '';
+    // Het teken hoort vóór het hele bedrag, niet voor elk onderdeel apart.
+    const d = window._muntDelen(cur);
+    const min = d.negatief ? '−' : '';
     beurs.innerHTML = `
-      <div class="inv-beurs-row">
-        <span class="inv-beurs-amount">${cur.fl ?? 0}</span>
+      <div class="inv-beurs-row"${d.negatief ? ' title="Je staat rood"' : ''}>
+        <span class="inv-beurs-amount">${min}${d.fl}</span>
         <span class="inv-beurs-name">${esc(cn.fl || MUNT_STANDAARD.fl)}</span>
         <span class="inv-beurs-sep">·</span>
-        <span class="inv-beurs-amount">${cur.kn ?? 0}</span>
+        <span class="inv-beurs-amount">${d.kn}</span>
         <span class="inv-beurs-name">${esc(cn.kn || MUNT_STANDAARD.kn)}</span>
         <span class="inv-beurs-sep">·</span>
-        <span class="inv-beurs-amount">${cur.cl ?? 0}</span>
+        <span class="inv-beurs-amount">${d.cl}</span>
         <span class="inv-beurs-name">${esc(cn.cl || MUNT_STANDAARD.cl)}</span>
       </div>
       ${deeltMsg ? `<div class="inv-beurs-shared">${deeltMsg}</div>` : ''}`;

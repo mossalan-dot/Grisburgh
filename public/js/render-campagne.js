@@ -6436,7 +6436,11 @@ window._winkelVoorraadHtml = function _winkelVoorraadHtml({ e, tab, beschikbaarD
       if (cur) {
         beursHtml = `<div class="shop-beurs">
           <span class="shop-beurs-label">${icon('coins')} Jouw beurs</span>
-          <span class="shop-beurs-amount">${cur.fl ?? 0} ${esc(_cN.fl)} · ${cur.kn ?? 0} ${esc(_cN.kn)} · ${cur.cl ?? 0} ${esc(_cN.cl)}</span>
+          <span class="shop-beurs-amount">${(() => {
+            // Eén minteken vooraan bij een schuld, niet drie — zie `_muntDelen`.
+            const d = window._muntDelen(cur);
+            return `${d.negatief ? '−' : ''}${d.fl} ${esc(_cN.fl)} · ${d.kn} ${esc(_cN.kn)} · ${d.cl} ${esc(_cN.cl)}`;
+          })()}</span>
         </div>`;
       }
     }
