@@ -595,7 +595,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Gevangenen** (ALL) — open als DM een verborgen NPC en klik *Gevangen*, vul in waar de party hem vasthoudt: het kaartje krijgt tralies over het portret en een badge *Gevangen*, en staat voor deze party op **vaag** (niet zichtbaar). De speler ziet hem meteen, zonder herladen, onder *Gevangenen* in het partytabblad: naam, maar geen volk of class, en de plek eronder. Neem een medestander gevangen: eerst een vraag, daarna staat hij niet meer bij de medestanders. Wissel naar een andere party: daar staat hij er niet. *Gevangen* nogmaals: vrijgelaten, de rij is weg
 - [ ] **Huurlingen** (ALL) — open als DM een NPC, klik *Huurling*: het loon staat voorgevuld op 2 gouden munten; tik 2,50 in, kies wie betaalt en neem hem in dienst. Hij staat bij de speler onder *Huurlingen* met "2 fl · 5 kn per dag". Geef de betaler te weinig geld en doe twee lange rusten: in het rustoverzicht staat dat hij niets kreeg, de tweede keer dat hij wil vertrekken; de DM krijgt een melding, de knop *Huurling* krijgt een rode rand, de speler ziet "wil vertrekken" — en hij staat er nog. *Achterstand betalen* met te weinig geld weigert; met genoeg haalt het alles in één keer af. *Laat hem gaan* vraagt eerst, daarna is hij geen medestander meer
 - [ ] **Het mooiste moment van de avond** (ALL) — DM: regie-balk → *Stemmen* → *Open de stemronde*. Elke aanwezige speler krijgt meteen een venster met de anderen (niet zichzelf); kies iemand, schrijf een reden, *Stem*. De teller bij de DM loopt mee, maar nergens staat wie op wie stemde. Wegklikken met het kruisje laat de kaart bovenaan het partytabblad staan. Sluit bij een gelijke stand: de DM kiest uit de gelijken. Na sluiten toont het tafelscherm de winnaar in een gouden ring met de redenen eronder (zonder namen), de winnaar krijgt Heroic Inspiration en de anderen een melding. *Afbreken* sluit zonder winnaar Een speler uit een ándere party (incognito ingelogd) krijgt van dit alles niets te zien: geen venster, geen melding.
-- [ ] **Boedel** (SP) — voorwerp-kaartjes en losse regels, stapelbare items met aantal, notitie per regel, bladeren met de pijltjes
+- [x] **Boedel** (SP) — voorwerp-kaartjes en losse regels, stapelbare items met aantal, notitie per regel, bladeren met de pijltjes *(nagelopen 25 nov 2026 als speler: acht kaartjes in het raster met hun rariteit en ×2 bij een stapel; klikken klapt de tegel open met bladen (gegevens, beeld, beschrijving) en het vergrootknopje — *Gebruiken, geven, aantal bijstellen* — opent het venster met de worpknop, ± voor het aantal, *Geven aan…* en *Bekijk kaartje*.)*
 - [x] **Beurs** (SP) — eigen munten of de gedeelde partybeurs (dan telt eigen geld niet mee); bedragen kloppen na kopen, verkopen en loot *(nagelopen 24 nov 2026: de gedeelde beurs betaalde (8 → 6 kn) terwijl de eigen beurs van de speler op 5 fl bleef staan — eigen geld telt inderdaad niet mee)*
 - [ ] **Geven aan…** (SP) — knop onder een voorwerp, medespeler kiezen met portret; de hele stapel verhuist en telt op bij de ontvanger. Niet aan jezelf, niet buiten je party, geld gaat niet mee
 - [ ] **Progressie** (SP) — tijdlijn en kaartweergave, features per level met subklasse-tag, vergrendelde levels, keuzevelden die bewaard blijven
@@ -606,9 +606,9 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] **Conditie-uitleg** (SP) — tik op een conditie-icoon voor de uitleg
 - [ ] **Inspiration** (SP/DM) — de DM geeft inspiration, de speler ziet het meteen en kan het inzetten
 - [ ] **Vloek en buffs** (SP/DM) — toekennen en weghalen; de speler ziet het verschil in zijn stats
-- [ ] **Een drankje drinken** (SP) — een voorwerp met een genezingsformule heeft in de boedel een groene knop: klikken rolt, telt de HP op (nooit boven het maximum) en meldt "+7 HP · <voorwerp>". Met charges gaat er één af en op is op; met *Verdwijnt bij gebruik* verdwijnt er één van de stapel
-- [ ] **Andermans flesje** (SP) — een voorwerp dat je niet bezit levert "Dit voorwerp heb je niet"
-- [ ] **Damage-pill gooien** (SP) — klik op de schade van een wapen of spreuk en controleer de worp in het dobbelpaneel
+- [x] **Een drankje drinken** (SP) — een voorwerp met een genezingsformule heeft in de boedel een groene knop: klikken rolt, telt de HP op (nooit boven het maximum) en meldt "+7 HP · <voorwerp>". Met charges gaat er één af en op is op; met *Verdwijnt bij gebruik* verdwijnt er één van de stapel *(nagelopen 25 nov 2026 als speler, helemaal door de app heen: Potion of Healing in de boedel → vergroten → de groene knop **2d4+2** → de HP ging van 24 naar 32 met de melding "+8 HP → 32/50 — Potion of Healing", en er ging één van de stapel af.)*
+- [x] **Andermans flesje** (SP) — een voorwerp dat je niet bezit levert "Dit voorwerp heb je niet" *(nagelopen 25 nov 2026: een drankje gebruiken dat je niet (meer) bezit geeft 403 "Dit voorwerp heb je niet." Een voorwerp dat helemaal niets doet geeft eerst 400 "Dit voorwerp doet niets bij gebruik" — die volgorde is logisch: eerst of het iets kán, dan of het van jou is.)*
+- [x] **Damage-pill gooien** (SP) — klik op de schade van een wapen of spreuk en controleer de worp in het dobbelpaneel *(nagelopen 25 nov 2026: de Gewone IJzeren Dolk toont **1d4 piercing** als knop in zijn venster en klikken opent het dobbelpaneel met die formule.)*
 - [ ] **Voorwerp gebruiken** (SP) — charges verbruiken en na een rust weer terugkrijgen
 - [ ] **Loot claimen** (SP) — tijdens een verdeling claimen, en zien wat je krijgt na het afrollen
 - [ ] **Brief openen** (SP) — verzegelde brief in Berichten, zegel aanklikken, tekst lezen en teruggaan
@@ -2832,3 +2832,25 @@ leesbaar laat. Eén conditie heeft bewust géén icoon: *Flying* krijgt geen mer
 maar tilt de token op met een grondschaduw — `combat-canvas.js` filtert hem
 daarvoor expliciet uit de iconenrij. Dat zag er bij het meten eerst uit als een
 gat; het is een keuze.
+
+## Negentiende ronde (25 nov 2026) — de boedel van een speler
+
+Voor het eerst de **hele drinkketen door de app heen** gelopen, als speler:
+Potion of Healing in de boedel → de tegel openklappen → het vergrootknopje
+(*Gebruiken, geven, aantal bijstellen*) → de groene knop **2d4+2** → HP van 24
+naar 32, met de melding *"+8 HP → 32/50 — Potion of Healing"* en één drankje
+minder op de stapel. Sinds de formules er gisteren in zijn gezet, werkt dat dus
+end-to-end.
+
+Twee dingen om te onthouden over de boedel sinds hij een tegelraster is: de
+worpknop staat **niet** op het kaartje zelf maar in het venster erachter, en dat
+venster bereik je met het vergrootknopje — de tooltip daarvan zegt precies wat
+erachter zit. De weigering is netjes getrapt: een voorwerp dat niets kán geeft
+eerst 400 *"Dit voorwerp doet niets bij gebruik"*, en pas een voorwerp dat wél
+iets doet maar niet van jou is geeft 403 *"Dit voorwerp heb je niet."*
+
+De speler ziet trouwens **12 van de 288** voorwerpkaartjes — de rest staat voor
+zijn party op verborgen. Dat is de zichtbaarheidsfilter die doet wat hij moet.
+
+Alles teruggezet: `dm-state.json` verschilt in geen enkele sleutel van de
+momentopname.
