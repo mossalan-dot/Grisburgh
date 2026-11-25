@@ -375,13 +375,14 @@ window._prikbordStap = (richting) => {
 // verplaatsen is een `status`-wijziging en verder niets — dezelfde route als de
 // →-knop gebruikt.
 //
-// Eén kolom neemt niets aan: **Aangevraagd**. Daar zet een spéler iets neer
-// (POST /quests/:id/aanvragen); zou de DM er een missie in kunnen slepen, dan
-// stond er "aangevraagd" zonder dat iemand iets gevraagd had. Eruit slepen mag
-// wel — dat is hem gunnen of terugleggen.
+// **Ook naar Aangevraagd**, sinds 25 nov 2026. Die kolom nam eerst niets aan:
+// daar zet een spéler iets neer (`POST /quests/:id/aanvragen`), en een missie
+// die de DM erin sleepte zou "aangevraagd" heten zonder dat iemand iets
+// gevraagd had. Maar vragen gebeurt net zo goed **aan tafel** — iemand zegt het
+// hardop en de DM legt het vast. De route stond dat allang toe; alleen het bord
+// hield hem tegen, en dan moest de DM de omweg via de editor nemen.
 function _prikbordSlepen(bord) {
   if (!bord) return;
-  const GESLOTEN = new Set(['aangevraagd']);
   let sleep = null;                       // { id, van }
 
   bord.addEventListener('dragstart', (e) => {
@@ -403,7 +404,7 @@ function _prikbordSlepen(bord) {
     const kolom = e.target?.closest?.('.prikbord-col');
     if (!sleep || !kolom) return;
     const status = kolom.dataset.status;
-    if (GESLOTEN.has(status) || status === sleep.van) return;   // geen preventDefault = geen drop
+    if (status === sleep.van) return;   // geen preventDefault = geen drop
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
     bord.querySelectorAll('.prikbord-col--doel').forEach(k => { if (k !== kolom) k.classList.remove('prikbord-col--doel'); });
@@ -424,7 +425,7 @@ function _prikbordSlepen(bord) {
     const status = kolom.dataset.status;
     const id = sleep.id;
     sleep = null;
-    if (!id || !status || GESLOTEN.has(status)) return;
+    if (!id || !status) return;
     try { await api.updateQuest(id, { status }); await renderLogboek(); }
     catch (err) { alert('Verplaatsen mislukt: ' + err.message); }
   });
@@ -462,7 +463,7 @@ async function _renderPrikbord(container) {
   const cols = [
     ...(isDm ? [{ key: 'verborgen',   naam: 'Verborgen',    ic: 'lock' }] : []),
     ...(isDm ? [{ key: 'aangevraagd', naam: 'Aangevraagd',  ic: 'hourglass',
-                  tip: 'Een party heeft deze missie bij de factie aangevraagd. Schuif hem door naar In uitvoering om hem te gunnen, of zet hem terug naar Beschikbaar.' }] : []),
+                  tip: 'Een party heeft deze missie aangevraagd — bij de factie, of hardop aan tafel. Schuif hem door naar In uitvoering om hem te gunnen, of zet hem terug naar Beschikbaar.' }] : []),
     { key: 'actief',        naam: 'Beschikbaar',   ic: 'pin' },
     { key: 'in-uitvoering', naam: 'In uitvoering', ic: 'swords' },
     { key: 'voltooid',      naam: 'Voltooid',      ic: 'check' },

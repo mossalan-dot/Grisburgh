@@ -405,7 +405,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] Vaardigheden: klik op de trechter → de levelrij klapt open; kies een level en de trechter blijft gemarkeerd, ook als je hem weer dichtklapt
 - [ ] Vaardigheden: een Barbarian-feature draagt een ander icoon dan een Wizard-feature (klasse-icoon), een species-trait dat van zijn volk
 - [ ] Missiebord (DM): sleep een missiekaartje naar een andere kolom → het staat er meteen in, de kolom licht op terwijl je erboven hangt
-- [ ] Missiebord: slepen naar *Aangevraagd* kan niet (die kolom licht niet op); eruit slepen wél
+- [x] Missiebord: slepen naar *Aangevraagd* kan ook — vragen gebeurt net zo goed hardop aan tafel, en dan legt de DM het daar vast *(gewijzigd op 25 nov 2026 op verzoek van de DM. Die kolom nam eerst niets aan, met als reden dat er anders "aangevraagd" stond zonder dat iemand iets gevraagd had — maar de route stond het allang toe en de DM moest de omweg via de editor nemen. `GESLOTEN` is weg uit `_prikbordSlepen`, en de tooltip van de kolom zegt nu "bij de factie, of hardop aan tafel".)*
 - [ ] Missiebord op een telefoon: de →-knop op het kaartje werkt nog gewoon (daar valt niets te slepen)
 - [ ] Vaardigheden (DM): + rechtsboven → nieuwe vaardigheid met soort, bron, level, naam, herkomst, tekst en een afbeelding uit de mediabibliotheek; na opslaan staat hij meteen in de lijst
 - [ ] Vaardigheden (DM): potlood op een kaartje → bewerken; van soort of level wisselen verplaatst hem (hij staat daarna maar op één plek)
@@ -2903,8 +2903,8 @@ Een proefmissie aangemaakt, zijn status heen en weer gezet (dat is wat slepen op
 het bord doet), een personage én een organisatie als gever gekoppeld, leeg
 gelaten, en weer verwijderd.
 
-> **Eén losse eindje:** het bord laat je een kaartje niet naar *Aangevraagd*
-> slepen — die kolom licht niet op — maar `PUT /quests/:id` accepteert
-> `status: "aangevraagd"` wél. Dat is geen lek (alleen de DM komt erbij), maar
-> het zet wel een aanvraag neer die niemand gedaan heeft. Of dat erg is, is aan
-> de DM: hij kan het ook bewust willen.
+> **Dat losse eindje is beslecht.** Het bord liet je een kaartje niet naar
+> *Aangevraagd* slepen terwijl `PUT /quests/:id` het wél accepteerde. De DM:
+> *"moet als DM ook kunnen — aanvragen kan ook aan tafel."* Dus mag het nu
+> allebei: de reden om die kolom dicht te houden (er zou "aangevraagd" staan
+> zonder dat iemand iets vroeg) gaat niet op als iemand het gewoon hardop zegt.
