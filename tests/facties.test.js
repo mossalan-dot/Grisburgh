@@ -557,4 +557,40 @@ describe('Facties: een rang ontgrendelt iets', () => {
     assert.strictEqual(r.status, 403, JSON.stringify(r.body));
     await req(server, 'POST', '/api/facties/proefgilde/reveal', { zichtbaar: true }, dm);
   });
+
+  // **Een factie kan een organisatiekaartje hebben** (`meta.facties[].entityId`),
+  // en dan hoort dat kaartje mee open te gaan: je kent het gilde, dus je kent
+  // de organisatie. Dat werkt — maar het ging één keer mis op een **woord**:
+  // de route zette de stand op `'zichtbaar'`, en die waarde bestaat niet.
+  // Overal elders is het `visible` / `vague` / `hidden`, dus het kaartje
+  // belandde in een stand die geen enkele filter herkent: niet verborgen, maar
+  // ook niet bekend. In Grisburgh stond er zo één. Een typefout die niemand
+  // ziet, want er komt geen foutmelding — vandaar deze toets op de wáárde, en
+  // niet alleen op "de speler ziet hem".
+  it('zet het gekoppelde kaartje mee open, met een stand die de filters kennen', async () => {
+    const org = (await req(server, 'POST', '/api/entities/organisaties',
+      { name: 'Het Proefgilde (huis)' }, dm)).body.id;
+    const bestaand = (await req(server, 'GET', '/api/meta', null, dm)).body.facties || [];
+    const mijn = bestaand.find(f => f.id === 'proefgilde');
+    await req(server, 'PUT', '/api/meta/facties', {
+      facties: [...bestaand.filter(f => f.id !== 'proefgilde'), { ...mijn, entityId: org }],
+    }, dm);
+
+    // Hij staat nu aan (de toets hierboven liet hem zo achter); één keer
+    // togglen zet hem uit, en dan zijn we op een bekende stand begonnen.
+    await req(server, 'POST', '/api/facties/proefgilde/reveal', null, dm);
+    const uit = (await req(server, 'GET', '/api/entities/organisaties', null, dm)).body
+      .find(e => e.id === org);
+    assert.strictEqual(uit._visibility, 'hidden', 'dicht hoort echt dicht te zijn');
+
+    await req(server, 'POST', '/api/facties/proefgilde/reveal', null, dm);
+    const aan = (await req(server, 'GET', '/api/entities/organisaties', null, dm)).body
+      .find(e => e.id === org);
+    assert.strictEqual(aan._visibility, 'visible',
+      "de stand hoort 'visible' te zijn — 'zichtbaar' bestaat niet en wordt door geen enkele filter herkend");
+
+    // En de speler ziet hem ook echt; dát is waar de stand voor dient.
+    const bijSpeler = (await req(server, 'GET', '/api/entities/organisaties', null, spelerC)).body;
+    assert.ok(bijSpeler.some(e => e.id === org), 'de party hoort het huis nu te kennen');
+  });
 });
