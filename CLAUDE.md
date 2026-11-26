@@ -348,7 +348,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1395  sound-manager.js?v=15  theme.css?v=1016
+index.html  : app.js?v=1396  sound-manager.js?v=15  theme.css?v=1016
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
@@ -356,7 +356,7 @@ app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               render-archief.js?v=158  render-bestiarium.js?v=48
               render-campagne.js?v=473  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
-              render-melding.js?v=4  render-progressie.js?v=82
+              render-melding.js?v=4  render-progressie.js?v=83
               render-relatiemap.js?v=45  render-spreuken.js?v=70
               render-statblock.js?v=10  render-vaardigheden.js?v=220
               socket-client.js?v=114  stemronde.js?v=9  summons.js?v=5
@@ -625,6 +625,23 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 >   knop, zodat je ziet of je hem nog hebt.
 > Bewaakt door het blok *Paladin — smite volgens 2024* in
 > `tests/klassekracht.test.js`.
+
+> **Een teller loopt nooit terug** (26 nov 2026). `bronnen/srd-spreukentellers.json`
+> zei dat een Druid op level 7 vier cantrips kent en op level 8 nog maar drie —
+> en hetzelfde op 16/17. Je verleert geen cantrip door een level omhoog te gaan,
+> en élke andere caster in die bron groeit alleen op 4 en 10: het waren twee
+> losse cellen, fout **bovenstrooms** bij 5e-bits/5e-database en niet in ons
+> script. `scripts/srd-2024/srd-spreukentellers.js` zet het nu recht — van
+> achter naar voren elke waarde afknijpen op zijn opvolger, wat precies de
+> uitschieter weghaalt en een reeks die al klopt ongemoeid laat — en meldt wat
+> hij verandert. Zelfde soort correctie als `srd-monsters.js` bij Open5e doet.
+> Niemand speelde op dat moment een Druid, dus het heeft nooit aan tafel gebeten.
+> Bewaakt door `tests/klassekaart-bronnen.test.js`, dat ook de getallen op het
+> klassekaartje vastlegt: hit die, saves en featlevels per klasse (Fighter
+> 4/6/8/12/14/16/19, Rogue ook 10), Wizard 355 spreuken met cantrips 3→5 en
+> voorbereid 4→22, Paladin 56 en 2→15 zonder cantrips, en de twee afleidingen
+> waar niemand een klasse voor aanwijst — *Heavily Armored* via Medium armor
+> training, *Telekinetic* via Mage Hand.
 
 > **Niet gedaan:** de Blood Hunter (eigen materiaal, geen SRD) en de subklassen —
 > een Battle Master of Psi Warrior heeft zijn eigen voorraad die nog op de

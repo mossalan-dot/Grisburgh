@@ -713,9 +713,12 @@ function _buildPanel(prog, ctx, charId, favs, choices) {
 }
 
 // ── Een subklasse zonder tekst ──────────────────────────────────────
-// 39 van de 55 subklassen hebben geen enkele feature in de meegeleverde data:
+// 46 van de 62 subklassen hebben geen enkele feature in de meegeleverde data:
 // alleen de twaalf uit de SRD staan erin, plus een handvol die er met de hand
-// bij is gezet. Voor de andere stond er niets — geen melding, geen lege rij,
+// bij is gezet. (Het waren er 39 van de 55 toen dit geschreven werd; sindsdien
+// heeft `import-structuur.js` de ontbrekende subklassen erbij gezet — als kop
+// zonder tekst, en dat is precies waar dit blok voor is. Hertelt met
+// `node -e` over `bronnen/class-progression.json`.) Voor de andere stond er niets — geen melding, geen lege rij,
 // gewoon een tijdlijn die bij de klassefeatures ophoudt. Een speler die Circle
 // of the Moon koos zag dus nergens dat hij op 3, 6, 10 en 14 iets kreeg.
 // Dat zeggen we nu, met de weg naar de oplossing erbij: de DM kan ze zelf

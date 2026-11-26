@@ -42,6 +42,35 @@ const UIT  = path.join(__dirname, '..', '..', 'bronnen', 'srd-spreukentellers.js
     };
   }
 
+  // ── Eén ding zet dit script recht ──────────────────────────────────────────
+  // **Een teller loopt nooit terug.** Je verleert geen cantrip door een level
+  // omhoog te gaan. In de bron doet de Druid dat wel: `druid-7` zegt 4 cantrips
+  // en `druid-8` zegt 3, en hetzelfde op 16/17. Elke andere caster groeit
+  // alleen op 4 en 10, dus dat zijn twee losse cellen — een fout bovenstrooms,
+  // niet een eigenaardigheid van de Druid (gemeten 26 nov 2026; zelfde soort
+  // correctie als `srd-monsters.js` bij Open5e doet).
+  //
+  // De regel: van achter naar voren lopen en elke waarde afknijpen op zijn
+  // opvolger. Dat haalt precies de uitschieter weg en laat een reeks die al
+  // klopt ongemoeid — geen enkele andere klasse verandert erdoor.
+  const rechtgezet = [];
+  for (const [k, levels] of Object.entries(uit)) {
+    const l = Object.keys(levels).map(Number).sort((a, b) => a - b);
+    for (const veld of ['cantrips', 'voorbereid']) {
+      for (let i = l.length - 2; i >= 0; i--) {
+        const hier = levels[l[i]][veld], later = levels[l[i + 1]][veld];
+        if (hier == null || later == null || hier <= later) continue;
+        rechtgezet.push(`${k} level ${l[i]}: ${veld} ${hier} → ${later}`);
+        levels[l[i]][veld] = later;
+      }
+    }
+  }
+  if (rechtgezet.length) {
+    console.log('\n── teruglopende tellers rechtgezet ──');
+    for (const r of rechtgezet) console.log('  ' + r);
+    console.log('');
+  }
+
   for (const [k, levels] of Object.entries(uit)) {
     const l = Object.keys(levels).map(Number).sort((a, b) => a - b);
     const eerste = levels[l[0]], laatste = levels[l[l.length - 1]];
