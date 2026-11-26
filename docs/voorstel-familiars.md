@@ -16,8 +16,22 @@
 > (`laadInBestiarium`), zodat je niet eerst naar de deur Beasts hoeft om hem
 > daar op te zoeken. Dat was twee sprongen voor iets wat je hier al wist.
 >
-> **Nog niet gedaan:** de overschrijflaag om de familiar zélf aan te passen —
-> zijn naam, zijn gedaantes, wat hem oproept. Zie hieronder.
+> **En de overschrijflaag staat er** (zelfde dag). Een metgezel heeft nu
+> *Naam in jouw wereld* en *Gedaantes* in zijn editor: leeg laten betekent
+> "hou wat het boek zegt" — daarom staat de bronwaarde als placeholder en niet
+> als ingevulde waarde, zodat je ziet wát je overschrijft en leeghalen het
+> terugzet. Opgeslagen als `eigenNaam` en `vormen` in
+> `meta.naslagkaarten['metgezel:<bronnaam>']`; de bron blijft onaangeraakt.
+> Bewaakt door `tests/familiar-eigen.test.js`.
+>
+> **Twee valkuilen onderweg, allebei dezelfde botsing.** `naam` is in die route
+> al de **sleutel** van het kaartje, dus de overschrijving heet `eigenNaam` —
+> met `naam` schreef hij onder een nieuwe sleutel, gaf 200 terug en sloeg
+> niets op. En `_bakSleutel` hing aan `it.naam`: na een hernoeming zocht de
+> editor zijn eigen overschrijving onder de níéuwe naam en vond niets. Hij
+> hangt nu aan `bronNaam || naam`.
+>
+> **Nog niet gedaan:** een familiar toevoegen die in geen enkel boek staat.
 
 De deur **Familiars** in het Heldenboek klopt niet, en de DM wees precies aan
 waarom: *"het filter maakt onderscheid tussen Beasts en Metgezellen, maar ook

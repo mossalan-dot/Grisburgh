@@ -14958,6 +14958,25 @@ router.put('/meta/naslagkaart', requireDM, (req, res) => {
     const v = String(req.body.verdwijnt || '');
     if (_VERDWIJNT.includes(v) && v) rij.verdwijnt = v; else delete rij.verdwijnt;
   }
+  // **Sleutelen aan de familiar zelf.** Dit is het naslagwerk van wat je kunt
+  // oproepen, en de DM maakt er zijn eigen wereld van: een Familiar die hier
+  // een Veenkat is, een Greater Steed die ook een eland kan zijn. Zelfde
+  // patroon als bij een spreuk (`spells.json → eigen[index]`): de bron blijft
+  // de bron, dit wint bij het tónen. Leeg = hou wat het boek zegt.
+  //
+  // Let op de naam van het veld: `naam` is hier al de **sleutel** van het
+  // kaartje, dus de overschrijving heet `eigenNaam`. Met `naam` schreef hij
+  // onder een splinternieuwe sleutel en verdween de bewerking spoorloos —
+  // precies dát gebeurde bij het bouwen.
+  if (req.body.eigenNaam !== undefined && soort === 'metgezel') {
+    const t = String(req.body.eigenNaam || '').trim().slice(0, 80);
+    if (t && t !== naam) rij.eigenNaam = t; else delete rij.eigenNaam;
+  }
+  if (req.body.vormen !== undefined && soort === 'metgezel') {
+    const v = (Array.isArray(req.body.vormen) ? req.body.vormen : [])
+      .map(x => String(x || '').trim().slice(0, 60)).filter(Boolean).slice(0, 40);
+    if (v.length) rij.vormen = v; else delete rij.vormen;
+  }
   if (Object.keys(rij).length) bak[sleutel] = rij; else delete bak[sleutel];
   if (Object.keys(bak).length) meta.naslagkaarten = bak; else delete meta.naslagkaarten;
   storage.writeJSON('meta.json', meta);

@@ -204,7 +204,15 @@ const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon
 // eigen woorden) gaat naar één bak: `meta.naslagkaarten['<soort>:<naam>']`.
 // Zie de route `PUT /meta/naslagkaart`.
 const _EIGEN_BAK = new Set(['conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze']);
-const _bakSleutel = (it) => (it && _EIGEN_BAK.has(it.soort) ? `${it.soort}:${it.naam}` : '');
+// **De sleutel hangt aan de naam uit de bron, niet aan die van de DM.**
+// Hernoemt hij een familiar, dan houdt `it.naam` zijn eigen naam en bewaart
+// `it.bronNaam` waar het kaartje vandaan komt. Zou de sleutel meeverhuizen,
+// dan raakt het kaartje bij het openen zijn eigen overschrijving kwijt (de
+// editor zoekt onder de nieuwe naam en vindt niets) en zou een plaat onder
+// een tweede sleutel belanden. Dat gebeurde bij het bouwen allebei.
+const _bakSleutel = (it) => (it && _EIGEN_BAK.has(it.soort) ? `${it.soort}:${it.bronNaam || it.naam}` : '');
+// En de naam waarmee je de server aanspreekt is diezelfde bronnaam.
+const _bakNaam = (it) => String(it?.bronNaam || it?.naam || '');
 
 let _all        = null;   // null = nog niet geladen
 // Naam van de feature of spreuk (kleine letters) → de metgezel die hij geeft.
@@ -623,6 +631,29 @@ async function _load() {
     if (!e) continue;
     if (e.beeld) { it.img = e.beeld; it.imgFocus = e.focus || ''; }
     if (e.tekst) { it.desc = e.tekst; it.eigenTekst = true; }
+    // **Sleutelen aan een familiar mag hier.** Dit is het naslagwerk van wat
+    // je kunt oproepen, en de DM wil er zijn eigen wereld van maken: een
+    // Familiar die in Grisburgh een Veenkat is, een Greater Steed die ook een
+    // eland kan zijn. Zelfde patroon als bij een spreuk (`spells.json →
+    // eigen[index]`): de bron blijft de bron, wat de DM schrijft staat in de
+    // campagne en wint bij het tónen. Zo komen latere verbeteringen aan de
+    // meegeleverde lijst gewoon binnen zolang hij niets eigens zette.
+    //
+    // Let op de volgorde: de sleutel is `metgezel:<bronnaam>`, en die is
+    // hierboven al opgezocht. Pas daarná mag de naam veranderen — anders is
+    // het kaartje zijn eigen overschrijving kwijt zodra je hem hernoemt.
+    if (e.eigenNaam && e.eigenNaam !== it.naam) { it.bronNaam = it.naam; it.naam = e.eigenNaam; }
+    if (Array.isArray(e.vormen) && it.metgezel) {
+      it.metgezel = { ...it.metgezel, vormen: e.vormen.map(nm => ({ naam: nm, bekend: false })), eigenVormen: true };
+    }
+  }
+  // Welke gedaantes we kúnnen tonen hangt af van de beesten die we hebben, en
+  // die staan pas compleet in `_all` als alles geladen is. Vandaar een tweede
+  // ronde in plaats van het hierboven te raden.
+  const beestNamen = new Set(_all.filter(x => x.soort === 'beest').map(x => String(x.naam).toLowerCase()));
+  for (const it of _all) {
+    if (!it.metgezel?.eigenVormen) continue;
+    it.metgezel.vormen = it.metgezel.vormen.map(v => ({ ...v, bekend: beestNamen.has(String(v.naam).toLowerCase()) }));
   }
   _bronnen = [...new Set(_all.map(x => x.bron))].sort();
   return _all;
@@ -1005,7 +1036,7 @@ function _penAanroep(it) {
   // opent het gewone venster voor een plaat en een aantekening.
   if (it.monsterId) return `naarBestiarium('${escA(it.monsterId)}')`;
   const bak = _bakSleutel(it);
-  if (bak) return `naslagBewerk('${escA(it.soort)}','${escA(it.naam)}')`;
+  if (bak) return `naslagBewerk('${escA(it.soort)}','${escA(_bakNaam(it))}')`;
   if (it.soort === 'background') return `kaartBewerken('background','${escA(it.naam)}')`;
   return `bewerk('${escA(it.key)}')`;
 }
@@ -4928,7 +4959,9 @@ window.vaardigheden = {
     // vóór hij getekend wordt, anders staat er één keer een leeg lijstje.
     if (soort === 'metgezel') await _dierenLaden();
     const isCond = soort === 'conditie' || soort === 'situatie' || soort === 'klassestaat';
-    const it = naam ? (_all || []).find(x => x.soort === soort && x.naam === naam) : null;
+    // Op de bronnaam zoeken: na een hernoeming heet het kaartje anders, maar
+    // de sleutel — en dus wat de aanroeper meegeeft — blijft de bronnaam.
+    const it = naam ? (_all || []).find(x => x.soort === soort && _bakNaam(x) === naam) : null;
     const cond = it?.condId
       ? (window.app?.state?.meta?.condities || []).find(c => c.id === it.condId) || null : null;
     const bak = it ? (window.app?.state?.meta?.naslagkaarten || {})[_bakSleutel(it)] || {} : {};
@@ -4937,7 +4970,7 @@ window.vaardigheden = {
     const uitBoek = isCond && it && !eigen;
     const kop = it ? `${it.naam} bewerken` : 'Nieuwe conditie';
     const plaat = it?.img || bak.beeld || '';
-    const sl = it ? `'${escA(soort)}','${escA(it.naam)}'` : null;
+    const sl = it ? `'${escA(soort)}','${escA(_bakNaam(it))}'` : null;
 
     window.app.openModal(kop, '', `
       ${uitBoek ? `<p class="dm-hint">${esc(it.naam)} komt uit het boek. Wat je hier invult komt daar
@@ -4974,6 +5007,21 @@ window.vaardigheden = {
         </div>
       </div>` : ''}
       ${soort === 'metgezel' ? `
+      <!-- **Wat de DM hier verandert, is van hem.** De bron blijft staan: laat
+           je een veld leeg, dan geldt gewoon wat er uit het boek komt. Daarom
+           staat de bronwaarde als placeholder en niet als ingevulde waarde —
+           dan zie je wát je overschrijft, en leeghalen zet het terug. -->
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="summon-naam">Naam in jouw wereld</label>
+        <input class="dm-input" id="summon-naam" maxlength="80"
+          value="${esc(bak.eigenNaam || '')}" placeholder="${esc(it?.bronNaam || it?.naam || '')}">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="summon-vormen">Gedaantes</label>
+        <input class="dm-input" id="summon-vormen" maxlength="400"
+          value="${esc((bak.vormen || []).join(', '))}"
+          placeholder="${esc((it?.metgezel?.vormen || []).map(v => v.naam).join(', ')) || 'Geen gedaantes'}">
+      </div>
       <div class="dm-form-row">
         <label class="dm-form-label" for="summon-kaartje">Statblok van</label>
         <input class="dm-input" id="summon-kaartje" list="summon-dieren" maxlength="80"
@@ -5021,7 +5069,7 @@ window.vaardigheden = {
           onclick="window.vaardigheden.conditieTerug('${escA(it.condId)}')">${icon('refresh-cw')} Terug naar het boek</button>` : ''}
         <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
         <button class="dm-btn dm-btn-primary"
-          onclick="window.vaardigheden._naslagBewaar('${escA(soort)}',${it ? `'${escA(it.naam)}'` : "''"},${
+          onclick="window.vaardigheden._naslagBewaar('${escA(soort)}',${it ? `'${escA(_bakNaam(it))}'` : "''"},${
             it?.condId ? `'${escA(it.condId)}'` : 'null'})">${icon('save')} Opslaan</button>
       </div>`);
     // **Het focuspunt gaat mee met Opslaan.** Het spreukvenster bewaart hem
@@ -5067,6 +5115,15 @@ window.vaardigheden = {
         ...(focus ? { focus } : {}),
         ...(document.getElementById('summon-verdwijnt') ? { verdwijnt: v('summon-verdwijnt') } : {}),
         ...(document.getElementById('summon-kaartje') ? { entityId: _dierId(v('summon-kaartje')) } : {}),
+        // Leeg betekent: hou wat de bron zegt. Vandaar `''` en `[]` en niet
+        // "sla het veld over" — anders kun je een overschrijving nooit meer
+        // weghalen zodra je er een gezet hebt.
+        // `naam` is in die route al de **sleutel** van het kaartje; de
+        // overschrijving heet daarom `eigenNaam`. Met `naam` schreef hij onder
+        // een nieuwe sleutel en verdween de bewerking spoorloos.
+        ...(document.getElementById('summon-naam') ? { eigenNaam: v('summon-naam') } : {}),
+        ...(document.getElementById('summon-vormen')
+          ? { vormen: v('summon-vormen').split(',').map(x => x.trim()).filter(Boolean) } : {}),
       });
       return;
     }
