@@ -2,6 +2,14 @@
 
 *Voorstel, 26 november 2026. Gevraagd door de DM.*
 
+> **Gebouwd op 26 november 2026**, met de drie keuzes die onderaan beantwoord
+> staan. Wat het geworden is staat in CLAUDE.md onder *Twee kaartjes die iemand
+> anders blijken te zijn*; de toetsen zijn `tests/alias.test.js`,
+> `tests/alias-editor.test.js` en `tests/alias-tafelscherm.test.js`. Eén ding
+> week af van dit stuk: het moment op het tafelscherm speelt alleen bij de
+> **overgang** van dicht naar open — dat stond hier niet in, en zonder die vlag
+> speelt de onthulling opnieuw zodra de DM er een volgend geheim bij onthult.
+
 Harmen Jonker ís in het geheim Hugo Grisburgh II. De DM heeft dan twee
 kaartjes: het **pseudoniem** dat de party kent, en het **echte** dat ze nog
 niet kennen. Op het moment van de onthulling moeten die samenvallen.

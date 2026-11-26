@@ -373,7 +373,7 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       ze aankondigde. In de sectie-stand gaat `dense` daarom uit
       (`.vd-secties`), bewaakt door een toets.
 
-- [ ] **Een kaartje mag een alias dragen — en de twee vallen samen.**
+- [x] **Een kaartje mag een alias dragen — en de twee vallen samen.**
       Harmen Jonker ís in het geheim Hugo Grisburgh II. De DM heeft dan in
       eerste instantie **twee kaartjes**: het echte en het pseudoniem. Op het
       moment van de onthulling moeten die samenvallen.
@@ -394,6 +394,13 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       `docs/voorstel-alias.md`** (26 nov) — met drie keuzes die de DM nog moet
       maken, en een vondst onderweg: de bestaande antagonist-haak schrijft
       globaal terwijl onthullen per party gaat.
+      **Gebouwd op 26 nov 2026**, met de drie keuzes van de DM: allebei de
+      momenten als keuze, verwijzen (niet laten verdwijnen — een aliaskaartje
+      weggooien zou de waard ook weghalen bij de party die hem nog gewoon
+      kent), en geen onthulling-per-ongeluk-knop. Inclusief het tafelscherm.
+      De vondst over de antagonist-haak is apart rechtgezet (zie *En het
+      verraad is per party* in CLAUDE.md). Zie daar het blok *Twee kaartjes die
+      iemand anders blijken te zijn*.
 - [ ] **Een gerechtshof als dienst.** Uit de Heeren komt één idee dat het waard
       is om te bewaren: een boete die je kunt aanvechten, met een advocaat die
       met je Persuasion-bonus afdingt. Dat hoort niet bij een factie maar bij
