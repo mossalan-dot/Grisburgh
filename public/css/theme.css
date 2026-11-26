@@ -35458,3 +35458,26 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 /* Zie `_hertekenRaster`: met sectiekoppen mag het raster niet dicht pakken,
    anders schuiven de kaartjes de rij vóór hun eigen kop in. */
 .cards-grid.tegel-raster.vd-secties { grid-auto-flow: row; }
+
+/* ── Een geheimregel die een pseudoniem opheft ───────────────────────────────
+   Tweede vinkje onder een geheim, naast het antagonist-vinkje: welke regel
+   verklapt wie dit kaartje in werkelijkheid is. Zelfde maat en plek als
+   `.lijst-regel-antag` — het is dezelfde soort keuze, een gevolg dat aan één
+   regel hangt — maar in een andere kleur, want het is geen verraad: een masker
+   dat afgaat. Onderaan de stylesheet omdat `.lijst-regel-antag` op regel 23109
+   staat en de volgorde anders beslist welke wint.
+   Twee rijen onder elkaar in plaats van naast elkaar: samen zijn ze te lang
+   voor de breedte van een tekstvak in de editor. */
+.lijst-regel-alias {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 3px 0 0 2px;
+  font-size: 11px;
+  color: #9a8060;
+  cursor: pointer;
+  user-select: none;
+}
+.lijst-regel-alias input { accent-color: #7a6aa8; margin: 0; }
+.lijst-regel-alias .icon { width: 13px; height: 13px; opacity: .75; }
+.lijst-regel-alias:hover { color: #c4a87a; }

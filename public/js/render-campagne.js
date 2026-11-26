@@ -459,6 +459,29 @@ const BRIEF_STIJLEN = [
 // handschriften aan te bieden als een document. Eén lijst dus.
 window.BRIEF_STIJLEN = BRIEF_STIJLEN;
 
+// ── Wie dit kaartje in werkelijkheid is ─────────────────────────────────────
+// **Harmen Jonker ís in het geheim Hugo Grisburgh II.** De DM heeft dan twee
+// kaartjes, en op een gegeven moment vallen ze samen. Dit veld staat op het
+// **pseudoniem** en wijst naar het echte kaartje — één kant, want twee kanten
+// die hetzelfde moeten zeggen lopen uit elkaar (zelfde afspraak als bij
+// `betrokkenen`). De andere kant leidt de server af.
+//
+// Niet alleen voor personen: een herberg kan een dekmantel zijn en een
+// handelshuis de nette naam van een smokkelbende.
+const ALIAS_TYPES = ['personages', 'locaties', 'organisaties'];
+
+// Twee momenten, net als bij de antagonist-schakelaar: een geheim onthullen,
+// of het echte kaartje zichtbaar maken. De DM kiest welke — er zijn verhalen
+// waarin je eerst de naam hoort en de man later ontmoet, en omgekeerd.
+// Het eerste moment is de standaard en krijgt daarom de **lege** waarde: dan
+// zet de keuzelijst er geen tweede "geen keuze" boven (zie de select-render),
+// en staat er niet een nietszeggend streepje waar in werkelijkheid al iets
+// geldt. De server leest leeg als 'geheim' en een expliciete 'geheim' net zo.
+const ALIAS_MOMENTEN = [
+  { value: '',          label: 'Als het geheim eronder opengaat (standaard)' },
+  { value: 'zichtbaar', label: 'Als het echte kaartje zichtbaar wordt' },
+];
+
 const DOC_STIJL_BIJ_TYPE = {
   'Brief': 'hand', 'Notities': 'hand', 'Visitekaartje': 'drukwerk',
   // Een gebed is geen brief maar een gewijde tekst; die staat in de gotische
@@ -533,6 +556,11 @@ const SCHEMA = {
         hint: '12' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      // Een pseudoniem wijst naar het kaartje waarvan het de schuilnaam is; de
+      // spelers zien die verwijzing pas als hun eigen tafel hem onthuld heeft.
+      { key: 'aliasVan', label: 'Pseudoniem van', type: 'alias-picker', dmOnly: true },
+      { key: 'aliasMoment', label: 'Wanneer vallen ze samen', type: 'select', dmOnly: true,
+        options: ALIAS_MOMENTEN, showWhen: { key: 'aliasVan', values: '*' } },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       { key: 'persoonlijkheid', label: 'Aantekeningen voor de DM', type: 'textarea', dmOnly: true },
     ],
@@ -554,6 +582,11 @@ const SCHEMA = {
         hint: 'De stad, streek of het gebouw waar dit in ligt' },
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
       { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      // Een pseudoniem wijst naar het kaartje waarvan het de schuilnaam is; de
+      // spelers zien die verwijzing pas als hun eigen tafel hem onthuld heeft.
+      { key: 'aliasVan', label: 'Pseudoniem van', type: 'alias-picker', dmOnly: true },
+      { key: 'aliasMoment', label: 'Wanneer vallen ze samen', type: 'select', dmOnly: true,
+        options: ALIAS_MOMENTEN, showWhen: { key: 'aliasVan', values: '*' } },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       // Wie erbij hoort stond bóven de beschrijving, dus je vulde een ledenlijst
       // in voordat je had opgeschreven wát dit is. Zelfde volgorde als bij een
@@ -587,6 +620,11 @@ const SCHEMA = {
       // Waren één tekstvak; nu lijsten, zoals bij personages en locaties — de
       // oude tekst blijft de eerste regel (_tekstLijstUit leest allebei).
       { key: 'flavours', label: 'Roddels', type: 'lijst-tekst', enkelvoud: 'flavour' },
+      // Een pseudoniem wijst naar het kaartje waarvan het de schuilnaam is; de
+      // spelers zien die verwijzing pas als hun eigen tafel hem onthuld heeft.
+      { key: 'aliasVan', label: 'Pseudoniem van', type: 'alias-picker', dmOnly: true },
+      { key: 'aliasMoment', label: 'Wanneer vallen ze samen', type: 'select', dmOnly: true,
+        options: ALIAS_MOMENTEN, showWhen: { key: 'aliasVan', values: '*' } },
       { key: 'geheimen', label: 'Geheimen', type: 'lijst-tekst', enkelvoud: 'geheim' },
       // Staat in dezelfde volgorde als bij een locatie, al valt hij bij een
       // organisatie toch op het Organogram-tabblad (zie de P:organogram-markers).
@@ -1688,8 +1726,11 @@ function _geheimRegelsUit(data) {
     antagOud = arr.map(() => true);
   }
   return arr.map((r, i) => (typeof r === 'string' || r == null)
-    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i] }
-    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]) });
+    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i], alias: false }
+    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]),
+        // Welke regel het pseudoniem opheft. Zonder deze regel wiste de eerste
+        // opslagbeurt de vlag — zelfde val als bij `antagonist` destijds.
+        alias: !!r.alias });
 }
 window._geheimRegelsUit = _geheimRegelsUit;
 const _nieuwGeheimId = () => 'g_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -1793,6 +1834,43 @@ function _linkDatalistsVullen() {
     dl.innerHTML = namen.map(n => `<option value="${esc(n)}">`).join('');
   });
   document.querySelectorAll('[data-link-veld]').forEach(inp => _linkStatus(inp));
+  _aliasPickVullen();
+}
+
+// De alias-kiezer draagt zijn id in het formulier maar toont een naam, en die
+// naam komt uit een lijst die lui laadt. Vandaar twee kanten: bij het kiezen
+// naam → id, en zodra de lijsten binnen zijn id → naam.
+window._aliasPickKies = (invoer) => {
+  const hid = document.getElementById('alias-veld');
+  const st  = document.getElementById('alias-st');
+  const naam = String(invoer?.value || '').trim();
+  if (!hid) return;
+  if (!naam) {
+    hid.value = ''; invoer.dataset.aliasPick = '';
+    if (st) st.innerHTML = '';
+  } else {
+    const gevonden = _linkZoek(ALIAS_TYPES, naam);
+    hid.value = gevonden?.id || '';
+    invoer.dataset.aliasPick = gevonden?.id || '';
+    if (st) st.innerHTML = gevonden
+      ? `${icon('link')} ${esc(gevonden.name)}`
+      : `${icon('x')} Geen kaartje met die naam`;
+    invoer.classList.toggle('dm-input--err', !gevonden);
+  }
+  // Het moment hangt aan dit veld, en een verborgen input meldt zichzelf niet.
+  window._showWhenBijwerken?.();
+};
+
+function _aliasPickVullen() {
+  const inp = document.getElementById('alias-pick');
+  if (!inp) return;
+  const id = inp.dataset.aliasPick || '';
+  if (!id) return;
+  const treffer = _linkOpties(ALIAS_TYPES).find(o => o.id === id);
+  if (treffer) inp.value = treffer.name;
+  // Een id waar geen kaartje meer bij hoort verzwijgen we niet: dan staat er
+  // een verwijzing naar iets dat weg is, en dat moet de DM kunnen zien.
+  else inp.placeholder = `Het gekoppelde kaartje bestaat niet meer (${id})`;
 }
 
 // Naam → kaartje. Hoofdletterongevoelig, want zo tikt niemand het over.
@@ -2787,7 +2865,8 @@ window._linkKaartjeMaken = async (type, inputId) => {
   }
 };
 
-function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false, gid = '') {
+function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false, gid = '',
+                        alias = false, metAlias = false, aliasAan = false) {
   const id = `lt-${veld}-${i}`;
   // Alleen bij geheimen op een personage: per regel aan te vinken of juist díé
   // onthulling hem antagonist maakt. Eerst was dat één schakelaar voor het hele
@@ -2799,6 +2878,20 @@ function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false, gid = 
       <input type="checkbox" class="lijst-antag-vink"${antag ? ' checked' : ''}>
       ${icon('skull')} <span>Onthullen maakt het personage een vijand</span>
     </label>` : '';
+  // En hetzelfde idee voor een pseudoniem: welke regel verklapt wie dit in
+  // werkelijkheid is. Eén kaartje heeft er zelden meer dan één, maar wélke
+  // regel het is doet ertoe — "hij drinkt van de voorraad" is geen onthulling
+  // van zijn naam. Staat er geen pseudoniem, dan is er niets om aan te vinken
+  // en blijft de rij weg (`_showWhenBijwerken` zet hem live aan en uit).
+  // De rij wordt wél getekend maar begint verborgen als er (nog) geen
+  // pseudoniem staat — dan kan `_showWhenBijwerken` hem live aanzetten zodra de
+  // DM er een kiest. Zelfde aanpak als de showWhen-wrappers, die hun eerste
+  // stand ook bij het tekenen meekrijgen in plaats van erna.
+  const aliasRij = metAlias ? `
+    <label class="lijst-regel-alias"${aliasAan ? '' : ' style="display:none"'} title="Deze regel onthullen laat dit kaartje samenvallen met het kaartje waarvan het een pseudoniem is">
+      <input type="checkbox" class="lijst-alias-vink"${alias ? ' checked' : ''}>
+      ${icon('venetian-mask')} <span>Onthullen verklapt wie dit werkelijk is</span>
+    </label>` : '';
   return `<div class="lijst-regel" data-veld="${veld}"${gid ? ` data-gid="${esc(gid)}"` : ''}>
     ${fmtToolbar(id)}
     <div class="lijst-regel-rij">
@@ -2806,7 +2899,7 @@ function _lijstRegelHtml(veld, tekst, i, antag = false, metAntag = false, gid = 
         placeholder="Nog een regel\u2026">${esc(tekst)}</textarea>
       <button type="button" class="dm-btn dm-btn-sm dm-btn-ghost dm-btn-danger"
         title="Regel verwijderen" onclick="window._lijstRegelWeg(this)">${icon('trash')}</button>
-    </div>${antagRij}
+    </div>${antagRij}${aliasRij}
   </div>`;
 }
 
@@ -2822,8 +2915,11 @@ window._lijstRegelErbij = (veld) => {
   const host = document.getElementById(`lijst-${veld}`);
   if (!host) return;
   const i = host.querySelectorAll('.lijst-regel').length + Date.now() % 1000;
-  host.insertAdjacentHTML('beforeend', _lijstRegelHtml(veld, '', i, false, host.dataset.antag === '1'));
+  host.insertAdjacentHTML('beforeend', _lijstRegelHtml(veld, '', i, false,
+    host.dataset.antag === '1', '', false, host.dataset.alias === '1'));
+  // Hij start verborgen; de doorloop hieronder beslist meteen of hij mag.
   host.querySelector('.lijst-regel:last-child textarea')?.focus();
+  window._showWhenBijwerken?.();
 };
 
 // De chips staan eerst op hun index ("fire-bolt"); zodra de bibliotheek geladen
@@ -7067,6 +7163,49 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
       </div>
     </div>`;
 
+  // ── Wie dit in werkelijkheid is ────────────────────────────────────────────
+  // Twee kanten van één veld. Op het **pseudoniem** staat naar wie het wijst
+  // (`_alias`), op het **echte kaartje** onder welke namen het ook bekendstaat
+  // (`_ookBekendAls`); de server leidt dat tweede af, zodat er één plek is waar
+  // het staat. Een speler krijgt die velden alleen als zijn eigen tafel de
+  // onthulling gehad heeft — zonder dat is er hier niets, ook geen leeg kopje.
+  //
+  // De DM ziet een andere bron: hij krijgt `data.aliasVan` ongefilterd (hij
+  // moet het kunnen instellen) en dus geen `_alias`. Daarom leidt hij het hier
+  // zelf af uit de naamindex, met een slotje erbij zolang de actieve party het
+  // nog niet weet — zelfde markering als bij een geheime verbinding.
+  if (ALIAS_TYPES.includes(tab)) {
+    const _aliasId = isDM() ? String(e.data?.aliasVan || '') : '';
+    const _aliasNaam = _aliasId
+      ? (Object.entries(window._entityNameIndex || {}).find(([, v]) => v.id === _aliasId)?.[0] || '')
+      : '';
+    if (e._alias || _aliasId) {
+      const _naam = e._alias?.naam || _aliasNaam;
+      const _id   = e._alias?.id   || _aliasId;
+      infoHtml += _rolRegels('Is in werkelijkheid', [{
+        rol: 'Pseudoniem van',
+        // Voor de DM: weet déze party het al? `_alias` komt alleen mee als het
+        // antwoord ja is, en de DM heeft het veld zelf — dus bij hem is het
+        // ontbreken van `_alias` precies het signaal.
+        geheim: isDM() && !e._alias ? true : null,
+        // Een naam zonder kaartje mag geen knop worden: dan klikt iemand naar
+        // een venster dat niet opengaat. En een speler die het echte kaartje
+        // nog niet kent krijgt hem ook niet (`kent`) — zie `filterEntityForPlayer`.
+        knop: (_id && _naam && (isDM() || e._alias?.kent))
+          ? `<button type="button" class="link-chip link-chip--sm"
+               onclick="window._openKaartjeOpId('${escArg(_id)}')">${esc(_naam)}</button>`
+          : `<span class="betrokken-naam">${esc(_naam || 'een kaartje dat hier niet meer staat')}</span>`,
+      }]);
+    }
+    const _ook = Array.isArray(e._ookBekendAls) ? e._ookBekendAls : [];
+    if (_ook.length) {
+      infoHtml += _rolRegels('Ook bekend als', _ook.map(naam => ({
+        rol: 'Schuilnaam',
+        knop: `<span class="betrokken-naam">${esc(naam)}</span>`,
+      })));
+    }
+  }
+
   // Wie hoort hier bij: gekoppelde namen zijn knoppen naar hun eigen kaartje,
   // losse namen blijven gewoon leesbaar staan.
   const _betrokkenen = ['locaties', 'organisaties'].includes(tab) ? _betrokkenenUit(e.data) : [];
@@ -8530,6 +8669,16 @@ window._showWhenBijwerken = () => {
     const wil = el.dataset.showWhenVal;
     el.style.display = (wil === '*' ? nu.trim() !== '' : wil.split('|').includes(nu)) ? '' : 'none';
   });
+  // Het vinkje *Onthullen verklapt wie dit werkelijk is* hangt aan twee velden
+  // tegelijk — er moet een pseudoniem zijn **en** het gekozen moment moet het
+  // geheim zijn. Twee voorwaarden passen niet in `showWhen`, dus die ene regel
+  // staat hier. Een vinkje dat niets kan doen is erger dan geen vinkje.
+  const _aliasId = document.getElementById('alias-veld')?.value?.trim() || '';
+  const _moment  = document.querySelector('[name="data_aliasMoment"]')?.value || 'geheim';
+  const _aan = !!_aliasId && (_moment || 'geheim') === 'geheim';
+  document.querySelectorAll('.lijst-regel-alias').forEach(el => {
+    el.style.display = _aan ? '' : 'none';
+  });
 };
 
 // De vinkjes schrijven naar één verborgen veld, net als bij de rollen van een
@@ -9578,12 +9727,17 @@ window._openEditor = async (tab, editId) => {
         : (() => { const r = _tekstLijstUit(e?.data, field.key, field.enkelvoud); if (!r.length) r.push(''); 
                    return r.map(t => ({ id: '', tekst: t, antagonist: false })); })();
       const _metAntag = _isGeheim && tab === 'personages';
+      const _metAlias = _isGeheim && ALIAS_TYPES.includes(tab);
+      // Een vinkje dat niets kan doen is erger dan geen vinkje: er moet een
+      // pseudoniem staan én het gekozen moment moet het geheim zijn.
+      const _aliasAan = _metAlias && !!String(e?.data?.aliasVan || '').trim()
+        && (String(e?.data?.aliasMoment || '').trim() || 'geheim') === 'geheim';
       const _verborgenVeld = _isGeheim;
       body += `
         <div${_verborgenVeld ? ' class="veld-dmonly"' : ''}>
           <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide">${esc(field.label)}</label>
-          <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}"${_metAntag ? ' data-antag="1"' : ''}>
-            ${_rijen.map((r, i) => _lijstRegelHtml(field.key, r.tekst, i, r.antagonist, _metAntag, r.id)).join('')}
+          <div id="lijst-${field.key}" class="lijst-veld" data-veld="${field.key}"${_metAntag ? ' data-antag="1"' : ''}${_metAlias ? ' data-alias="1"' : ''}>
+            ${_rijen.map((r, i) => _lijstRegelHtml(field.key, r.tekst, i, r.antagonist, _metAntag, r.id, r.alias, _metAlias, _aliasAan)).join('')}
           </div>
           <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm mt-1"
             onclick="window._lijstRegelErbij('${field.key}')">${icon('plus')} Regel toevoegen</button>
@@ -9737,6 +9891,25 @@ window._openEditor = async (tab, editId) => {
             onchange="window._itemSpellErbij(this.value)"
             class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
           <datalist id="scroll-spell-dl">${_spells.map(s => `<option value="${esc(s.name)}"></option>`).join('')}</datalist>
+        </div>
+      `;
+    } else if (field.type === 'alias-picker') {
+      // Zoekbaar invoerveld met datalist, net als de tafel-picker: het
+      // **id** gaat in het verborgen veld, de naam is wat je typt. Bewust geen
+      // vrije tekst ernaast zoals bij `type: 'entiteit'` — bij een pseudoniem
+      // ís die naam het geheim, en wat niet opgeslagen staat kan ook niet
+      // uitlekken.
+      const _aId = String(e?.data?.aliasVan || '');
+      body += `
+        <div>
+          <label class="text-xs font-cinzel text-ink-dim font-bold tracking-wide" for="alias-pick">${esc(field.label)}</label>
+          <input type="hidden" name="data_aliasVan" id="alias-veld" value="${esc(_aId)}">
+          <input list="alias-dl" id="alias-pick" autocomplete="off" data-alias-pick="${esc(_aId)}"
+            value="" placeholder="Zoek het kaartje waar dit een schuilnaam voor is\u2026"
+            onchange="window._aliasPickKies(this)"
+            class="w-full mt-1 px-3 py-2 bg-room-bg border border-room-border rounded text-ink-bright focus:border-gold-dim focus:outline-none">
+          <datalist id="alias-dl" data-link-doel="${ALIAS_TYPES.join(',')}"></datalist>
+          <div id="alias-st" class="link-status"></div>
         </div>
       `;
     } else if (field.type === 'tafel-picker') {
@@ -10900,6 +11073,7 @@ window._openEditor = async (tab, editId) => {
           gid:   r.dataset.gid || '',
           tekst: r.querySelector('textarea')?.value.trim() || '',
           antag: !!r.querySelector('.lijst-antag-vink')?.checked,
+          alias: !!r.querySelector('.lijst-alias-vink')?.checked,
         }))
         .filter(r => r.tekst);
       if (veld.key === 'geheimen') {
@@ -10908,6 +11082,7 @@ window._openEditor = async (tab, editId) => {
         // onthulstand van elke party aan, en die schoof vroeger mee.
         data.geheimen = rijen.length ? JSON.stringify(rijen.map(r => ({
           id: r.gid || _nieuwGeheimId(), tekst: r.tekst, ...(r.antag ? { antagonist: true } : {}),
+          ...(r.alias ? { alias: true } : {}),
         }))) : '';
         data.geheim = rijen[0]?.tekst || '';
         data.geheimenAntagonist = '';   // opgegaan in de regels zelf

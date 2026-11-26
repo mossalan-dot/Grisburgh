@@ -671,6 +671,32 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   if (zichtbareGeheimen.length) e.data.geheim = zichtbareGeheimen[0];
   else delete e.data.geheim;
 
+  // ── Wie dit kaartje in werkelijkheid is ────────────────────────────────────
+  // Zolang deze party het niet doorheeft, bestaat de verwijzing voor hen niet —
+  // ook niet als leeg veld: dát `aliasVan` er staat verklapt al dat dit een
+  // pseudoniem is. Zelfde redenering als bij een geheime verbinding.
+  if (entity.data?.aliasVan) {
+    if (g.aliasOnthuld?.[entity.id]) {
+      const _ents = ctx?.entities || storage.readJSON('entities.json');
+      const echt = _aliasZoek(_ents, String(entity.data.aliasVan));
+      // Alleen naam en id. Of de knop ergens heen leidt hangt af van de
+      // zichtbaarheid van dát kaartje, en dat blijft een aparte keuze.
+      if (echt) e._alias = { id: echt.id, type: echt._type, naam: echt.name,
+                             kent: (g.visibility[echt.id] || 'hidden') !== 'hidden' };
+    }
+    delete e.data.aliasVan;
+    delete e.data.aliasMoment;
+  }
+  // En andersom: op het échte kaartje staat *ook bekend als*, zodra deze party
+  // de verbinding kent. Afgeleid, want de alias staat op één plek.
+  {
+    const _ents = ctx?.entities || storage.readJSON('entities.json');
+    const namen = _aliassenVan(_ents, entity.id)
+      .filter(a => g.aliasOnthuld?.[a.id])
+      .map(a => a.name);
+    if (namen.length) e._ookBekendAls = namen;
+  }
+
   // ── Een verraad dat déze party nog niet ontdekt heeft ──────────────────────
   // Onthult een party een geheimregel met de antagonist-vlag, dan schrijft de
   // server rol, kant en alignment in het **kaartje** — en dat is van de hele
@@ -978,6 +1004,52 @@ router.put('/entities/:type/:id/aantekeningen', requireDM, (req, res) => {
 // `verkoper` en `antagonist` zijn van subtype naar rol verhuisd (`data.tags`),
 // zodat een verkoper ook antagonist kan zijn. Oude kaartjes dragen de waarde
 // nog als subtype; die telt gewoon mee.
+// ── Een kaartje dat iemand anders blijkt te zijn ────────────────────────────
+// Harmen Jonker ís in het geheim Hugo Grisburgh II. De DM heeft dan twee
+// kaartjes; `data.aliasVan` op het **pseudoniem** wijst naar het echte. De
+// andere kant is afgeleid — één bron, twee kanten, zoals bij `betrokkenen`.
+//
+// Samenvallen is een stand **per party** (`groups[gid].aliasOnthuld[aliasId]`),
+// want onthullen is per party en een kaartje is van de hele campagne. Het
+// aliaskaartje weggooien zou dus de waard ook wegnemen bij de tafel die hem nog
+// gewoon kent; dat blijft een losse, bewuste daad van de DM.
+//
+// Twee momenten kunnen hem openzetten, per kaartje te kiezen (`data.aliasMoment`):
+//   'geheim'    — een geheimregel van het aliaskaartje gaat open. Draagt een
+//                 regel de vlag `alias`, dan telt alleen díé; draagt geen enkele
+//                 hem, dan telt elke onthulde regel (want één alias per kaartje).
+//   'zichtbaar' — het échte kaartje wordt zichtbaar voor die party.
+const _aliasMoment = (e) => (String(e?.data?.aliasMoment || '').trim() || 'geheim');
+
+function _aliasUitGeheim(entity, open) {
+  const regels = _geheimRegels(entity?.data);
+  const gevlagd = regels.filter(r => r.alias);
+  if (gevlagd.length) return gevlagd.some(r => open.has(r.id));
+  return regels.some(r => open.has(r.id));
+}
+
+// Eén kaartje opzoeken op id, over alle soorten heen — een pseudoniem wijst
+// meestal naar een personage, maar een plek of een organisatie kan net zo goed
+// onder een andere naam bekendstaan.
+function _aliasZoek(entities, id) {
+  for (const t of ENTITY_TYPES) {
+    const e = (entities[t] || []).find(x => x.id === id);
+    if (e) return { ...e, _type: t };
+  }
+  return null;
+}
+
+// De aliaskaartjes die naar dit kaartje wijzen.
+function _aliassenVan(entities, echtId) {
+  const uit = [];
+  for (const t of ENTITY_TYPES) {
+    for (const e of (entities[t] || [])) {
+      if (String(e.data?.aliasVan || '') === echtId) uit.push(e);
+    }
+  }
+  return uit;
+}
+
 function _rollenVan(entity) {
   const rauw = entity?.data?.tags;
   let tags = [];
@@ -1031,8 +1103,11 @@ function _geheimRegels(data) {
     antagOud = arr.map(() => true);
   }
   return arr.map((r, i) => (typeof r === 'string' || r == null)
-    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i] }
-    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]) });
+    ? { id: 'i' + i, tekst: String(r || ''), antagonist: !!antagOud[i], alias: false }
+    : { id: r.id || ('i' + i), tekst: String(r.tekst ?? ''), antagonist: !!(r.antagonist ?? antagOud[i]),
+        // Welke regel onthult dat hij iemand anders is. Net als `antagonist`
+        // een gevolg op één regel: niet elk geheim is een pseudoniem.
+        alias: !!r.alias });
 }
 
 // Roddels als regels met een id, net als geheimen. Ze waren kale strings met
@@ -2051,6 +2126,21 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
     next = current === 'visible' ? 'hidden' : 'visible';
   }
   g.visibility[id] = next;
+  // Wordt het **echte** kaartje zichtbaar, dan vallen de pseudoniemen die dát
+  // moment gekozen hebben er voor deze party mee samen. Gaat hij weer dicht,
+  // dan ook de alias: anders blijft er een verwijzing staan naar een kaartje
+  // dat ze niet meer mogen zien.
+  try {
+    const aliassen = _aliassenVan(storage.readJSON('entities.json'), id)
+      .filter(a => _aliasMoment(a) === 'zichtbaar');
+    if (aliassen.length) {
+      if (!g.aliasOnthuld) g.aliasOnthuld = {};
+      for (const a of aliassen) {
+        if (next === 'visible') g.aliasOnthuld[a.id] = true;
+        else delete g.aliasOnthuld[a.id];
+      }
+    }
+  } catch { /* geen kaartjes, geen aliassen */ }
   storage.writeJSON('dm-state.json', dmState);
 
   const entities = storage.readJSON('entities.json');
@@ -2151,6 +2241,13 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   // en zou als id-lijst juist stilvallen.
   g.secretReveals[id] = _standVoorOpslag(open, regels);
   const ietsOnthuld = stand.some(Boolean);
+  // Valt hiermee een pseudoniem samen met zijn echte kaartje? Dat is een stand
+  // per party, dus hij hoort bij de groep en niet bij het kaartje.
+  if (entity?.data?.aliasVan && _aliasMoment(entity) === 'geheim') {
+    if (!g.aliasOnthuld) g.aliasOnthuld = {};
+    if (_aliasUitGeheim(entity, open)) g.aliasOnthuld[id] = true;
+    else delete g.aliasOnthuld[id];
+  }
   // Geheime antagonist: hangt per geheim, niet aan het hele kaartje — niet elk
   // geheim is een verraad. Sinds antagonist een rol is, zetten we de rol om en
   // niet het subtype: het kaartje blijft gewoon een NPC.
