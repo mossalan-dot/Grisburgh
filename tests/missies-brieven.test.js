@@ -164,6 +164,41 @@ describe('Missies: status, aanzien en beloning', () => {
     assert.ok(!open.some(m => m.titel === 'De lange rit'), 'wat af is verdwijnt van het bord');
   });
 
+  // **Staat de gedeelde beurs aan, dan komt het bedrag er compleet in.**
+  //
+  // Let op waar de winst van die aparte tak in zit, want dat is niet wat je
+  // zou denken: `_deductCurrency` stuurt een bijschrijving **zelf** al naar de
+  // gedeelde beurs als die aanstaat, dus de bestemming klopt ook zonder die
+  // tak. Het verschil is de **afronding**. Per speler uitbetalen doet
+  // `Math.floor(bedrag / aantal)`, en wat er niet gelijk op deelt verdwijnt:
+  // bij drie spelers en 10 fl is dat 333 per persoon en 999 in de beurs.
+  // Daarom staat de toets op drie spelers en een bedrag dat niet opdeelt —
+  // met twee spelers en een rond bedrag slaagt hij ook op de kapotte versie,
+  // en dan toetst hij niets. (Dat was de eerste versie van deze toets.)
+  it('stort de beloning compleet in de gedeelde beurs, zonder centelingen te verliezen', async () => {
+    const derde = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Derde wiel', subtype: 'speler', data: { groep: gid } }, dm)).body.id;
+    assert.ok(derde, 'de derde speler hoort er te zijn');
+
+    await req(server, 'PUT', '/api/party-currency/toggle', { enabled: true, groupId: gid }, dm);
+    const voor = alsCl((await req(server, 'GET', '/api/party-currency', null, dm)).body);
+
+    const id = await maakMissie({ titel: 'De gedeelde buit', valuta: { fl: 10 } });
+    await req(server, 'POST', `/api/missies/${id}/accepteer`, {}, spelerC);
+    await req(server, 'POST', `/api/missies/${id}/goedkeuren`, {}, dm);
+    const r = await req(server, 'POST', `/api/missies/${id}/voltooien`, {}, dm);
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+    const na = alsCl((await req(server, 'GET', '/api/party-currency', null, dm)).body);
+    assert.strictEqual(na - voor, 1000,
+      'het hele bedrag hoort erin te komen; per speler delen laat bij drie spelers 1 cl liggen');
+
+    await req(server, 'PUT', '/api/party-currency/toggle', { enabled: false, groupId: gid }, dm);
+    // De derde speler weer weg: hij zou de deling van de toets hierboven
+    // veranderen als die na deze draait.
+    await req(server, 'DELETE', `/api/entities/personages/${derde}`, null, dm);
+  });
+
   it('laat een mislukte missie geen aanzien opleveren', async () => {
     const id = await maakMissie({ titel: 'De mislukking', renownBeloning: 5 });
     await req(server, 'POST', `/api/missies/${id}/accepteer`, {}, spelerC);
