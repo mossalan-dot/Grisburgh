@@ -2,6 +2,16 @@
 
 *Voorstel, 26 november 2026. Gevraagd door de DM, na zijn eigen diagnose.*
 
+> **De ruggengraat is omgezet op 26 november 2026.** De filterrij achter
+> Familiars groepeert nu op oproepbron: *Spreuk 15 · Class feature 10 · Van
+> deze wereld 6 · Beest 92*. `GET /bron/metgezellen` levert er twee groepen bij
+> (voorwerpen met `data.metgezel`, en de dier-kaartjes van de campagne) en elke
+> kaart draagt een `oproep`. De keuzes 1 en 3 onderaan zijn daarmee beantwoord
+> zoals voorgesteld; voor 2 is het *Van deze wereld* geworden, want er staan
+> ook dier-kaartjes bij die niemand geadopteerd heeft.
+> **Nog niet gedaan:** de overschrijflaag om hier te sleutelen, en de knop
+> *laad in het bestiarium* als hoofdhandeling. Die staan hieronder.
+
 De deur **Familiars** in het Heldenboek klopt niet, en de DM wees precies aan
 waarom: *"het filter maakt onderscheid tussen Beasts en Metgezellen, maar ook
 dat is een raar onderscheid, want de metgezellen daar zijn familiars."*

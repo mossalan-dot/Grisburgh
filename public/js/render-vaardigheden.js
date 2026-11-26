@@ -169,6 +169,31 @@ const HERKOMST = [
 // chips en de bronregel hetzelfde woord gebruiken.
 const _COND_BRON = { conditie: 'Conditions', situatie: 'Situaties', klasse: 'Van een feature of spreuk' };
 
+// ── Wat roept het op? ───────────────────────────────────────────────────────
+// De deur **Familiars** stopte twee vragen in één la. Hij heette Familiars —
+// "wat loopt er met me mee" — maar zijn ruggengraat was **CR**, en dat is de
+// Wild Shape-vraag: "wat kan ik wórden". Daardoor las het filter als een
+// willekeurig onderscheid (Beasts tegenover Metgezellen) terwijl die
+// metgezellen zélf familiars zijn. Zie `docs/voorstel-familiars.md`.
+//
+// De tweede laag is nu de **bron van de oproep**. Dat is de vraag waarmee je
+// hier komt, en hij maakt van drie uitzonderingen drie gewone groepen: een
+// voorwerp dat oproept krijgt een plek, een huisdier hoeft geen vreemde eend
+// meer te zijn, en de beesten staan als één groep naast de rest in plaats van
+// de hele la te vullen.
+const OPROEP = {
+  spreuk:   { label: 'Spreuk',        icon: 'sparkles',   c1: '#200c4e', c2: '#5a2e8a' },
+  feature:  { label: 'Class feature', icon: 'sword',      c1: '#4a1000', c2: '#a03810' },
+  feat:     { label: 'Feat',          icon: 'hexagon',    c1: '#13263f', c2: '#2d5a8a' },
+  voorwerp: { label: 'Voorwerp',      icon: 'package',    c1: '#3a2a08', c2: '#8a6a20' },
+  eigen:    { label: 'Van deze wereld', icon: 'house',    c1: '#0a3020', c2: '#1a6a50' },
+  beest:    { label: 'Beest',         icon: 'paw-print',  c1: '#14300a', c2: '#3a7a2a' },
+};
+// `eigen` heet in beeld *Van deze wereld* en niet *Huisdieren*: er staan ook
+// dier-kaartjes bij die niemand geadopteerd heeft, en "huisdier" zou daar
+// overheen liegen.
+const OPROEP_VOLGORDE = ['spreuk', 'feature', 'feat', 'voorwerp', 'eigen', 'beest'];
+
 const SOORT_VOLGORDE = ['class', 'subclass', 'species', 'variant', 'feat', 'boon', 'background',
   'conditie', 'situatie', 'klassestaat', 'beest', 'metgezel', 'keuze'];
 
@@ -190,7 +215,7 @@ let _bron       = null;   // wat naslagBron() teruggaf (srdDesc, md, …)
 let _container  = null;
 // `sub` is de subklasse waarop je bent ingezoomd; `bron` de klasse, het volk of
 // de achtergrond erboven. Samen vormen ze de keten die de band bovenaan toont.
-let _filters    = { q: '', soort: null, bron: null, sub: null, level: null };
+let _filters    = { q: '', soort: null, oproep: null, bron: null, sub: null, level: null };
 let _bronnen    = [];     // klassen, soorten en backgrounds die er zijn
 let _levelsOpen = false;  // staat de levelrij uitgeklapt?
 
@@ -476,7 +501,7 @@ async function _load() {
         // ("laat zien wat een Ranger krijgt"), en een beest hoort bij geen
         // class. Zette ik er 'Beast' neer, dan stond diezelfde chip twee keer:
         // één keer als soort en één keer als bron, met hetzelfde getal.
-        soort: 'beest', bron: '', pill: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
+        soort: 'beest', oproep: 'beest', bron: '', pill: `CR ${b.cr || '0'}`, level: 0, naam: b.naam,
         desc: '', img: '', imgFocus: '',
         icoon: b.vliegt ? 'bird' : 'paw-print',
         beest: b, crGetal: b.crGetal ?? 0, monsterId: b.monsterId || '',
@@ -516,11 +541,26 @@ async function _load() {
       // de feature of de spreuk, dus die naam is de sleutel terug.
       if (c.geeft) _metgezelBij.set(String(c.geeft).toLowerCase(), c);
       zet({
-        soort: 'metgezel', bron: c.klasse || 'Spreuken', sub: c.subclass || '',
-        pill: [c.klasse || 'Spreuk', c.level || ''].filter(Boolean).join(' '),
+        soort: 'metgezel', oproep: OPROEP[c.soort] ? c.soort : 'spreuk',
+        // De bron is wát hem oproept, niet een class: bij een voorwerp is dat
+        // het kaartje, bij een eigen dier niets. Zo zegt de tweede filterrij
+        // iets anders dan de eerste in plaats van hem te herhalen.
+        bron: c.soort === 'voorwerp' ? 'Voorwerpen'
+            : c.soort === 'eigen'    ? 'Van deze wereld'
+            : (c.klasse || 'Spreuken'),
+        sub: c.subclass || '',
+        // Op de pil staat waar hij vandaan komt — de spreuk, de feature of het
+        // voorwerp. Dat is wat je op een tegel wil lezen; de class stond er en
+        // zei bij de helft niets.
+        pill: c.geeft || c.klasse || (c.soort === 'eigen' ? 'Eigen' : 'Spreuk'),
         level: c.level || 0, naam: c.naam, desc: '', img: '', imgFocus: '',
-        icoon: c.vormen?.length ? 'paw-print' : 'dog',
-        bronTekst: c.boek || '', herkomst: 'overgenomen',
+        icoon: c.soort === 'voorwerp' ? 'package'
+             : c.soort === 'eigen'    ? 'paw-print'
+             : (c.vormen?.length ? 'paw-print' : 'dog'),
+        bronTekst: c.boek || '',
+        // Een eigen dier is niet overgenomen uit een boek; die vlag stond er
+        // voor alles, en dat is precies het verschil dat deze groep maakt.
+        herkomst: c.soort === 'eigen' ? '' : 'overgenomen',
         metgezel: c,
       });
     }
@@ -641,6 +681,7 @@ function _filtered() {
       if (d && !d.soorten.includes(it.soort)) return false;
     }
     if (_filters.soort && it.soort !== _filters.soort) return false;
+    if (_filters.oproep && it.oproep !== _filters.oproep) return false;
     // Alle backgrounds staan onder dezelfde bron ("Backgrounds"); wat ze van
     // elkaar onderscheidt is hun naam. Op `bron` filteren gaf daar dus nul
     // regels terwijl het kaartje er wél stond.
@@ -2846,18 +2887,28 @@ function _filterBar() {
   });
   const inBeeld = inDeur.filter(it =>
     !_filters.bron || (it.soort === 'background' ? it.naam : it.bron) === _filters.bron);
-  const soorten = SOORT_VOLGORDE.filter(k => inDeur.some(x => x.soort === k));
-  // Eén soort over? Dan is de rij een mededeling, geen keuze.
-  const soortRij = soorten.length < 2 ? '' : [`<button class="spreuk-school-btn${_filters.soort ? '' : ' active'}"
-      onclick="window.vaardigheden.setSoort(null)">Alles</button>`]
-    .concat(soorten.map(k => {
-      const s = SOORTEN[k];
-      const n = inDeur.filter(x => x.soort === k).length;
-      return `<button class="spreuk-school-btn${_filters.soort === k ? ' active' : ''}"
-        style="--school-c2:${s.c2}" onclick="window.vaardigheden.setSoort('${k}')">${icon(s.icon)} ${esc(s.label)} <span class="vaardig-telling">${n}</span></button>`;
+  // **Achter Familiars is de vraag een andere.** Daar zegt "Beasts 92 ·
+  // Metgezellen 25" niets — dat zijn allemaal familiars — en "Spreuk 15 ·
+  // Class feature 10 · Voorwerp 3" wél. Eén rij, dezelfde knoppen; alleen
+  // waarop hij groepeert verschilt. Zie `OPROEP`.
+  const opOproep = _deur === 'beest';
+  const sleutel  = opOproep ? 'oproep' : 'soort';
+  const CAT      = opOproep ? OPROEP : SOORTEN;
+  const groepen  = (opOproep ? OPROEP_VOLGORDE : SOORT_VOLGORDE)
+    .filter(k => inDeur.some(x => x[sleutel] === k));
+  const zet      = opOproep ? 'setOproep' : 'setSoort';
+  const nu       = _filters[sleutel];
+  // Eén groep over? Dan is de rij een mededeling, geen keuze.
+  const soortRij = groepen.length < 2 ? '' : [`<button class="spreuk-school-btn${nu ? '' : ' active'}"
+      onclick="window.vaardigheden.${zet}(null)">Alles</button>`]
+    .concat(groepen.map(k => {
+      const s = CAT[k];
+      const n = inDeur.filter(x => x[sleutel] === k).length;
+      return `<button class="spreuk-school-btn${nu === k ? ' active' : ''}"
+        style="--school-c2:${s.c2}" onclick="window.vaardigheden.${zet}('${k}')">${icon(s.icon)} ${esc(s.label)} <span class="vaardig-telling">${n}</span></button>`;
     })).join('');
 
-  const zichtbaar = inBeeld.filter(x => !_filters.soort || x.soort === _filters.soort);
+  const zichtbaar = inBeeld.filter(x => !nu || x[sleutel] === nu);
   // De bronnenkeuzelijst is weg: waar je bent staat in het kruimelpad, en twee
   // bedieningen voor dezelfde stap lopen uit elkaar.
   //
@@ -2873,8 +2924,11 @@ function _filterBar() {
   const alleBronnen = _ZONDER_TWEEDE_LAAG.has(_deur)
     ? [...new Set(inDeur.map(x => x.bron).filter(Boolean))].sort((a, b) => a.localeCompare(b))
     : [];
-  const valtSamen = alleBronnen.length === soorten.length
-    && soorten.every(k => new Set(inDeur.filter(x => x.soort === k).map(x => x.bron)).size === 1);
+  // (`groepen` en `sleutel` hierboven: achter Familiars groepeert de rij op
+  // oproepbron in plaats van op soort, en deze controle hoort dezelfde as te
+  // gebruiken — anders vergelijkt hij de bronnen met de verkeerde telling.)
+  const valtSamen = alleBronnen.length === groepen.length
+    && groepen.every(k => new Set(inDeur.filter(x => x[sleutel] === k).map(x => x.bron)).size === 1);
 
   // **Twee opschoningen, en allebei om dezelfde reden: een chip die niets
   // toevoegt is ruis.** Achter Feats & Boons stonden er zeventien over drie
@@ -2899,8 +2953,8 @@ function _filterBar() {
   };
   const eigenBronnen = alleBronnen.filter(b => !dektEenSoort(b));
   const soortenVanRest = new Set(eigenBronnen.flatMap(soortVanBron));
-  const binnenEenSoort = soortenVanRest.size === 1 && soorten.length > 1;
-  const wacht = binnenEenSoort && _filters.soort !== [...soortenVanRest][0];
+  const binnenEenSoort = soortenVanRest.size === 1 && groepen.length > 1;
+  const wacht = binnenEenSoort && _filters[sleutel] !== [...soortenVanRest][0];
 
   const bronnen = (valtSamen || wacht) ? [] : eigenBronnen;
   const bronSelect = bronnen.length < 2 ? '' : `
@@ -5351,6 +5405,7 @@ window.vaardigheden = {
     _paint();
   },
   setSoort(k) { _filters.soort = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
+  setOproep(k) { _filters.oproep = k || null; _filters.bron = null; _filters.level = null; _refreshFilterBar(); _paint(); },
   // Op level of per sectie. Alleen de kijker heeft hier iets over te zeggen,
   // dus de keuze blijft in `localStorage` en gaat nooit naar de server.
   volgorde(v) {
@@ -5370,7 +5425,7 @@ window.vaardigheden = {
     const d = _DEUR(id);
     if (d?.sectie) { window.app?.switchSection?.(d.sectie); return; }
     _deur = id || null;
-    _filters.bron = null; _filters.sub = null; _filters.soort = null;
+    _filters.bron = null; _filters.sub = null; _filters.soort = null; _filters.oproep = null;
     _filters.level = null; _filters.q = '';
     _subAan = new Set(); _subKaart = null; _subPagina = 0;
     const zoek = document.querySelector('#section-vaardigheden .sbs-input');
@@ -5812,7 +5867,7 @@ window.vaardigheden = {
   bandKies(groep, naam) {
     if (!groep || !naam) { this.deur(null); return; }
     _deur = groep === 'background' ? 'background' : groep === 'species' ? 'species' : 'class';
-    _filters.q = ''; _filters.soort = null; _filters.level = null;
+    _filters.q = ''; _filters.soort = null; _filters.oproep = null; _filters.level = null;
     _filters.bron = naam; _filters.sub = null;
     const zoek = document.querySelector('#section-vaardigheden .sbs-input');
     if (zoek) zoek.value = '';

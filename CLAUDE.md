@@ -348,17 +348,17 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1398  sound-manager.js?v=15  theme.css?v=1017
+index.html  : app.js?v=1399  sound-manager.js?v=15  theme.css?v=1017
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
-              media-picker.js?v=22  personage-maken.js?v=86  rage.js?v=11
+              media-picker.js?v=22  personage-maken.js?v=87  rage.js?v=11
               render-archief.js?v=158  render-bestiarium.js?v=48
-              render-campagne.js?v=475  render-dungeon.js?v=83
+              render-campagne.js?v=476  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=83
               render-relatiemap.js?v=45  render-spreuken.js?v=70
-              render-statblock.js?v=10  render-vaardigheden.js?v=225
+              render-statblock.js?v=10  render-vaardigheden.js?v=226
               socket-client.js?v=114  stemronde.js?v=9  summons.js?v=5
               tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
 dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
@@ -1906,6 +1906,26 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > Wat er al wél was en dus níét hoefde: de vouwschaduw bij de rug staat als
 > `.sb-page-left::before` (30 px, tot `rgba(0,0,0,0.95)`) — niet als box-shadow,
 > dus een zoektocht op `box-shadow` mist hem.
+
+> **De deur Familiars groepeert op *wat roept het op*** (26 nov 2026). Hij
+> stopte twee vragen in één la: hij heette Familiars — "wat loopt er met me
+> mee" — maar zijn ruggengraat was **CR**, en dat is de Wild Shape-vraag. De
+> filterchip las daardoor als een willekeurig onderscheid (Beasts tegenover
+> Metgezellen) terwijl die metgezellen zélf familiars zijn. De tweede laag is
+> nu `OPROEP` in `render-vaardigheden.js`: *Spreuk · Class feature · Feat ·
+> Voorwerp · Van deze wereld · Beest*, met de CR-ladder binnen die laatste.
+> `GET /bron/metgezellen` levert er twee groepen bij die er nog niet waren: een
+> **voorwerp** dat oproept (`data.metgezel` op een voorwerpkaartje, tien
+> figurines in de SRD-presets) en de **dier-kaartjes** van de campagne zelf.
+> Die laatste dragen géén `herkomst: overgenomen` — ze komen niet uit een boek,
+> en dat is precies het verschil dat die groep maakt.
+> **Valkuil bij het verbouwen van de filterbalk:** `_filterBar` gebruikt
+> `soorten`/`_filters.soort` op vier plekken, niet één. Twee ervan stonden
+> dertig regels verderop (de controle *valt de bron samen met de soort* en
+> `binnenEenSoort`), en een gemiste hernoeming laat het hele Heldenboek hangen
+> op "Naslag laden…" — zonder foutmelding in beeld, want de afwijzing komt uit
+> een `await` in `renderVaardigheden`. Zoek op het kale woord, niet op de
+> eerste treffer. Plan en openstaande stappen: `docs/voorstel-familiars.md`.
 
 > **Een eigen beest stond nergens** (26 nov 2026). Achter de deur *Familiars*
 > horen de SRD-beesten én wat de campagne zelf als Beast in haar bestiarium

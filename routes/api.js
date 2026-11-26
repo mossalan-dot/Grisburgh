@@ -13093,6 +13093,42 @@ router.get('/bron/metgezellen', attachRole, (req, res) => {
       ...(sb ? { statblock: sb } : {}),
     };
   });
+  // ── Wat een voorwerp oproept ───────────────────────────────────────────────
+  // Een figurine ís een metgezel in de vorm van een beeldje. Dat staat sinds
+  // kort op het voorwerpkaartje (`data.metgezel`) maar nergens in deze lijst,
+  // terwijl de DM hem hier zoekt: *wat roept dit op?* Zelfde vorm als de rest,
+  // met `soort: 'voorwerp'` en het kaartje als vindplaats.
+  const voorwerpen = (storage.readJSON('entities.json').voorwerpen || []);
+  for (const v of voorwerpen) {
+    const wezen = String(v.data?.metgezel || '').trim();
+    if (!wezen) continue;
+    const sb = vind(wezen);
+    lijst.push({
+      id: `voorwerp:${v.id}`, naam: wezen, geeft: v.name, soort: 'voorwerp',
+      boek: String(v.data?.bron || '').trim(),
+      aantal: parseInt(v.data?.metgezelAantal, 10) || 1,
+      entityId: v.id, entityNaam: v.name,
+      vormen: [], ...(sb ? { statblock: sb } : {}),
+    });
+  }
+
+  // ── En wat van deze campagne zelf is ───────────────────────────────────────
+  // Een geadopteerd huisdier en een eigen dier-kaartje zijn geen brontekst,
+  // maar voor de vraag "wat loopt er met me mee" horen ze er net zo goed bij —
+  // dat was het tegenargument van de DM, en hij heeft gelijk. Ze krijgen een
+  // eigen groep (`soort: 'eigen'`) zodat zichtbaar blijft dat ze hier vandaan
+  // komen en niet uit een boek.
+  for (const d of personages) {
+    if (d.subtype !== 'dier') continue;
+    lijst.push({
+      id: `dier:${d.id}`, naam: d.name, geeft: '', soort: 'eigen', boek: '',
+      entityId: d.id, entityNaam: d.name,
+      kaartStatblock: { ...d, statblock: _activeTier(d, 1).statblock, name: d.name },
+      tiers: _tierRegels(d).map(t => ({ label: t.label || '', minLevel: t.minLevel || 0 })),
+      vormen: [],
+    });
+  }
+
   res.json({ metgezellen: lijst });
 });
 
