@@ -373,22 +373,24 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       ze aankondigde. In de sectie-stand gaat `dense` daarom uit
       (`.vd-secties`), bewaakt door een toets.
 
-- [ ] **Een kaartje mag een alias dragen.** Harmen Jonker ís in het geheim
-      Hugo Grisburgh II — en dát is meteen het geheim. Nu kan dat alleen als
-      twee losse kaartjes of als een regel tekst; de app weet niet dat het om
-      één persoon gaat.
-      **Wat het raakt, als we het bouwen:** `[[Hugo Grisburgh II]]` zou naar
-      Harmens kaartje moeten wijzen (de naamindex in `_buildEntityIndex` kent
-      nu één naam per kaartje), zoeken zou op allebei moeten vinden, en wélke
-      naam een party ziet hangt af van een geheimregel — dezelfde machinerie
-      als `geheim: {id, gid}` bij een betrokkene, die een verbinding laat
-      verdwijnen tot hij onthuld is.
-      **Dat het nu al speelt, staat in de data:** de scan van
-      `scripts/verwijzingen-nalopen.js` vond `[[Hugo II Grisburgh]]` als naam
-      zonder kaartje, verwezen vanaf Hugo Grisburgh én Isabella Grisburgh. Die
-      link doet dus niets, terwijl hij aan tafel als een link leest.
-      Nog niet uitgedacht — eerst kauwen. Opgeschreven 25 nov 2026.
-
+- [ ] **Een kaartje mag een alias dragen — en de twee vallen samen.**
+      Harmen Jonker ís in het geheim Hugo Grisburgh II. De DM heeft dan in
+      eerste instantie **twee kaartjes**: het echte en het pseudoniem. Op het
+      moment van de onthulling moeten die samenvallen.
+      **Wat er dan hoort te gebeuren** (keuze van de DM, per kaartje):
+      · het aliaskaartje **verdwijnt** en het echte kaartje krijgt er een veld
+        bij — *ook bekend als Harmen Jonker*;
+      · óf het aliaskaartje blijft staan en **verwijst** naar het echte.
+      **Waar het aan hangt:** dezelfde haak als de antagonist-optie, die al
+      bestaat — een geheimregel die een gevolg draagt (`geheimenAntagonist`,
+      zie *Geheimen en flavour zijn lijsten* in CLAUDE.md). Dus: samenvallen bij
+      het **onthullen van een geheim**, óf bij het **zichtbaar maken van het
+      echte kaartje**. Allebei zijn het bestaande momenten; er hoeft geen nieuw
+      mechaniek bij.
+      **En een moment op het tafelscherm:** *X is eigenlijk Y!* — zelfde familie
+      als de onthulling van een document en de level-up (`_levelUpDisplay`), dus
+      een eigen socket-event naar de display-room.
+      Gevraagd door de DM, 25 nov 2026; uitgewerkt 26 nov.
 - [ ] **Een gerechtshof als dienst.** Uit de Heeren komt één idee dat het waard
       is om te bewaren: een boete die je kunt aanvechten, met een advocaat die
       met je Persuasion-bonus afdingt. Dat hoort niet bij een factie maar bij

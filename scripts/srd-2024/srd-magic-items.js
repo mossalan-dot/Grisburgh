@@ -26,6 +26,50 @@ const schrijf = process.argv.includes('--schrijf');
 // Open5e-categorie → ons itemType.
 const KATEGORIE = { 'Wondrous Item': 'Wondrous item' };
 
+// ── Welk wezen roept dit voorwerp op? ───────────────────────────────────────
+// Een figurine ís een metgezel in de vorm van een beeldje: je bezit hem, je
+// zet hem neer, en er staat een griffioen. Tot nu toe kon dat alleen via een
+// spreuk of een class-feature — wie het beeldje had, had niets. Deze lijst
+// koppelt het voorwerp aan zijn wezen, zodat het bij het invullen van een
+// preset meekomt en de speler hem gewoon kan oproepen.
+//
+// **Met de hand**, en dat is met opzet: de tekst noemt het wezen niet altijd
+// bij de naam die wij kennen ("a bronze griffon" → *Griffon*), en raden levert
+// hier een metgezel op die niet bestaat. Alle tien statblokken staan in
+// `bronnen/srd-monsters.json` — nagekeken op 26 nov 2026.
+//
+// `aantal` als er meer dan één verschijnt; `duur` is een aantekening voor de
+// speler, geen mechaniek (de app telt geen uren).
+const METGEZEL = {
+  'Figurine of Wondrous Power (Bronze Griffon)':  { wezen: 'Griffon' },
+  'Figurine of Wondrous Power (Ebony Fly)':       { wezen: 'Giant Fly' },
+  'Figurine of Wondrous Power (Golden Lions)':    { wezen: 'Lion', aantal: 2 },
+  'Figurine of Wondrous Power (Ivory Goats)':     { wezen: 'Giant Goat' },
+  'Figurine of Wondrous Power (Marble Elephant)': { wezen: 'Elephant' },
+  'Figurine of Wondrous Power (Obsidian Stead)':  { wezen: 'Nightmare' },
+  'Figurine of Wondrous Power (Onyx Dog)':        { wezen: 'Mastiff' },
+  'Figurine of Wondrous Power (Serpentine Owl)':  { wezen: 'Giant Owl' },
+  'Figurine of Wondrous Power (Silver Raven)':    { wezen: 'Raven' },
+  'Staff of the Woodlands':                       { wezen: 'Awakened Tree' },
+};
+
+// `--koppel` zet alleen de metgezellen op het bestand dat er al ligt. Open5e
+// opnieuw bevragen voor een lijst die met de hand bijgehouden wordt is zonde
+// van de beurt — en onbetrouwbaar als hun endpoint even hapert.
+if (process.argv.includes('--koppel')) {
+  const bestaand = JSON.parse(fs.readFileSync(DOEL, 'utf8'));
+  let n = 0;
+  for (const it of (bestaand.items || [])) {
+    const m = METGEZEL[it.name];
+    if (!m) { if (it.metgezel) { delete it.metgezel; n++; } continue; }
+    if (JSON.stringify(it.metgezel) !== JSON.stringify(m)) { it.metgezel = m; n++; }
+  }
+  if (schrijf) { fs.writeFileSync(DOEL, JSON.stringify(bestaand, null, 2)); console.log(`${n} voorwerp(en) bijgewerkt.`); }
+  else console.log(`${n} voorwerp(en) zouden een metgezel krijgen. Draai opnieuw met --schrijf.`);
+  process.exit(0);
+}
+
+
 function wapenVelden(w) {
   if (!w) return {};
   const uit = {};
@@ -92,6 +136,7 @@ function attunementEis(detail) {
       ...(eis ? { attunementEis: eis } : {}),
       ...(r.desc ? { desc: String(r.desc).trim() } : {}),
       ...w, ...a,
+      ...(METGEZEL[r.name] ? { metgezel: METGEZEL[r.name] } : {}),
       ...(werking.length ? { werking } : {}),
     };
   });

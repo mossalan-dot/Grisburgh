@@ -707,6 +707,17 @@ const SCHEMA = {
       // de tafelbibliotheek staan — hier hangt alleen de verwijzing, zodat
       // dezelfde tafel ook los te rollen is en bij te stellen op één plek.
       { key: 'tafelId', label: 'Gekoppelde tafel', type: 'tafel-picker' },
+      // **Een voorwerp dat iemand oproept.** Een figurine ís een metgezel in de
+      // vorm van een beeldje: je bezit hem, je zet hem neer, en er staat een
+      // griffioen. Tot nu toe kon je alleen oproepen via een spreuk of een
+      // class-feature — wie het beeldje had, had niets. Zet hier de naam van
+      // het wezen (zoals het in het bestiarium of de SRD-bron heet) en de
+      // bezitter krijgt hem in zijn blok *Opgeroepen*. Een preset uit de SRD
+      // vult hem vanzelf: de tien figurines, Staff of the Woodlands.
+      { key: 'metgezel', label: 'Roept op', type: 'tekst',
+        placeholder: 'Griffon, Mastiff, Awakened Tree…' },
+      { key: 'metgezelAantal', label: 'Hoeveel tegelijk', type: 'getal',
+        showWhen: { key: 'metgezel', values: '*' } },
       // Naar boven gehaald: de beschrijving is de hoofdtekst, niet iets wat na
       // vier blokken invulvelden komt.
       { key: 'desc', label: 'Beschrijving', type: 'textarea' },
@@ -1420,7 +1431,14 @@ window._srdItemVullen = async (invoer) => {
     window._showToast?.(`${icon('x')} Geen standaard voorwerp met de naam \u201c${esc(naam)}\u201d`);
     return;
   }
-  const veld = (k) => document.querySelector(`[name="${k}"]`);
+  // **De velden van een kaartje heten `data_<sleutel>`.** Hier stond alleen
+  // `[name="<sleutel>"]`, en dus vond hij niets: de knop *Invullen* zette de
+  // naam en meldde vrolijk "ingevuld — SRD 5.2", terwijl type, rariteit,
+  // beschrijving, schade en alle harnasvelden leeg bleven. Gemeten op
+  // 26 nov 2026 met *Figurine of Wondrous Power (Onyx Dog)*: alleen de naam.
+  // `name` zelf is het enige veld zónder voorvoegsel, vandaar de terugval.
+  const veld = (k) => document.querySelector(`[name="data_${k}"]`)
+                   || document.querySelector(`[name="${k}"]`);
 
   // Alleen invullen wat leeg is — behalve de naam, die is de hele aanleiding.
   // Zo kun je een half ingevuld kaartje aanvullen zonder je eigen tekst kwijt
@@ -1436,6 +1454,18 @@ window._srdItemVullen = async (invoer) => {
     if (String(el.value || '').trim()) continue;
     el.value = String(p[k]);
     el.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  // Een voorwerp dat iemand oproept brengt zijn wezen mee. Zelfde regel als
+  // hierboven: alleen invullen wat leeg is, zodat je eigen keuze blijft staan.
+  if (p.metgezel?.wezen) {
+    const mv = veld('metgezel');
+    if (mv && !String(mv.value || '').trim()) {
+      mv.value = p.metgezel.wezen;
+      mv.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+    const av = veld('metgezelAantal');
+    if (av && !String(av.value || '').trim() && p.metgezel.aantal) av.value = String(p.metgezel.aantal);
   }
 
   // De werking bepaalt welke velden zichtbaar zijn; die vinkjes staan los.
@@ -8494,7 +8524,11 @@ window._showWhenBijwerken = () => {
   document.querySelectorAll('[data-show-when-key]').forEach(el => {
     const veld = document.querySelector(`[name="data_${el.dataset.showWhenKey}"]`);
     const nu = veld ? String(veld.value || '') : '';
-    el.style.display = el.dataset.showWhenVal.split('|').includes(nu) ? '' : 'none';
+    // `*` betekent: zodra het veld waar dit aan hangt íéts bevat. Nodig voor
+    // een vervolgvraag op een vrij tekstveld ("Hoeveel tegelijk" onder "Roept
+    // op") — daar valt geen lijst met waarden op te sommen.
+    const wil = el.dataset.showWhenVal;
+    el.style.display = (wil === '*' ? nu.trim() !== '' : wil.split('|').includes(nu)) ? '' : 'none';
   });
 };
 
@@ -9298,8 +9332,11 @@ window._openEditor = async (tab, editId) => {
     // werkt voor elk veld, en de waarde wordt uit het formulier zelf gelezen.
     if (field.showWhen) {
       const _nu = String(e?.data?.[field.showWhen.key] ?? '');
-      const _aan = field.showWhen.values.includes(_nu);
-      body += `<div data-show-when-key="${esc(field.showWhen.key)}" data-show-when-val="${esc(field.showWhen.values.join('|'))}"${_aan ? '' : ' style="display:none"'}>`;
+      // `values` is een lijst, of de wildcard `'*'` ("zodra er iets staat").
+      const _wil = field.showWhen.values;
+      const _aan = _wil === '*' ? String(_nu || '').trim() !== '' : _wil.includes(_nu);
+      const _val = _wil === '*' ? '*' : _wil.join('|');
+      body += `<div data-show-when-key="${esc(field.showWhen.key)}" data-show-when-val="${esc(_val)}"${_aan ? '' : ' style="display:none"'}>`;
     }
     // Alle velden van één werking in één omkaderd blok met een kopje: los onder
     // elkaar was niet te zien welk veld bij welk vinkje hoorde.

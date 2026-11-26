@@ -5802,6 +5802,42 @@ function _summonAanbod(dmState, charId, { alles = false } = {}) {
       waarom,
     });
   }
+
+  // ── Een voorwerp dat iemand oproept ────────────────────────────────────────
+  // Een figurine ís een metgezel in de vorm van een beeldje: je bezit hem, je
+  // zet hem neer, en er staat een mastiff. Tot nu toe liep oproepen alleen via
+  // een spreuk of een class-feature, en wie het beeldje had, had niets — de DM
+  // moest het wezen met de hand op de kaart zetten.
+  //
+  // Het kaartje draagt `data.metgezel` (de SRD-preset vult hem bij de tien
+  // figurines en Staff of the Woodlands, de DM kan hem zelf zetten), en wie het
+  // **bezit** mag hem oproepen. Bezit staat per party, dus we kijken in de
+  // bezitslijst van zíjn tafel — niet in die van de actieve groep.
+  try {
+    const entities = storage.readJSON('entities.json');
+    const g = getGroup(dmState, _playerGroupId(dmState, charId));
+    const bezit = (g && g.itemOwners) || {};
+    for (const v of (entities.voorwerpen || [])) {
+      const wezen = String(v.data?.metgezel || '').trim();
+      if (!wezen) continue;
+      const rijen = bezit[v.id];
+      const heeft = Array.isArray(rijen) ? rijen.some(o => o.characterId === charId)
+                  : (rijen && rijen.characterId === charId);
+      if (!alles && !heeft) continue;
+      const aantal = Math.max(1, parseInt(v.data?.metgezelAantal) || 1);
+      uit.push({
+        id: `voorwerp:${v.id}`, naam: wezen, geeft: v.name, soort: 'voorwerp',
+        boek: '', klasse: '', subclass: '', level: 0, spreukIndex: null,
+        // Eén gedaante: het wezen dat op het kaartje staat. Zo loopt hij door
+        // dezelfde controle in de POST als een spreuk met één vorm.
+        vormen: [{ naam: wezen, bekend: !!_wezenOpNaam(wezen) }],
+        entityId: v.id, entityNaam: v.name, tiers: [],
+        aantal,
+        bekend: !!_wezenOpNaam(wezen),
+      });
+    }
+  } catch { /* geen kaartjes, geen voorwerp-metgezellen */ }
+
   return uit;
 }
 

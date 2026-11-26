@@ -4016,3 +4016,51 @@ anders aflopen afhankelijk van wie de pagina opent.
 
 Die bewaker kent ook de twee vormen die géén fout zijn: een aanroep in de
 DM-tak, en de vangregel van een ternair — ook als die over twee regels staat.
+
+## Een voorwerp dat iemand oproept (26 nov 2026)
+
+Twee vragen van de DM: *zijn de summons bij bestaande voorwerpen bekeken?* en
+*zijn DMG/PHB-voorwerpen vrij te importeren, net als het bestiarium?*
+
+**Het antwoord op de eerste was nee.** Het aanbod in het blok *Opgeroepen* kwam
+uit `bronnen/metgezellen.json`: 15 via een spreuk, 10 via een class-feature,
+**nul** via een voorwerp. Wie een Figurine of Wondrous Power had, had niets —
+de DM moest het wezen met de hand op de kaart zetten.
+
+**Op de tweede: ja, de SRD-helft ligt er al.** 333 stuks uitrusting en **757
+magische voorwerpen** onder CC BY, net als de 331 monsters. Bewust als *bron om
+uit te putten* en niet als kaartjes: een verse campagne wordt niet volgeplempt,
+de DM maakt een kaartje en kiest een preset.
+
+### Maar die preset vulde niets
+
+Nagemeten op productie met *Figurine of Wondrous Power (Onyx Dog)*: de knop
+*Invullen* zette **alleen de naam** en meldde opgewekt "ingevuld — SRD 5.2".
+Type, rariteit, beschrijving, schade, alle harnasvelden: leeg. De importeur
+zocht `[name="itemType"]` terwijl een kaartjesveld `data_itemType` heet.
+
+Na de reparatie, zelfde voorwerp: type *Wondrous item*, rariteit *Rare*,
+beschrijving 1436 tekens.
+
+### En nu komt de metgezel mee
+
+- De bron draagt per voorwerp een `metgezel` (de tien figurines en Staff of the
+  Woodlands — met de hand gekoppeld, want "a bronze griffon" is niet de naam
+  die wij kennen). Alle tien statblokken staan al in `srd-monsters.json`.
+- Het kaartje heeft een veld **Roept op** (plus *Hoeveel tegelijk*), dat de
+  preset vanzelf vult en dat de DM ook zelf kan zetten voor eigen makelij.
+- Wie het voorwerp **bezit** krijgt het wezen in zijn blok *Opgeroepen* — en
+  bezit staat per party, dus het kijkt naar zijn eigen tafel.
+
+- [x] Vul *Onyx Dog* in als preset: er staat *Roept op: Mastiff*, en de
+      vervolgvraag *Hoeveel tegelijk* verschijnt zodra dat veld gevuld is.
+- [x] Geef het beeldje aan een speler: hij kan de Mastiff oproepen (compleet
+      statblok, één klik). Een medespeler zonder beeldje ziet hem niet en
+      krijgt een 409 als hij het toch probeert.
+
+Bewaakt door `tests/summon-voorwerp.test.js` (4 toetsen, kanarie op het bezit).
+
+*Twee eigen misgrepen onderweg:* een `--koppel`-stand die vóór zijn eigen
+gegevenslijst stond (temporal dead zone), en een kanarie die het aanbod juist
+wégnam in plaats van de controle uit te zetten — die ging daardoor niet af op
+de toets die hij moest bewaken.
