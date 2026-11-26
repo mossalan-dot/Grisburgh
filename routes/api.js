@@ -2079,7 +2079,13 @@ router.post('/entities/:type/:id/shop-reveal', attachRole, (req, res) => {
   const { type, id } = req.params;
   if (!['voorwerpen'].includes(type)) return res.status(400).json({ error: 'Alleen voor voorwerpen' });
   const dmState = readDmState();
-  const g       = getGroup(dmState);
+  // **De party van wie klikt.** Dit is een schrijfactie die een speler mag
+  // doen, en hij stond op de *actieve* groep: zijn eigen tafel zag het kaartje
+  // daarna nog steeds niet, en een andere tafel kreeg er stilletjes een
+  // onthuld. Ook de controle "ligt dit item wel in een open winkel" keek naar
+  // de verkeerde schappen.
+  const _kijkerId = req.session?.characterId;
+  const g = _kijkerId ? getGroup(dmState, _playerGroupId(dmState, _kijkerId)) : getGroup(dmState);
   // Verify the item is actually in an open shop for this group
   const shopIds = Object.keys(g.shops || {});
   const inShop = shopIds.some(sid => {
@@ -3183,7 +3189,12 @@ router.put('/meta/markt', requireDM, (req, res) => {
 
 router.get('/shops/:shopId/uitverkocht', attachRole, (req, res) => {
   const dmState = readDmState();
-  const g = getGroup(dmState);
+  // Uitverkocht staat **per party** (`g.shopUitverkocht`), dus kijk naar de
+  // party van wie het vraagt — niet naar de groep die de DM actief heeft.
+  // Zelfde idioom als `/shops/:shopId/beschikbaar` hieronder, waar het al goed
+  // stond; hier las een speler de schappen van een andere tafel leeg of vol.
+  const _kijkerId = req.session?.characterId;
+  const g = _kijkerId ? getGroup(dmState, _playerGroupId(dmState, _kijkerId)) : getGroup(dmState);
   const winkelId = _winkelVan(storage.readJSON('entities.json'), req.params.shopId)?.id || req.params.shopId;
   const uitverkocht = ((g.shopUitverkocht || {})[winkelId]) || [];
   res.json({ uitverkocht });
@@ -5843,7 +5854,10 @@ router.get('/characters/:characterId/summons', attachRole, (req, res) => {
   const dmState = readDmState();
   // Of er een nacht overheen ging rekent de server uit: hij heeft de
   // rustteller, en één plek die dat weet is er één genoeg.
-  const nu = getGroup(dmState)?.rustTellers?.long ?? 0;
+  // **De rustteller van zíjn party**, niet die van de groep die de DM actief
+  // heeft: anders staat je Familiar als "van voor je rust" terwijl jouw tafel
+  // nog niet geslapen heeft — of andersom.
+  const nu = getGroup(dmState, _playerGroupId(dmState, characterId))?.rustTellers?.long ?? 0;
   const meta = storage.readJSON('meta.json');
   res.json({
     summons: _summonLijst(dmState, characterId).map(s => ({
@@ -5910,7 +5924,10 @@ router.post('/characters/:characterId/summons', attachRole, (req, res) => {
     // Stilletjes wissen zou dus bij de helft fout zijn, en stilletjes laten
     // staan laat een lijst rotten. Dus: we onthouden bij welke rust hij
     // opgeroepen is en het blok zegt het erbij. Wegsturen blijft een klik.
-    rustStand: (getGroup(dmState)?.rustTellers?.long) ?? 0,
+    // Bij de teller van **zijn** party, want de GET vergelijkt daar straks
+    // tegen. Stond hier de actieve groep, dan legde je twee verschillende
+    // tellers naast elkaar en was "van voor je rust" een gok.
+    rustStand: (getGroup(dmState, _playerGroupId(dmState, characterId))?.rustTellers?.long) ?? 0,
   };
   _summonLijst(dmState, characterId).push(s);
 
@@ -8523,7 +8540,9 @@ router.get('/characters/:characterId/level-up', attachRole, (req, res) => {
       }));
     })(),
     multiclassVerzoek: (() => {
-      const g2 = getGroup(dmState);
+      // De party van dít karakter — het verzoek ligt bij zijn eigen tafel,
+      // niet bij de groep die de DM actief heeft staan.
+      const g2 = getGroup(dmState, _playerGroupId(dmState, characterId));
       return (g2.multiclassVerzoeken || []).find(v => v.characterId === characterId && v.status === 'pending') || null;
     })(),
     maxLevel: cfg.maxLevel,
@@ -8635,7 +8654,10 @@ router.post('/characters/:characterId/level-up', attachRole, (req, res) => {
   (dmState.levelUps[characterId] = dmState.levelUps[characterId] || []).push(regel);
 
   // Tegoed opmaken (ook als de DM het deed — anders blijft het openstaan)
-  const g = getGroup(dmState);
+  // Het tegoed staat bij de party van dit karakter. Stond hier de actieve
+  // groep, dan kon een speler zijn gegunde level niet verzilveren zodra de
+  // DM naar een andere tafel keek — of verbruikte hij het tegoed van díé.
+  const g = getGroup(dmState, _playerGroupId(dmState, characterId));
   if (g.levelUpTegoed && g.levelUpTegoed[characterId] > 0) {
     g.levelUpTegoed[characterId] -= 1;
     if (g.levelUpTegoed[characterId] <= 0) delete g.levelUpTegoed[characterId];
@@ -8736,7 +8758,8 @@ router.post('/characters/:characterId/level-up/undo', requireDM, (req, res) => {
   // omhoog zonder tegoed (dat mag hij), dan valt er niets terug te geven — en
   // op XP al helemaal niet, want daar volgt het tegoed uit de XP zelf.
   if (regel.tegoedGebruikt) {
-    const g = getGroup(dmState);
+    // Teruggeven aan dezelfde party als waar hij vandaan kwam.
+    const g = getGroup(dmState, _playerGroupId(dmState, characterId));
     if (!g.levelUpTegoed) g.levelUpTegoed = {};
     g.levelUpTegoed[characterId] = (parseInt(g.levelUpTegoed[characterId]) || 0) + 1;
   }
@@ -15425,8 +15448,11 @@ router.post('/map/pins', attachRole, (req, res) => {
   if (!charId) return res.status(401).json({ error: 'Niet ingelogd' });
   const entities = storage.readJSON('entities.json');
   const dmState  = readDmState();
-  const g        = getGroup(dmState);
   const groupId  = _playerGroup(entities, charId);
+  // De zichtbaarheid van zíjn party bepaalt waar hij een speld mag zetten —
+  // niet die van de groep die de DM actief heeft. Zelfde fout als in de GET
+  // hierboven, en hier bovendien bij een schrijfactie.
+  const g        = getGroup(dmState, groupId);
   const char     = (entities.personages || []).find(e => e.id === charId);
 
   // Controleer of locatie visible is

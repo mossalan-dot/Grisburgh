@@ -3979,3 +3979,40 @@ kostten:* de route heet `/map/maps` (niet `/maps`) en wil een **`label`**;
 zichtbaarheid zetten gaat met **`{target}`** en altijd voor de **actieve**
 groep (die route kent geen party-parameter — je wisselt dus van groep); en de
 actieve groep wissel je met `PUT /groups/active`, niet `/active-group`.
+
+## De familie afgemaakt: de actieve groep (26 nov 2026)
+
+De kaartvondst van gisteren bleek één van elf. `getGroup(dmState)` zonder tweede
+argument is de party van de **DM**; in een route die een speler kan bereiken is
+dat bijna altijd fout. Twintig speler-routes gebruikten hem; na het nalopen:
+
+| route | wat er misging |
+|---|---|
+| `GET /map/pins` | spelden van de verkeerde party *(gisteren)* |
+| `GET /map/pins/available-locations` | je kon een speld zetten op iets wat je party niet kent *(gisteren)* |
+| `GET /facties` | aanzien en factiezichtbaarheid van een andere tafel *(gisteren)* |
+| `POST /map/pins` | dezelfde controle bij het plaatsen — en dat is een schrijfactie |
+| `POST /entities/:type/:id/shop-reveal` | **een speler onthulde het kaartje voor de verkeerde party**: zijn eigen tafel zag het daarna nog steeds niet, en een andere tafel kreeg er stilletjes een |
+| `GET /shops/:shopId/uitverkocht` | de schappen van een andere tafel leeg of vol |
+| `GET /characters/:id/level-up` | je openstaande multiclassverzoek lag bij de verkeerde party |
+| `POST /characters/:id/level-up` | je gegunde level verdween zodra de DM naar een andere tafel keek — of je verbruikte het tegoed van díé |
+| `POST …/level-up/undo` | en gaf het aan de verkeerde terug |
+| `GET /characters/:id/summons` | *van voor je rust* volgde de rustteller van een andere party |
+| `POST /characters/:id/summons` | en sloeg die teller ook zo op — dus de twee vergeleken appels met peren |
+
+Zes routes bleken wél goed (`/entities/:type` en `/:id`, `/bestiarium`,
+`/items/ownership`, `/shops/:id/beschikbaar`, `/herberg`): die rekenen met
+`playerGid` of met het `kijker ? … : …`-idioom.
+
+**Twee blijven bewust op de actieve groep**, en dat is een ontwerpkeuze, geen
+bug: de weddenschappen van de **Tweespalt** en de **kas van een winkel** zijn
+campagnebreed en hebben één klok. Met de klok van de kíjker zou een weddenschap
+anders aflopen afhankelijk van wie de pagina opent.
+
+- [x] **Geen speler-route rekent met de party van de DM** — bewaakt door
+      `tests/actieve-groep.test.js`, met de twee uitzonderingen in een lijst
+      mét reden. Komt er een derde, dan valt de toets om en moet iemand
+      opschrijven waarom.
+
+Die bewaker kent ook de twee vormen die géén fout zijn: een aanroep in de
+DM-tak, en de vangregel van een ternair — ook als die over twee regels staat.
