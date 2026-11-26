@@ -348,7 +348,7 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1394  sound-manager.js?v=15  theme.css?v=1016
+index.html  : app.js?v=1395  sound-manager.js?v=15  theme.css?v=1016
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
@@ -1199,6 +1199,26 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > speler-schrijfroutes van de diensten. De DM komt er altijd langs — hij test,
 > en hij handelt namens de tafel. Bewaakt door `tests/diensten-toegang.test.js`
 > (zonder de poort vallen er twee om).
+
+> **Wie het menu tekent, tekent ook de standen** (26 nov 2026). Het
+> dienstenmenu werd door **twee** functies bijgehouden: `_zetDienstLabels`
+> **tekende** het (uit `DIENST_VOLGORDE`, met de naam die de DM aan elke dienst
+> gaf), en `_updateDienstenMenu` zette daarna de toegangsstand van de party —
+> door de negen knoppen op hun **id** uit `index.html` op te zoeken. Alleen:
+> getekende knoppen dragen geen id. Gemeten op productie: nul elementen met zo'n
+> id, dus die hele functie liep leeg. `getElementById` geeft `null`, de
+> `if (!btn) continue;` slaat de regel over, en er komt geen foutmelding.
+> Wat er daardoor weg was: een dienst op **verborgen** stond gewoon in het menu
+> (klikken deed niets — geen lek, wel een menu dat liegt), een dienst op
+> **zichtbaar** kreeg zijn grijze stand met slotje en tooltip niet, en Facties
+> verscheen ook zonder onthulde factie. Alle drie zitten nu in de tekenfunctie;
+> `_updateDienstenMenu`, `_updateDienstenMenuDM` en de negen dode knoppen in
+> `index.html` zijn weg. Let op de twee **onafhankelijke** assen die daar
+> samenkomen: `_dienstDicht` is de lopende akte, `_getDienstToegang` de
+> schakelaar per party — het hertekende menu filterde alleen op de eerste.
+> Nagemeten vóór en ná in een wegwerpkopie, op dezelfde data. Bewaakt door
+> `tests/dode-ids.test.js`; `node scripts/dode-ids.js` zoekt dezelfde vorm
+> elders (52 kandidaten, met vals alarm — zie de kop van dat script).
 
 > **De arena-uitslag valt niet meer stil terug op een nederlaag.** Er stond
 > `req.body?.uitkomst === 'overwinning' ? 'overwinning' : 'nederlaag'`, en die

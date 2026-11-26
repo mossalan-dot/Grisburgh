@@ -162,15 +162,13 @@
           </button>
           <div class="archief-menu hidden" id="diensten-menu">
             <button class="archief-menu-item archief-menu-item--alles" data-section="diensten"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg> Alles</button>
-            <button class="archief-menu-item" data-section="markt" id="diensten-markt-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-store"/></svg><span id="diensten-markt-label">Markt</span></button>
-            <button class="archief-menu-item" data-section="herberg" id="diensten-herberg-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-beer"/></svg><span id="diensten-herberg-label">Herberg</span></button>
-            <button class="archief-menu-item" data-section="tempel" id="diensten-tempel-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-church"/></svg><span id="diensten-tempel-label">De Tempel</span></button>
-            <button class="archief-menu-item" data-section="facties" id="diensten-facties-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-landmark"/></svg><span id="diensten-facties-label">Facties &amp; Aanzien</span></button>
-            <button class="archief-menu-item" data-section="tweespalt" id="diensten-tweespalt-item"><svg class="icon icon-gi" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-dice"/></svg><span id="diensten-tweespalt-label">De Tweespalt</span></button>
-            <button class="archief-menu-item" data-section="gock" id="diensten-gock-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-search"/></svg><span id="diensten-gock-label">De Gock</span></button>
-            <button class="archief-menu-item" data-section="ursula" id="diensten-ursula-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-sparkles"/></svg><span id="diensten-ursula-label">Madame Ursula</span></button>
-            <button class="archief-menu-item" data-section="magizoo" id="diensten-magizoo-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-paw-print"/></svg><span id="diensten-magizoo-label">De Magizoöloog</span></button>
-            <button class="archief-menu-item" data-section="woekeraar" id="diensten-woekeraar-item"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-coins"/></svg><span id="diensten-woekeraar-label">De geldschieter</span></button>
+            <!-- Het dienstenmenu wordt getékend door `_zetDienstLabels` in app.js:
+                 elke dienst draagt de naam die de DM hem gaf (`meta.<dienst>.naam`), in
+                 de volgorde van DIENST_VOLGORDE, met de toegangsstand van deze party
+                 erin verwerkt. Hier stonden negen vaste knoppen met Grisburghs eigen
+                 namen erin ("Madame Ursula", "De Tweespalt"); die werden bij het eerste
+                 tekenen vervangen, maar een tweede campagne zag ze tot dat moment wel
+                 staan — en hun ids werden nergens meer gevonden. -->
           </div>
         </div>
         <button class="section-tab hidden" data-section="mijn-karakter"><svg class="icon" aria-hidden="true" focusable="false"><use href="/img/icons.svg?v=32#icon-user"/></svg> <span class="tab-label">Mijn karakter</span></button>
@@ -618,6 +616,6 @@
   <!-- DM Instellingen modal -->
 
   <script type="module" src="/js/sound-manager.js?v=15"></script>
-  <script type="module" src="/js/app.js?v=1394"></script>
+  <script type="module" src="/js/app.js?v=1395"></script>
 </body>
 </html>

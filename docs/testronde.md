@@ -731,7 +731,7 @@ fout-uitvoert.
 **De schakelaar en de akte**
 
 - [ ] **Verborgen betekent dicht, ook zonder scherm** (DM+speler) — zet een dienst op *verborgen* en laat de speler zijn openstaande tabblad gebruiken: elke schrijfactie komt terug met "Deze dienst is nu niet beschikbaar voor je groep" (403). Gecontroleerd voor herberg, Tweespalt, Gock, Ursula, tempel en magizoöloog — veertien routes.
-- [ ] **Facties: de schakelaar werkt** (DM) — zet Facties op *verborgen*: de knop in het Diensten-menu blijft weg (hij kwam terug zodra er één onthulde factie was), `GET /facties` geeft niets meer terug en het prikbord is leeg, want een missie komt altijd van een factie. Op *zichtbaar* zie je het slot, zoals bij de andere diensten.
+- [ ] **Facties: de schakelaar werkt** (DM) — zet Facties op *verborgen*: de knop in het Diensten-menu blijft weg (hij kwam terug zodra er één onthulde factie was; die regel hing óók aan de dode `_updateDienstenMenu` en is op 26 nov 2026 hersteld als `_factiesBekend` in de tekenfunctie — het antwoord wordt onthouden in plaats van per hertekening opgehaald), `GET /facties` geeft niets meer terug en het prikbord is leeg, want een missie komt altijd van een factie. Op *zichtbaar* zie je het slot, zoals bij de andere diensten.
 - [ ] **De akte sluit nu ook de route** (DM+speler) — zet een dienst in de akte-editor op onbereikbaar terwijl een speler zijn tabblad open heeft: zijn verzoek komt terug met "Daar kan je gezelschap nu niet heen" (403). Geldt voor alle veertien routes, en *De Markt* staat nu ook in dat lijstje — die kon je er eerst niet eens aanvinken.
 - [ ] **Kopen bij een winkel die je niet kent** (speler) — kan niet meer: kopen, verkopen en onderhandelen toetsen nu of de party het winkelkaartje kent én of het deze akte bereikbaar is. (In Grisburgh staat per party één van de negen winkels op verborgen; die hoort dicht te zitten.) De DM komt er langs.
 
@@ -1338,7 +1338,23 @@ Per bevinding: waar, wat, en of het opgelost is. Nieuwe regels onderaan.
 
 Zet in Instellingen → Diensten → *Toegang per groep* één dienst op **zichtbaar** en één op **verborgen**, en log in als speler.
 
-- **Het menu**: de verborgen dienst staat er niet meer; de zichtbare staat er grijs met een **slotje** rechts en de tooltip *"Hier kun je nog niet terecht."* Zonder dat slotje was grijs niet te onderscheiden van kapot.
+> **Dit was op 26 nov 2026 stuk, en het is gerepareerd.** De twee menustanden
+> werden gezet door `_updateDienstenMenu`, dat de negen knoppen op hun **id**
+> uit `index.html` opzocht. Maar het dienstenmenu wordt sinds de groepskopjes
+> **getekend** in plaats van bijgewerkt, en die getekende knoppen dragen geen id
+> meer: gemeten op productie stond er nul. Die hele functie liep dus leeg,
+> zonder foutmelding — `getElementById` geeft `null` en de `if (!btn) continue;`
+> slaat de regel over.
+> Nagemeten in een wegwerpkopie van de nachtelijke backup (Testgroep, eigen
+> poort), vóór en ná, op dezelfde data: vóór stond de dienst op *verborgen*
+> gewoon in het menu en had de dienst op *zichtbaar* geen grijs, geen slotje en
+> geen tooltip; ná is de eerste weg en draagt de tweede alle drie.
+> **Geen lek en geen toegang** — klikken op de achtergebleven knop deed niets en
+> de routes weigerden al (403, zie *Verborgen betekent dicht*); de schade was
+> een menu dat loog. Sindsdien doet de tekenfunctie het zelf: wie tekent, hoort
+> alles te tekenen. Bewaakt door `tests/dode-ids.test.js`.
+
+- [x] **Het menu**: de verborgen dienst staat er niet meer; de zichtbare staat er grijs met een **slotje** rechts en de tooltip *"Hier kun je nog niet terecht."* Zonder dat slotje was grijs niet te onderscheiden van kapot. *(nagemeten 26 nov 2026, zie hierboven.)*
 - **Open de vergrendelde dienst** (bijvoorbeeld via een oude link): je krijgt een scherm met een slot en zijn eigen naam — *"Vivarius is momenteel niet beschikbaar."*
 - **Open de verborgen dienst**: je komt op je eigen personageblad terecht, zonder melding. Vroeger keek je naar een leeg scherm, en dat leest als een storing. Bewust géén uitleg: die zou verklappen dat er iets te halen viel.
 - **Elke dienst noemt zijn eigen naam in het menu** — De Swarte Cat, De Tweespalt, Madame Ursula, Vivarius — niet de generieke soortnaam.
@@ -1578,10 +1594,14 @@ met de hand niet meer hoeft na te rekenen:
 Een dienst hoort in elke campagne te werken. Wat van Grisburgh is, hoort in
 Grisburghs **data** te staan — niet in de code.
 
-- [ ] **Markt** — schoon. Gebieden komen uit `meta.markt.gebieden`, winkels uit de kaartjes. De enige Grisburghse namen staan in commentaar.
-- [ ] **Herberg** — schoon. Naam, waard, groet, menu, prijzen en het aantal roddels staan in `meta.herberg`.
-- [ ] **Tweespalt** — de groet komt nu uit `meta.tweespalt.groet`; hij stond hardgecodeerd als *"Korporaal Standhall knikt je toe"*, dus elke campagne werd door een Grisburghse NPC begroet. De geldschieter zat er gisteren al in. Zet in een tweede campagne een eigen groet: het scherm volgt. Leeg laten mag — dan staat er alleen de naam.
-- [ ] **Nog te doen bij hun eigen ronde:** de **Tempel** valt zonder configuratie terug op Grisburghs zes goden (`TEMPEL_GODEN_DEFAULT`) en **Facties** op zijn vier facties (`FACTIES_DEFAULT`). Een tweede DM die de Tempel aanzet krijgt dus Matall, Seldari, Ghon, Tirimet, Oronoë en Velurut.
+- [x] **Markt** — schoon. Gebieden komen uit `meta.markt.gebieden`, winkels uit de kaartjes. De enige Grisburghse namen staan in commentaar. *(nagelopen 26 nov 2026 met een scan: alle 498 eigennamen uit Grisburghs eigen data naast de 59 bronbestanden gelegd — geen treffer in de Markt-code.)*
+- [x] **Herberg** — schoon. Naam, waard, groet, menu, prijzen en het aantal roddels staan in `meta.herberg`. *(idem nagelopen.)*
+- [x] **Tweespalt** — de groet komt nu uit `meta.tweespalt.groet`; hij stond hardgecodeerd als *"Korporaal Standhall knikt je toe"*, dus elke campagne werd door een Grisburghse NPC begroet. De geldschieter zat er gisteren al in. Zet in een tweede campagne een eigen groet: het scherm volgt. Leeg laten mag — dan staat er alleen de naam. *(nagelopen 26 nov 2026. **Eén plek bleef staan:** de brief na een arena-partij draagt `afzender: 'De Tweespalt — het strijdperk'` hardgecodeerd (`routes/api.js`), terwijl de dienst zijn naam uit `meta.tweespalt.naam` haalt — zelfde fout als de groet, één laag dieper. Zie de regel hieronder.)*
+- [x] ~~**Nog te doen bij hun eigen ronde:** de **Tempel** valt zonder configuratie terug op Grisburghs zes goden (`TEMPEL_GODEN_DEFAULT`) en **Facties** op zijn vier facties (`FACTIES_DEFAULT`).~~ *Verouderd — dit is sindsdien gedaan: beide constanten zijn leeg (`[]`), en wat er nog over hen in de code staat is commentaar met de geschiedenis erbij. Nagemeten 26 nov 2026.*
+- [ ] **De brief na een arena-partij noemt de dienst bij Grisburghs naam** (SP) — win een arena-partij in een tweede campagne die zijn gokhuis anders noemde: de brief komt binnen van *De Tweespalt — het strijdperk*. Hoort `meta.tweespalt.naam` te zijn, net als de groet.
+- [ ] **De briefstijlen dragen Grisburghs dienstnamen** (DM) — de keuzelijst *Briefstijl* biedt "Madame Ursula — lila brief", "De Tweespalt — haastig briefje" en "De Heeren van de Nacht — schaduwbrief" aan. De sleutels zijn opmaak (een lila brief, een haastig briefje, een schaduwbrief) en horen ook zo te heten; de naam van Grisburghs waarzegster hoort er niet in. Let op: die lijst staat **drie keer** in de code (`dm-panel.js` 2×, `render-archief.js` 1×) en `THEMA_AFZENDER` ook (`routes/api.js`, `dm-panel.js`, `render-archief.js`) — dus dit is er één, op zes plekken.
+- [ ] **Een verse campagne heet "Grisburgh"** (DM) — `lib/storage.js` geeft een nieuwe `meta.json` `appTitle: 'Grisburgh'` mee. Maak een campagne aan zonder titel: hij draagt Grisburghs naam tot iemand hem hernoemt.
+- [ ] **De namengenerator is Grisburghs onomastiek** (DM) — de achternamenlijst in `dm-panel.js` (*van Amberwoud*, *Maenfortuijn*, *Schemerzeeuw*) is van deze wereld. Dat is eerder een feature dan een lek — een Nederlands-fantasy namengenerator — maar het hoort een keuze te zijn, geen toeval.
 
 ### Testronde dienst 4 — De Gock (22 sep 2026)
 

@@ -234,15 +234,59 @@ const _DIENST_ICOON = {
   tweespalt: 'dice', gock: 'search', ursula: 'sparkles', magizoo: 'paw-print',
   woekeraar: 'coins',
 };
+// Of deze party minstens één factie kent. `null` = nog niet opgehaald, en
+// dan tonen we hem wél: liever één keer een leeg overzicht dan een menu-item
+// dat ontbreekt terwijl de party de factie allang kent.
+let _factiesBekend = null;
+window._factiesBekendOphalen = async () => {
+  if (window.app?.isDM?.()) { _factiesBekend = true; return; }
+  try {
+    const d = await api.getFacties();
+    _factiesBekend = (d?.facties || []).some(f => f.zichtbaar);
+  } catch { _factiesBekend = null; }
+  _zetDienstLabels();
+};
+// Dezelfde naam als vroeger, want `socket-client.js` roept hem zo aan.
+window._updateDienstenMenuFromSocket = () => window._factiesBekendOphalen();
+
+// **Twee onafhankelijke assen, en allebei horen ze hier.** `_dienstDicht` zegt
+// of de party er op dit moment kán komen (de lopende akte); `_getDienstToegang`
+// is de schakelaar van de DM per party — verborgen, zichtbaar of beschikbaar.
+// Die tweede werd gezet door `_updateDienstenMenu`, dat de knoppen op hun id
+// uit `index.html` opzocht — maar sinds het menu **getekend** wordt dragen die
+// knoppen geen id meer. Gemeten op productie 26 nov 2026: nul elementen met
+// zo'n id, dus die hele functie liep leeg. Gevolg: een dienst op *verborgen*
+// stond gewoon in het menu, en een dienst op *zichtbaar* kreeg zijn grijze
+// stand met slotje niet meer. Wie tekent, hoort alles te tekenen.
 function _zetDienstLabels() {
   const menu = document.getElementById('diensten-menu');
   if (!menu) return;
   const alles = menu.querySelector('.archief-menu-item--alles')?.outerHTML || '';
+  const isDm = !!window.app?.isDM?.();
   // Eén doorlopende lijst, in de volgorde van DIENST_GROEPEN. Geen kopjes:
   // zie de noot daar.
   const items = window.DIENST_VOLGORDE
     .filter(k => window._moduleAan?.(k) !== false && !window._dienstDicht?.(k))
-    .map(k => `<button class="archief-menu-item" data-section="${k}">${icon(_DIENST_ICOON[k] || 'landmark')} ${esc(window._dienstNaam(k))}</button>`)
+    // De DM komt overal langs — hij test, en hij handelt namens de tafel.
+    .filter(k => isDm || _getDienstToegang(k) !== 'verborgen')
+    // Facties verschijnt pas als de party er minstens één kent: een leeg
+    // overzicht verklapt dat er facties zíjn. We onthouden het antwoord
+    // (`_factiesBekend`) in plaats van het per hertekening op te halen; een
+    // onthulling komt als socket binnen en ververst het.
+    .filter(k => isDm || k !== 'facties' || _factiesBekend !== false)
+    // De herberg verdwijnt bovendien als hij niet is ingericht; dat stond als
+    // losse regel naast de aanroep en hoort bij dezelfde beslissing.
+    .filter(k => isDm || k !== 'herberg' || !!state.meta?.herberg)
+    .map(k => {
+      // Zichtbaar-maar-dicht: een grijs menu-item zonder uitleg is niet te
+      // onderscheiden van een kapot menu-item — de speler weet dan niet of het
+      // nog komt of dat er iets stuk is. De schakelaar betekent "dit bestaat
+      // nog niet voor jullie", dus dat is wat er moet staan.
+      const dicht = !isDm && _getDienstToegang(k) === 'zichtbaar';
+      return `<button class="archief-menu-item${dicht ? ' dienst-vergrendeld' : ''}" data-section="${k}"${
+        dicht ? ' title="Hier kun je nog niet terecht."' : ''}>${icon(_DIENST_ICOON[k] || 'landmark')} ${esc(window._dienstNaam(k))}${
+        dicht ? `<span class="dienst-slot" aria-hidden="true">${icon('lock')}</span>` : ''}</button>`;
+    })
     .join('');
   menu.innerHTML = alles + items;
   // De knoppen zijn nieuw, dus ze hebben hun handler nodig.
@@ -1623,17 +1667,13 @@ function applyRole() {
 
   // Elke dienst draagt zijn eigen naam uit meta; de herberg verdwijnt bovendien
   // als hij niet is ingericht.
-  _zetDienstLabels();
-  document.getElementById('diensten-herberg-item')?.classList.toggle('hidden', !state.meta?.herberg);
+  _zetDienstLabels();   // tekent ook de toegangsstanden; zie daar
 
   // Diensten-knop active-state als een diensten-sectie actief is
   const DIENSTEN_SECTIONS = window.DIENST_VOLGORDE;
   const dienstenBtn = document.getElementById('diensten-nav-btn');
   if (dienstenBtn) dienstenBtn.classList.toggle('active', DIENSTEN_SECTIONS.includes(state.activeSection));
 
-  // Toegangsstaten diensten updaten
-  if (!window.app.isDM()) _updateDienstenMenu();
-  else _updateDienstenMenuDM();
 
   // Eigen-karakter-tabblad
   const myCharTab = document.querySelector('.section-tab[data-section="mijn-karakter"]');
@@ -13378,10 +13418,11 @@ window._displayIdle = function() {
 
 // ── Diensten toegang ──
 async function _loadDienstenToegang() {
-  if (state.role !== 'player' || !state.playerName) { state.dienstenToegang = {}; _updateDienstenMenu(); return; }
+  if (state.role !== 'player' || !state.playerName) { state.dienstenToegang = {}; _zetDienstLabels(); return; }
   try { state.dienstenToegang = await api.getDienstenToegang(); }
   catch { state.dienstenToegang = {}; }
-  _updateDienstenMenu();
+  _zetDienstLabels();
+  window._factiesBekendOphalen();   // tekent zelf opnieuw zodra het antwoord er is
   const DIENST_SECTIES = window.DIENST_VOLGORDE.filter(k => k !== 'markt');
   if (DIENST_SECTIES.includes(state.activeSection)) refreshSection(state.activeSection);
 }
@@ -13401,76 +13442,6 @@ function _dienstNietBeschikbaar(el, naam) {
       </div>
     </div>`;
 }
-
-function _updateDienstenMenu() {
-  const KNOPPEN = {
-    herberg:   document.getElementById('diensten-herberg-item'),
-    tweespalt: document.getElementById('diensten-tweespalt-item'),
-    gock:      document.getElementById('diensten-gock-item'),
-    ursula:    document.getElementById('diensten-ursula-item'),
-    tempel:    document.getElementById('diensten-tempel-item'),
-    facties:   document.getElementById('diensten-facties-item'),
-    magizoo:   document.getElementById('diensten-magizoo-item'),
-    woekeraar: document.getElementById('diensten-woekeraar-item'),
-  };
-  for (const [dienst, btn] of Object.entries(KNOPPEN)) {
-    if (!btn) continue;
-    const staat = _getDienstToegang(dienst);
-    if (dienst !== 'herberg') btn.classList.toggle('hidden', staat === 'verborgen');
-    else if (staat === 'verborgen') btn.classList.add('hidden');
-    const dicht = staat === 'zichtbaar';
-    btn.classList.toggle('dienst-vergrendeld', dicht);
-    // Een grijs menu-item zonder uitleg is niet te onderscheiden van een kapot
-    // menu-item: de speler weet niet of het nog komt, of dat er iets stuk is.
-    // De schakelaar van de DM betekent "dit bestaat nog niet voor jullie", dus
-    // dat is wat er moet staan. Het slotje zegt hetzelfde zonder tekst.
-    if (dicht) btn.setAttribute('title', 'Hier kun je nog niet terecht.');
-    else btn.removeAttribute('title');
-    let slot = btn.querySelector('.dienst-slot');
-    if (dicht && !slot) {
-      slot = document.createElement('span');
-      slot.className = 'dienst-slot';
-      slot.setAttribute('aria-hidden', 'true');
-      slot.innerHTML = window.icon ? window.icon('lock') : '';
-      btn.appendChild(slot);
-    } else if (!dicht && slot) {
-      slot.remove();
-    }
-  }
-  // Facties: zichtbaar zodra er minstens één onthulde factie is — maar de
-  // schakelaar van de DM wint. Deze callback landt ná de lus hierboven en
-  // zette de knop dus weer aan bij een dienst die op verborgen stond.
-  if (_getDienstToegang('facties') !== 'verborgen') {
-    api.getFacties().then(d => {
-      const heeftRevealed = (d?.facties || []).some(f => f.zichtbaar);
-      const factiesBtn = document.getElementById('diensten-facties-item');
-      if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
-    }).catch(() => {});
-  }
-}
-
-// DM-inspectie: toon alle diensten-items ongeacht groep-toegang, zodat de DM
-// elke dienst kan openen en bekijken zoals spelers die zien. De toegang-sloten
-// in de routing zijn al met !isDM-guards uitgezet, dus de DM krijgt de echte render.
-function _updateDienstenMenuDM() {
-  // DM ziet alle diensten — ook Herberg en Facties — ongeacht config/toegang,
-  // zodat hij elke dienst kan openen en inspecteren.
-  for (const d of window.DIENST_VOLGORDE.filter(k => k !== 'markt')) {
-    const el = document.getElementById(`diensten-${d}-item`);
-    if (!el) continue;
-    el.classList.remove('hidden', 'dienst-vergrendeld');
-    el.removeAttribute('title');
-    el.querySelector('.dienst-slot')?.remove();
-  }
-}
-
-window._updateDienstenMenuFromSocket = () => {
-  api.getFacties().then(d => {
-    const heeftRevealed = (d?.facties || []).some(f => f.zichtbaar);
-    const factiesBtn = document.getElementById('diensten-facties-item');
-    if (factiesBtn) factiesBtn.classList.toggle('hidden', !heeftRevealed);
-  }).catch(() => {});
-};
 
 function _dienstNietBereikbaar(el, naam) {
   el.innerHTML = `
