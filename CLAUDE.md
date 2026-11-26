@@ -3507,6 +3507,19 @@ elkaar in één veld:
 De "geheime antagonist"-schakelaar zet nu de **rol** in plaats van het subtype
 om te gooien bij het onthullen van een geheim.
 
+> **En het verraad is per party** (26 nov 2026). Die schakelaar schrijft rol,
+> kant en alignment in het **kaartje**, en dat is van de hele campagne —
+> terwijl onthullen per party gaat. Onthulde party A het verraad, dan zag party
+> B de rode badge staan zonder te weten waarom. De reparatie zit in
+> `filterEntityForPlayer` en niet in de schrijfkant: de DM moet wél zien wie
+> hij geworden is. Draagt een kaartje antagonist-vlaggen, dan leidt de filter
+> de rol af uit wat **deze** party onthuld heeft, en zet hij `kant` en
+> `alignment` terug uit `kantVoorVerraad`/`alignmentVoorVerraad`. Die twee
+> velden gaan nooit naar een speler: dát ze bestaan verklapt al dat er iets te
+> ontmaskeren valt. Een antagonist die de DM zélf aanzette (geen vlag op een
+> regel) blijft gewoon staan — dat is een keuze, geen gevolg. Bewaakt door
+> `tests/verraad-per-party.test.js`.
+
 ---
 
 ## Geheimen en flavour zijn lijsten

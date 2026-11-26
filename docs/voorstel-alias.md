@@ -128,17 +128,14 @@ terugblik (`terugblik.js`, portretten in gouden ringen).
 
 ---
 
-## Drie keuzes voor de DM
+## De drie keuzes, beantwoord (26 nov 2026)
 
-1. **Welk moment onthult?** Een geheimregel (zoals de antagonist-vlag), het
-   zichtbaar worden van het echte kaartje, of allebei als keuze per kaartje.
-2. **Blijft het aliaskaartje standaard staan?** Mijn voorstel is ja, met
-   samenvoegen als losse knop. Wil je liever dat hij vanzelf verdwijnt, dan
-   moet dat campagnebreed en dus voor álle party's tegelijk — met de
-   consequentie dat een party die van niets weet ineens een bekende kwijt is.
-3. **Wil je het andersom ook?** Een kaartje dat *meerdere* aliassen draagt
-   (dezelfde man onder drie namen in drie steden) kan met hetzelfde veld, maar
-   het scherm wordt dan een lijstje in plaats van één regel.
+1. **Allebei de momenten, als keuze per kaartje.** Een geheimregel kan het doen
+   (zoals de antagonist-vlag), en het zichtbaar worden van het echte kaartje
+   ook. De DM zet per aliaskaartje welke van de twee geldt.
+2. **Het aliaskaartje blijft staan, met een verwijzing.** Samenvoegen blijft
+   een losse, bewuste knop — niet een bijwerking van een onthulling.
+3. **Eén alias per kaartje.** Geen lijst; één regel, één verwijzing.
 
 ---
 

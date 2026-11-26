@@ -4064,3 +4064,32 @@ Bewaakt door `tests/summon-voorwerp.test.js` (4 toetsen, kanarie op het bezit).
 gegevenslijst stond (temporal dead zone), en een kanarie die het aanbod juist
 wégnam in plaats van de controle uit te zetten — die ging daardoor niet af op
 de toets die hij moest bewaken.
+
+## Een verraad is per party (26 nov 2026)
+
+Gevonden bij het uitdenken van het aliasvoorstel, en op verzoek van de DM
+meteen rechtgezet.
+
+Een geheimregel kan de vlag `antagonist` dragen: onthult een party die regel,
+dan wordt het kaartje een antagonist — rol, kant en alignment schuiven mee, en
+terugdraaien zet ze terug. Maar die velden staan in **`entities.json`**, en dat
+is van de hele campagne, terwijl onthullen per party gaat. Onthulde party A het
+verraad, dan zag party B de rode badge en `kant: vijand` staan zonder dat ze
+iets wisten.
+
+Twee kaartjes in Grisburgh dragen die vlag, dus dit was geen theorie — het viel
+alleen niet op omdat beide party's er voor die twee hetzelfde voor staan.
+
+**De reparatie zit in de filter, niet in de schrijfkant.** De DM moet wél zien
+wie hij geworden is; alleen wat een *speler* krijgt hangt af van zijn tafel.
+
+- [x] Tafel A ontmaskert de waard: zij zien de antagonist en lezen het geheim.
+- [x] Tafel B heeft niets onthuld: geen rode badge, hij staat voor hen niet aan
+      de andere kant, en het geheim staat er al helemaal niet in.
+- [x] `kantVoorVerraad` en `alignmentVoorVerraad` gaan naar **niemand** — dát
+      die velden bestaan verklapt al dat er iets te ontmaskeren valt.
+- [x] De DM kijkt niet door de spelersfilter en ziet alles.
+- [x] Een antagonist die de DM zélf aanzette blijft staan: dat is een keuze,
+      geen gevolg van een geheim.
+
+`tests/verraad-per-party.test.js`, vijf toetsen, kanarie nagelopen.

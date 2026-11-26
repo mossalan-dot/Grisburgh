@@ -671,6 +671,30 @@ function filterEntityForPlayer(entity, dmState, groupId, ctx) {
   if (zichtbareGeheimen.length) e.data.geheim = zichtbareGeheimen[0];
   else delete e.data.geheim;
 
+  // ── Een verraad dat déze party nog niet ontdekt heeft ──────────────────────
+  // Onthult een party een geheimregel met de antagonist-vlag, dan schrijft de
+  // server rol, kant en alignment in het **kaartje** — en dat is van de hele
+  // campagne. Party A ontmaskerde hem dus en party B zag de rode badge staan,
+  // zonder te weten waarom. Dezelfde fout als de routes die op de actieve
+  // groep rekenden, maar hier hoort hij in de **filter** thuis: de DM moet wél
+  // zien wie hij geworden is.
+  //
+  // Alleen afleiden als er vlaggen zíjn. Een antagonist die de DM met de hand
+  // aanzette is geen gevolg van een geheim en blijft dus staan.
+  if (geheimen.some(r => r.antagonist)) {
+    const verraden = geheimen.some(r => r.antagonist && open.has(r.id));
+    if (!verraden) {
+      e.data.tags = JSON.stringify(_rollenVan(entity).filter(x => x !== 'antagonist'));
+      if (entity.data?.kantVoorVerraad) e.data.kant = entity.data.kantVoorVerraad;
+      if (entity.data?.alignmentVoorVerraad !== undefined) e.data.alignment = entity.data.alignmentVoorVerraad;
+      if (String(e.subtype).toLowerCase() === 'antagonist') e.subtype = 'NPC';
+    }
+  }
+  // De administratie van het verraad zelf gaat nooit mee: dát die velden
+  // bestaan verklapt al dat er iets te ontmaskeren valt.
+  delete e.data.kantVoorVerraad;
+  delete e.data.alignmentVoorVerraad;
+
   // Flavour: per **party** bijgehouden of de waard hem al verteld heeft. Dat
   // stond op het kaartje zelf, dus campagnebreed: hoorde party 1 iets in de
   // herberg, dan stond het meteen op het kaartje van party 2 — zonder dat die
