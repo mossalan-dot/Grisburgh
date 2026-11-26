@@ -118,6 +118,84 @@ describe('Een familiar naar je eigen hand zetten', () => {
     assert.strictEqual(b, null, 'bij een beest horen die twee velden niet');
   });
 
+  // ── Een familiar die in geen enkel boek staat ────────────────────────────
+  // Het naslagwerk gaat over wat je kunt oproepen; dan hoort er ook iets in te
+  // kunnen dat deze wereld zelf verzon. In de campagne (`meta.eigenMetgezellen`)
+  // en niet in de broncode — wat Grisburgh bedenkt krijgen andere campagnes
+  // niet, zelfde afspraak als bij een eigen spreuk.
+  describe('eentje die deze wereld zelf verzon', () => {
+    let id;
+
+    it('maakt hem aan en zet hem in de lijst', async () => {
+      const r = await req(server, 'POST', '/api/metgezellen/eigen',
+        { naam: 'Veenkat', soort: 'spreuk', geeft: 'Roep de Veenkat', vormen: ['Cat', 'Lynx'] }, dm);
+      assert.strictEqual(r.status, 201, JSON.stringify(r.body));
+      id = r.body.id;
+      assert.strictEqual(id, 'eigen-veenkat', 'het id volgt uit de naam, net als bij een spreuk');
+      assert.strictEqual(r.body.eigen, true);
+
+      const bron = (await req(server, 'GET', '/api/bron/metgezellen', null, dm)).body.metgezellen || [];
+      const kat = bron.find(c => c.naam === 'Veenkat');
+      assert.ok(kat, 'hij hoort gewoon in de lijst te staan, naast die uit de boeken');
+      assert.strictEqual(kat.soort, 'spreuk', 'en in de groep die de DM koos');
+      // De gedaantes krijgen hun `bekend` net als bij een meegeleverde: Cat
+      // staat in de SRD, Lynx niet. Zonder dat zou er een knop staan naar een
+      // statblok dat nergens is.
+      assert.deepStrictEqual(kat.vormen.map(v => [v.naam, v.bekend]), [['Cat', true], ['Lynx', false]]);
+    });
+
+    it('geeft hem een tweede id als de naam al bestaat', async () => {
+      const r = await req(server, 'POST', '/api/metgezellen/eigen', { naam: 'Veenkat' }, dm);
+      assert.strictEqual(r.status, 201);
+      assert.strictEqual(r.body.id, 'eigen-veenkat-2');
+      await req(server, 'DELETE', `/api/metgezellen/eigen/${r.body.id}`, null, dm);
+    });
+
+    it('weigert er een zonder naam', async () => {
+      const r = await req(server, 'POST', '/api/metgezellen/eigen', { soort: 'spreuk' }, dm);
+      assert.strictEqual(r.status, 400);
+    });
+
+    it('valt terug op "van deze wereld" bij een verzonnen soort', async () => {
+      const r = await req(server, 'POST', '/api/metgezellen/eigen',
+        { naam: 'Proefdier', soort: 'uit-de-lucht' }, dm);
+      assert.strictEqual(r.body.soort, 'eigen', 'een onbekende groep bestaat niet');
+      await req(server, 'DELETE', `/api/metgezellen/eigen/${r.body.id}`, null, dm);
+    });
+
+    it('bewerkt hem helemaal, niet alleen als overschrijving', async () => {
+      const r = await req(server, 'PUT', `/api/metgezellen/eigen/${id}`,
+        { naam: 'Veenkat', soort: 'voorwerp', geeft: 'Beeldje van de Veenkat', vormen: ['Cat'] }, dm);
+      assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+      assert.strictEqual(r.body.soort, 'voorwerp');
+      assert.deepStrictEqual(r.body.vormen, ['Cat']);
+    });
+
+    it('neemt bij het verwijderen mee wat eraan hing', async () => {
+      // Een plaat of aantekening van een kaartje dat niet meer bestaat is een
+      // wees die nergens meer opduikt — en dus ook nergens meer weg te halen.
+      await req(server, 'PUT', '/api/meta/naslagkaart',
+        { soort: 'metgezel', naam: 'Veenkat', tekst: 'Hij ruikt naar turf.' }, dm);
+      let nk = (await req(server, 'GET', '/api/meta', null, dm)).body.naslagkaarten || {};
+      assert.ok(nk['metgezel:Veenkat'], 'de aantekening staat er');
+
+      const r = await req(server, 'DELETE', `/api/metgezellen/eigen/${id}`, null, dm);
+      assert.strictEqual(r.status, 200);
+      nk = (await req(server, 'GET', '/api/meta', null, dm)).body.naslagkaarten || {};
+      assert.ok(!nk['metgezel:Veenkat'], 'en gaat mee als hij weg is');
+
+      const bron = (await req(server, 'GET', '/api/bron/metgezellen', null, dm)).body.metgezellen || [];
+      assert.ok(!bron.some(c => c.naam === 'Veenkat'));
+      // En de meegeleverde lijst heeft er niet onder geleden.
+      assert.ok(bron.some(c => c.naam === 'Greater Steed'), 'de bron staat er nog compleet');
+    });
+
+    it('laat een speler er niet aan komen', async () => {
+      const r = await req(server, 'POST', '/api/metgezellen/eigen', { naam: 'Stiekem' }, null);
+      assert.ok(r.status === 401 || r.status === 403, `kreeg ${r.status}`);
+    });
+  });
+
   it('knipt een onzinnige invoer af in plaats van hem te slikken', async () => {
     await zet({ eigenNaam: 'x'.repeat(200), vormen: Array.from({ length: 80 }, (_, i) => 'Vorm ' + i) });
     const b = await bak();

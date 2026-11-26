@@ -2,7 +2,7 @@
  * render-progressie.js — Skill trees / klasse-progressie op het personagetabblad
  */
 
-import { api } from './api.js?v=327';
+import { api } from './api.js?v=328';
 import { groeiVan } from './feature-groei.js?v=1';
 
 // ── Hulpfuncties ───────────────────────────────────────────────────

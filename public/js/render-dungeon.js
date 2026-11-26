@@ -10,7 +10,7 @@
  *   • Party-toegang (3-state: Geen / Actief / Uitgespeeld)
  */
 
-import { api } from './api.js?v=327';
+import { api } from './api.js?v=328';
 
 const icon = (...a) => window.icon(...a);
 
@@ -267,7 +267,7 @@ window._dngNaarVerdieping = (mapId, roomId) => {
 // Een kaartje aanmaken vanuit een kameraantekening. Leent de plaatshouder-
 // kiezer van het schrijfscherm: een plaatshouder ontstaat op een plek.
 window._dngMaakKaartje = async (naam) => {
-  await import('./akte-schrijven.js?v=48');
+  await import('./akte-schrijven.js?v=49');
   window.akteSchrijven?.maakPlaceholder?.(naam);
 };
 

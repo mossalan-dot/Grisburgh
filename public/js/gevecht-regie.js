@@ -14,7 +14,7 @@
 // Wat er gebeurt beslist de server (routes/api.js, zoek op "Gevechtsregie");
 // dit bestand tekent alleen. Side-effect import in app.js, net als rage.js.
 
-import { api } from './api.js?v=327';
+import { api } from './api.js?v=328';
 
 const ic = (n, o) => window.icon?.(n, o) || '';
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>

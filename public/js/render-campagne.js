@@ -1,4 +1,4 @@
-import { api } from './api.js?v=327';
+import { api } from './api.js?v=328';
 import { renderStatblock } from './render-statblock.js?v=10';
 
 const icon = (...a) => window.icon(...a);
@@ -5938,7 +5938,7 @@ window._makerVoorDm = async () => {
     gid = keuze;
   }
   try {
-    await import('./personage-maken.js?v=89');
+    await import('./personage-maken.js?v=90');
     // Zodra de maker dichtgaat staat het kaartje er; het raster erachter weet
     // dat nog niet. Hetzelfde als na het opslaan van een nieuw kaartje: open
     // en in beeld.

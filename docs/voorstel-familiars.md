@@ -31,7 +31,16 @@
 > editor zijn eigen overschrijving onder de níéuwe naam en vond niets. Hij
 > hangt nu aan `bronNaam || naam`.
 >
-> **Nog niet gedaan:** een familiar toevoegen die in geen enkel boek staat.
+> **En dat kan nu ook** (zelfde dag): de **+** achter Familiars maakt er een.
+> Vier velden bepalen hem — naam, wát hem oproept, uit welke hoek dat komt (de
+> groep waar hij onder valt) en zijn gedaantes — en al het andere gaat langs
+> dezelfde weg als bij een familiar uit een boek. Opslag in
+> `meta.eigenMetgezellen`, in exact de vorm van `bronnen/metgezellen.json`, dus
+> het kaartje, de tegel, het filter en het oproepen hoeven er niets van te
+> weten. Bij hem opent het potlood de **hele** editor en niet de
+> overschrijflaag: er is geen bron om naast te zetten.
+>
+> **Het voorstel is daarmee af.**
 
 De deur **Familiars** in het Heldenboek klopt niet, en de DM wees precies aan
 waarom: *"het filter maakt onderscheid tussen Beasts en Metgezellen, maar ook

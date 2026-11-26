@@ -12,7 +12,7 @@
 // De server houdt de stand bij (`/characters/:id/rage`); hier wordt alleen
 // getekend en geklikt. Side-effect module, net als `terugblik.js`.
 
-import { api } from './api.js?v=327';
+import { api } from './api.js?v=328';
 
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c =>
   ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));

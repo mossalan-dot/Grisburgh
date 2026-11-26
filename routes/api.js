@@ -13129,6 +13129,26 @@ router.get('/bron/metgezellen', attachRole, (req, res) => {
     });
   }
 
+  // ── En wat deze wereld zelf verzon ─────────────────────────────────────────
+  // Achteraan, zodat de meegeleverde lijst zijn volgorde houdt; de client
+  // sorteert toch op naam. Een eigen familiar loopt verder langs precies
+  // dezelfde weg als de rest — ook de overschrijflaag van hierboven.
+  for (const c of (storage.readJSON('meta.json').eigenMetgezellen || [])) {
+    const sb = c.statblok ? vind(c.statblok) : null;
+    const kaartId2 = metaKaarten[`metgezel:${c.naam}`]?.entityId || '';
+    const kaart2 = kaartId2 ? personages.find(e => e.id === kaartId2) : null;
+    lijst.push({
+      ...c,
+      ...(kaart2 ? {
+        entityId: kaart2.id, entityNaam: kaart2.name,
+        kaartStatblock: { ...kaart2, statblock: _activeTier(kaart2, 1).statblock, name: kaart2.name },
+        tiers: _tierRegels(kaart2).map(t => ({ label: t.label || '', minLevel: t.minLevel || 0 })),
+      } : {}),
+      vormen: (c.vormen || []).map(nm => ({ naam: nm, bekend: !!vind(nm) })),
+      ...(sb ? { statblock: sb } : {}),
+    });
+  }
+
   res.json({ metgezellen: lijst });
 });
 
@@ -13269,6 +13289,75 @@ function _spreukUitBody(body, index) {
 }
 
 // Iedereen die ingelogd is mag ze zien: een eigen spreuk is gewoon een spreuk.
+// ── Een familiar die in geen enkel boek staat ──────────────────────────────
+// De deur *Familiars* is het naslagwerk van wat je kunt oproepen; dan hoort er
+// ook iets in te kunnen dat deze wereld zelf verzon. Zelfde afspraak als bij
+// een eigen spreuk: **in de campagne, niet in de broncode** — wat Grisburgh
+// bedenkt krijgen andere campagnes niet. Opslag in `meta.eigenMetgezellen`, in
+// exact de vorm van `bronnen/metgezellen.json`, zodat kaartje, tegel, filter
+// en het oproepen er niets van hoeven te weten.
+const _METGEZEL_SOORT = ['spreuk', 'feature', 'feat', 'voorwerp', 'eigen'];
+
+function _metgezelUitBody(body, id) {
+  const tekst = (v, max) => String(v ?? '').trim().slice(0, max);
+  const soort = _METGEZEL_SOORT.includes(body?.soort) ? body.soort : 'eigen';
+  return {
+    id, naam: tekst(body?.naam, 80), geeft: tekst(body?.geeft, 80), soort,
+    boek: tekst(body?.boek, 80),
+    vormen: (Array.isArray(body?.vormen) ? body.vormen : [])
+      .map(x => tekst(x, 60)).filter(Boolean).slice(0, 40),
+    eigen: true,
+  };
+}
+
+router.post('/metgezellen/eigen', requireDM, (req, res) => {
+  const naam = String(req.body?.naam || '').trim();
+  if (!naam) return res.status(400).json({ error: 'Een familiar heeft een naam nodig' });
+  const meta = storage.readJSON('meta.json');
+  if (!Array.isArray(meta.eigenMetgezellen)) meta.eigenMetgezellen = [];
+  // Het id volgt uit de naam, met een teller erachter als hij al bestaat —
+  // net als bij een eigen spreuk.
+  const basis = naam.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'familiar';
+  let id = `eigen-${basis}`, n = 2;
+  while (meta.eigenMetgezellen.some(c => c.id === id)) id = `eigen-${basis}-${n++}`;
+  const c = _metgezelUitBody(req.body, id);
+  meta.eigenMetgezellen.push(c);
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.status(201).json(c);
+});
+
+router.put('/metgezellen/eigen/:id', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const lijst = Array.isArray(meta.eigenMetgezellen) ? meta.eigenMetgezellen : [];
+  const i = lijst.findIndex(c => c.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'Niet gevonden' });
+  if (!String(req.body?.naam || '').trim()) return res.status(400).json({ error: 'Een familiar heeft een naam nodig' });
+  lijst[i] = _metgezelUitBody(req.body, lijst[i].id);
+  meta.eigenMetgezellen = lijst;
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json(lijst[i]);
+});
+
+router.delete('/metgezellen/eigen/:id', requireDM, (req, res) => {
+  const meta = storage.readJSON('meta.json');
+  const lijst = Array.isArray(meta.eigenMetgezellen) ? meta.eigenMetgezellen : [];
+  const i = lijst.findIndex(c => c.id === req.params.id);
+  if (i === -1) return res.status(404).json({ error: 'Niet gevonden' });
+  const weg = lijst.splice(i, 1)[0];
+  if (lijst.length) meta.eigenMetgezellen = lijst; else delete meta.eigenMetgezellen;
+  // Wat de DM aan dít kaartje hing gaat mee: een overschrijving van iets dat
+  // niet meer bestaat is een wees die nergens meer opduikt.
+  if (meta.naslagkaarten) {
+    delete meta.naslagkaarten[`metgezel:${weg.naam}`];
+    if (!Object.keys(meta.naslagkaarten).length) delete meta.naslagkaarten;
+  }
+  storage.writeJSON('meta.json', meta);
+  req.app.get('io').to(_campagneRoom(req)).emit('meta:updated');
+  res.json({ ok: true });
+});
+
 router.get('/spreuken/eigen', attachRole, (req, res) => {
   if (!(req.session?.role === 'dm' || req.session?.characterId)) {
     return res.status(401).json({ error: 'Niet ingelogd' });

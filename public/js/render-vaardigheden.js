@@ -14,8 +14,8 @@
  * zelf schreef, dan de SRD, en anders een verwijzing naar buiten.
  */
 
-import { api } from './api.js?v=327';
-import { naslagBron } from './render-progressie.js?v=83';
+import { api } from './api.js?v=328';
+import { naslagBron } from './render-progressie.js?v=84';
 // De condities staan op één plek, en dat is dit bestand — zie de kop daar.
 import { CONDITIONS, COND_ICON, condGroep, isEigenConditie, isAangepasteConditie } from './conditions.js?v=8';
 // Eén renderer voor elk statblok in de app — zie render-statblock.js.
@@ -1035,6 +1035,11 @@ function _penAanroep(it) {
   // werkbank. Een SRD-beest heeft geen id en dus niets te bewerken; daar
   // opent het gewone venster voor een plaat en een aantekening.
   if (it.monsterId) return `naarBestiarium('${escA(it.monsterId)}')`;
+  // **Een familiar die deze wereld zelf verzon, bewerk je hélemaal.** Bij een
+  // familiar uit een boek kun je alleen overschrijven wat er al staat; bij een
+  // eigen bepaal je ook wát hem oproept en hoe hij heet — er is geen bron om
+  // naast te zetten.
+  if (it.metgezel?.eigen) return `eigenMetgezel('${escA(it.metgezel.id)}')`;
   const bak = _bakSleutel(it);
   if (bak) return `naslagBewerk('${escA(it.soort)}','${escA(_bakNaam(it))}')`;
   if (it.soort === 'background') return `kaartBewerken('background','${escA(it.naam)}')`;
@@ -4954,6 +4959,76 @@ window.vaardigheden = {
   // de naam, het icoon en de tekst van een **conditie** horen bij
   // `meta.condities` (het gevechtscanvas en het spelerstabblad lezen die lijst
   // ook), de rest in `meta.naslagkaarten`.
+  // **Een familiar die in geen enkel boek staat.** Vier velden, want meer
+  // bepaalt hem niet: hoe hij heet, wát hem oproept, uit welke hoek dat komt
+  // (dat is de groep waar hij onder valt) en zijn gedaantes. Al het andere —
+  // zijn plaat, een aantekening, zijn statblok, wanneer hij verdwijnt — gaat
+  // langs dezelfde weg als bij een familiar uit een boek, via `naslagBewerk`.
+  async eigenMetgezel(id) {
+    const c = id ? ((_all || []).find(x => x.metgezel?.id === id)?.metgezel || null) : null;
+    const SOORTEN_UIT = [['spreuk', 'Een spreuk'], ['feature', 'Een class feature'],
+      ['feat', 'Een feat'], ['voorwerp', 'Een voorwerp'], ['eigen', 'Iets van deze wereld']];
+    window.app.openModal(c ? `${c.naam} bewerken` : 'Nieuwe familiar', '', `
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="emg-naam">Naam</label>
+        <input class="dm-input" id="emg-naam" maxlength="80" value="${esc(c?.naam || '')}"
+          placeholder="Veenkat, Moerasgeest\u2026">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="emg-soort">Wat roept hem op?</label>
+        <select class="dm-input" id="emg-soort">
+          ${SOORTEN_UIT.map(([v, l]) => `<option value="${v}"${(c?.soort || 'eigen') === v ? ' selected' : ''}>${esc(l)}</option>`).join('')}
+        </select>
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="emg-geeft">Hoe heet dat?</label>
+        <input class="dm-input" id="emg-geeft" maxlength="80" value="${esc(c?.geeft || '')}"
+          placeholder="De naam van de spreuk, de feature of het voorwerp">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="emg-vormen">Gedaantes</label>
+        <input class="dm-input" id="emg-vormen" maxlength="400"
+          value="${esc((c?.vormen || []).map(v => v.naam || v).join(', '))}"
+          placeholder="Namen met komma's ertussen \u2014 leeg laten mag">
+      </div>
+      <div class="dm-form-row">
+        <label class="dm-form-label" for="emg-boek">Uit welk boek?</label>
+        <input class="dm-input" id="emg-boek" maxlength="80" value="${esc(c?.boek || '')}"
+          placeholder="Leeg laten als hij van jou is">
+      </div>
+      <div class="dm-feature-row" style="justify-content:flex-end">
+        ${id ? `<button class="dm-btn dm-btn-ghost dm-btn-danger" style="margin-right:auto"
+          onclick="window.vaardigheden.eigenMetgezelWeg('${escA(id)}')">${icon('trash')} Verwijderen</button>` : ''}
+        <button class="dm-btn dm-btn-ghost" onclick="window.app.closeModal()">Annuleren</button>
+        <button class="dm-btn dm-btn-primary"
+          onclick="window.vaardigheden.eigenMetgezelBewaar(${id ? `'${escA(id)}'` : 'null'})">${icon('save')} Opslaan</button>
+      </div>`);
+  },
+
+  async eigenMetgezelBewaar(id) {
+    const v = (x) => document.getElementById(x)?.value?.trim() || '';
+    const naam = v('emg-naam');
+    if (!naam) { alert('Een familiar heeft een naam nodig.'); return; }
+    const body = { naam, soort: document.getElementById('emg-soort')?.value || 'eigen',
+      geeft: v('emg-geeft'), boek: v('emg-boek'),
+      vormen: v('emg-vormen').split(',').map(x => x.trim()).filter(Boolean) };
+    try {
+      await (id ? api.eigenMetgezelOpslaan(id, body) : api.eigenMetgezelNieuw(body));
+      window.app.closeModal();
+      await this.herlaad();
+      window._showToast?.(`${icon('check')} ${esc(naam)} staat erin`);
+    } catch (e) { window._showToast?.(e?.message || 'Opslaan lukte niet'); }
+  },
+
+  async eigenMetgezelWeg(id) {
+    if (!confirm('Deze familiar verwijderen? Wat je eraan hing (plaat, aantekening) gaat mee.')) return;
+    try {
+      await api.eigenMetgezelWeg(id);
+      window.app.closeModal();
+      await this.herlaad();
+    } catch (e) { window._showToast?.(e?.message || 'Verwijderen lukte niet'); }
+  },
+
   async naslagBewerk(soort, naam) {
     // De dierenlijst eerst: het veld is een datalist en die moet gevuld zijn
     // vóór hij getekend wordt, anders staat er één keer een leeg lijstje.
@@ -5296,6 +5371,11 @@ window.vaardigheden = {
     // Op de deur Conditions maakt de plus een conditie en geen feature: wat je
     // aanmaakt hoort bij wat je voor je ziet.
     if (_deur === 'conditions') return this.conditieBewerk(null);
+    // En achter Familiars een familiar. Dit is het naslagwerk van wat je kunt
+    // oproepen; dan hoort er ook iets in te kunnen dat deze wereld zelf
+    // verzon. In de campagne, niet in de broncode — zelfde afspraak als bij
+    // een eigen spreuk.
+    if (_deur === 'beest') return this.eigenMetgezel(null);
     _editorOpen(null);
     const maaksel = (_filters.bron && _deur === 'class') ? 'f-class'
       : (_filters.bron && _deur === 'species') ? 'f-species'

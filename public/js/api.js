@@ -233,6 +233,11 @@ export const api = {
   // Een plaat of eigen tekst bij een naslagkaartje dat niet uit de progressie
   // komt (een conditie, een beest, een metgezel, een maneuver). Alleen wat je
   // meestuurt verandert; een leeg veld haalt hem weg.
+  // Een familiar die deze wereld zelf verzon. In de campagne, niet in de
+  // broncode — zelfde afspraak als bij een eigen spreuk.
+  eigenMetgezelNieuw:  (body)     => request('/metgezellen/eigen', { method: 'POST', body: JSON.stringify(body) }),
+  eigenMetgezelOpslaan:(id, body) => request(`/metgezellen/eigen/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(body) }),
+  eigenMetgezelWeg:    (id)       => request(`/metgezellen/eigen/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   saveNaslagkaart: (soort, naam, velden) =>
     request('/meta/naslagkaart', { method: 'PUT', body: JSON.stringify({ soort, naam, ...velden }) }),
   // Welke classes en subclasses spelers te zien krijgen. We bewaren wat er

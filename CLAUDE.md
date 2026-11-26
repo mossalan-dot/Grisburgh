@@ -348,8 +348,8 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1401  sound-manager.js?v=15  theme.css?v=1018
-app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
+index.html  : app.js?v=1402  sound-manager.js?v=15  theme.css?v=1018
+app.js      : ac-rekenen.js?v=1  api.js?v=328  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
               media-picker.js?v=22  personage-maken.js?v=87  rage.js?v=11
@@ -358,10 +358,10 @@ app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=83
               render-relatiemap.js?v=45  render-spreuken.js?v=70
-              render-statblock.js?v=10  render-vaardigheden.js?v=228
-              socket-client.js?v=114  stemronde.js?v=9  summons.js?v=5
-              tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
-dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
+              render-statblock.js?v=10  render-vaardigheden.js?v=229
+              socket-client.js?v=114  stemronde.js?v=9  summons.js?v=6
+              tafels.js?v=2  terugblik.js?v=11  wizard.js?v=19
+dm-panel.js : akte-schrijven.js?v=48  api.js?v=328  combat-canvas.js?v=45
               conditions.js?v=7  render-statblock.js?v=10
 ```
 
@@ -383,7 +383,7 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > — elk bestand mag maar mét één versie voorkomen.
 >
 > **Dit ging op 2 okt 2026 echt mis, en het is onzichtbaar.** Dertien bestanden
-> op productie vroegen `api.js?v=301`, één `v=302` en drie `v=303`: de browser
+> op productie vroegen `api.js?v=328`, één `v=302` en drie `v=303`: de browser
 > laadde dezelfde module drie keer, elk met eigen state. Oorzaak: een versiebump
 > waarbij maar een deel van de importeurs meegedeployd werd. Je ziet er niets
 > van — alle drie de verzoeken geven hetzelfde bestand terug, er is geen
@@ -1940,7 +1940,17 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > nieuwe sleutel, geeft 200 en slaat niets op. En `_bakSleutel` hangt aan
 > `bronNaam || naam`, niet aan `naam`: anders zoekt de editor na een
 > hernoeming onder de nieuwe naam en is het kaartje zijn eigen bewerking
-> kwijt. Bewaakt door `tests/familiar-eigen.test.js`.
+> kwijt.
+> **En je kunt er een toevoegen die in geen enkel boek staat.** De **+** achter
+> Familiars; opslag in `meta.eigenMetgezellen`, in exact de vorm van
+> `bronnen/metgezellen.json` — in de campagne en niet in de broncode, zelfde
+> afspraak als bij een eigen spreuk. Vier velden bepalen hem (naam, wat hem
+> oproept, de groep, zijn gedaantes); de rest loopt langs dezelfde weg als bij
+> een familiar uit een boek. Bij hem opent het potlood de **hele** editor en
+> niet de overschrijflaag: er is geen bron om naast te zetten. Verwijderen
+> neemt zijn naslagkaartje mee — een plaat of aantekening van iets dat niet
+> meer bestaat is een wees die nergens meer opduikt.
+> Bewaakt door `tests/familiar-eigen.test.js` (13).
 > **Valkuil bij het verbouwen van de filterbalk:** `_filterBar` gebruikt
 > `soorten`/`_filters.soort` op vier plekken, niet één. Twee ervan stonden
 > dertig regels verderop (de controle *valt de bron samen met de soort* en
