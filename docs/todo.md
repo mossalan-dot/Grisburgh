@@ -390,7 +390,10 @@ kloppen niet meer met de app; die staan in het voorstel, met de volgorde.
       **En een moment op het tafelscherm:** *X is eigenlijk Y!* — zelfde familie
       als de onthulling van een document en de level-up (`_levelUpDisplay`), dus
       een eigen socket-event naar de display-room.
-      Gevraagd door de DM, 25 nov 2026; uitgewerkt 26 nov.
+      Gevraagd door de DM, 25 nov 2026. **Voorstel uitgeschreven in
+      `docs/voorstel-alias.md`** (26 nov) — met drie keuzes die de DM nog moet
+      maken, en een vondst onderweg: de bestaande antagonist-haak schrijft
+      globaal terwijl onthullen per party gaat.
 - [ ] **Een gerechtshof als dienst.** Uit de Heeren komt één idee dat het waard
       is om te bewaren: een boete die je kunt aanvechten, met een advocaat die
       met je Persuasion-bonus afdingt. Dat hoort niet bij een factie maar bij
