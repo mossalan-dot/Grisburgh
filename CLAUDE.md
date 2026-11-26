@@ -348,13 +348,13 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1402  sound-manager.js?v=15  theme.css?v=1018
+index.html  : app.js?v=1403  sound-manager.js?v=15  theme.css?v=1019
 app.js      : ac-rekenen.js?v=1  api.js?v=328  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
               media-picker.js?v=22  personage-maken.js?v=87  rage.js?v=11
               render-archief.js?v=158  render-bestiarium.js?v=48
-              render-campagne.js?v=478  render-dungeon.js?v=83
+              render-campagne.js?v=480  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=83
               render-relatiemap.js?v=45  render-spreuken.js?v=70
@@ -2620,6 +2620,23 @@ Monsters; het tabblad linkt erheen.
 ---
 
 ## Voorwerpen
+
+> **Een vleugje beweging als een voorwerpkaartje opengaat** (26 nov 2026).
+> Per soort voorwerp één klein gebaar: muzieknoten die opblinken bij een luit,
+> belletjes bij een drankje, een glans die over een zwaard trekt, een schild
+> dat oplicht, gouden motjes bij een Blessing. Koppeling type → effect in
+> `ITEM_FX` (render-campagne.js), tekeningen onder `.tegel-fx` in `theme.css`.
+> Acht effecten dekken 272 van de 286 kaartjes in Grisburgh; wat geen eigen
+> gebaar heeft (Tools, Gaming Set) krijgt er bewust geen.
+> **Drie regels houden het een vleugje en geen kermis**, en ze staan alle drie
+> in CSS zodat er geen timer in JS loopt: het speelt **één keer** en stopt, het
+> ligt **achter** de tekst en vangt geen klikken, en met *minder beweging* aan
+> staat het helemaal uit (niet trager — het is versiering, er valt niets te
+> missen). De deeltjes beginnen op ~40% hoogte en niet onderaan: daar staat de
+> naamband, en deeltjes die dwars door de titel drijven lezen als vuil op het
+> scherm. Bewaakt door `tests/voorwerp-fx.test.js`: elk effect hangt aan een
+> bestaand itemType, elk deeltje aan een icoon uit de sprite, elk effect heeft
+> opmaak (en andersom geen dode opmaak), en de drie regels hierboven staan er.
 
 > **De Boedel is een raster van archiefkaartjes** (4 nov 2026). De carrousel
 > (één groot kaartje, pijltjes, bolletjes) is weg: `_boedelKaartHtml()` in

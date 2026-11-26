@@ -327,6 +327,48 @@ const ORG_TYPE_GROEPEN = [
 // indeling verandert, dus geen enkel bestaand kaartje raakt zijn type kwijt.
 // Erbij gekomen: de DMG-categorieën die ontbraken (Rod, Staff, Wand) en de
 // gewone uitrusting waar 'Other' anders voor moest doorgaan.
+// ── Een vleugje beweging bij het openklappen ────────────────────────────────
+// Een voorwerpkaartje dat opengaat krijgt één keer een klein effect dat zegt
+// wát voor ding het is: muzieknoten die opblinken bij een luit, belletjes bij
+// een drankje, een glans die over een zwaard trekt. Gevraagd door de DM, en
+// het past bij de rest van de app — een moment hebben hier vaker een gebaar
+// (de kist die opengaat, de brief die ontvouwt).
+//
+// **Drie regels houden het een vleugje en geen kermis.** Het speelt **één
+// keer** en stopt (geen eeuwige lus in een kaartje waar je even in leest), het
+// ligt **achter** de tekst en vangt geen klikken, en met *minder beweging* aan
+// staat het stil. En niet elk type krijgt er een: wat geen eigen gebaar heeft
+// is beter af zonder. Welk effect bij welk type hoort staat hier, en de
+// tekeningen staan in `theme.css` onder `.tegel-fx`.
+const ITEM_FX = {
+  'Musical instrument': 'noten',
+  'Potion': 'bellen', 'Consumable': 'bellen', 'Poison': 'bellen',
+  'Weapon': 'glans', 'Ammunition': 'glans',
+  'Armor': 'schild', 'Shield': 'schild',
+  'Scroll': 'inkt', 'Spellbook': 'inkt',
+  'Blessing': 'zegen', 'Boon': 'zegen',
+  'Wondrous item': 'arcaan', 'Ring': 'arcaan', 'Amulet': 'arcaan',
+  'Magic Item': 'arcaan', 'Wand': 'arcaan', 'Staff': 'arcaan', 'Rod': 'arcaan',
+  'Treasure': 'munt',
+};
+// Hoeveel deeltjes, en met welk teken. Een glans en een schild zijn één veeg
+// en hebben er geen nodig — die tekent de CSS zelf.
+const _FX_DEELTJE = { noten: ['music', 5], bellen: ['droplet', 6], inkt: ['sparkle', 5],
+                      zegen: ['sparkles', 5], arcaan: ['sparkle', 6], munt: ['coins', 4] };
+
+function _tegelFxHtml(type, e) {
+  if (type !== 'voorwerpen') return '';
+  const fx = ITEM_FX[String(e?.data?.itemType || '')];
+  if (!fx) return '';
+  const [teken, aantal] = _FX_DEELTJE[fx] || [];
+  // `--i` geeft elk deeltje zijn eigen vertraging en baan; zo hoeft er geen
+  // enkele timer in JS te lopen en stopt alles vanzelf als het kaartje dichtgaat.
+  const deeltjes = teken
+    ? Array.from({ length: aantal }, (_, i) => `<i style="--i:${i}">${icon(teken)}</i>`).join('')
+    : '';
+  return `<div class="tegel-fx tegel-fx--${fx}" aria-hidden="true">${deeltjes}</div>`;
+}
+
 const ITEM_TYPE_GROEPEN = [
   { groep: 'Wapens & harnas', opties: [
     { value: 'Weapon',     label: 'Weapon' },
@@ -5200,6 +5242,7 @@ function _tegelHtml(type, e, { fav = false } = {}) {
     <div class="card-accent bar-${type}"></div>
     <span class="tegel-icoon" aria-hidden="true">${_tegelIcoon(type, e)}</span>
     ${perk || _tegelBeeld(e)}
+    ${_tegelFxHtml(type, e)}
     <div class="tegel-blad" data-soort="${bladen[i].soort}">${_tegelBladInhoud(e, bladen[i], rol, type)}</div>
     <div class="tegel-voet" onclick="event.stopPropagation()">
       <div class="tegel-punten">${window._tegelPijlHtml(-1, bladen.length)}${bladen.map((b, j) => `<button class="tegel-punt${j === i ? ' is-aan' : ''}"

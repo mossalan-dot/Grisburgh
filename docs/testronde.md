@@ -4135,3 +4135,14 @@ wie hij geworden is; alleen wat een *speler* krijgt hangt af van zijn tafel.
       geen gevolg van een geheim.
 
 `tests/verraad-per-party.test.js`, vijf toetsen, kanarie nagelopen.
+
+### Een vleugje beweging bij een voorwerp (26 nov 2026)
+
+Gevraagd door de DM. Per soort voorwerp één klein gebaar bij het openklappen
+van de tegel; `ITEM_FX` in `render-campagne.js` koppelt type aan effect.
+
+- [ ] **Muzieknoten bij een instrument** (ALL) — klap een Musical Instrument open: vijf noten stijgen door het beeldvlak en doven. Ze blijven **boven** de naamband — dwars door de titel leest als vuil op het scherm.
+- [ ] **Elk soort zijn eigen gebaar** (ALL) — drankje → belletjes, wapen → een glans die eroverheen veegt, harnas en schild → een licht dat opkomt vanuit het midden, scroll → stofjes, Blessing en Boon → gouden motjes, ring/amulet/wondrous → twinkelingen die ter plekke opkomen. Tools en Gaming Set krijgen er géén: wat geen eigen gebaar heeft is beter af zonder.
+- [ ] **Het speelt één keer** (ALL) — laat een kaartje openstaan: na een paar seconden is het stil. Een lus in een kaartje waar je in leest gaat irriteren.
+- [ ] **Het zit de tekst niet in de weg** (ALL) — klik midden in het effect op de tegel: hij bladert gewoon door. Het ligt achter de tekst en vangt geen klikken.
+- [ ] **Minder beweging betekent uit** (ALL) — zet in je systeem *minder beweging* aan en klap een kaartje open: er beweegt niets, en er ontbreekt ook niets — het is versiering.

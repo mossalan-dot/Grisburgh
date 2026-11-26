@@ -35626,3 +35626,171 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 .vd-vormpaar { display: inline-flex; align-items: stretch; gap: 2px; white-space: nowrap; }
 .vd-vormpaar .vd-vorm--klein { padding-inline: 6px; }
 .vd-vormpaar .vd-vorm--klein .icon { width: 13px; height: 13px; }
+
+/* ── Een vleugje beweging als een voorwerpkaartje opengaat ──────────────────
+   Per soort voorwerp één klein gebaar: muzieknoten die opblinken bij een luit,
+   belletjes bij een drankje, een glans die over een zwaard trekt. Gevraagd
+   door de DM (26 nov 2026); de koppeling type → effect staat in `ITEM_FX` in
+   render-campagne.js.
+
+   Drie regels houden het een vleugje en geen kermis, en ze staan hier alle
+   drie in CSS zodat er geen timer in JS hoeft te lopen:
+   - het speelt **één keer** (`animation-iteration-count`) en stopt. Een
+     eeuwige lus in een kaartje waar je even in leest, gaat irriteren;
+   - het ligt **achter** de tekst (`z-index: 0`) en vangt geen klikken
+     (`pointer-events: none`), want het kaartje is om te lezen;
+   - met *minder beweging* aan staat alles stil — zie de media-query onderaan.
+   Onderaan de stylesheet, zoals elke nieuwe regel. */
+.tegel-fx {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 0;
+  border-radius: inherit;
+}
+.tegel-fx i {
+  position: absolute;
+  display: block;
+  opacity: 0;
+  /* `--i` komt uit de markup en geeft elk deeltje zijn eigen start, zodat ze
+     niet als één rij omhoog schuiven. De breuken zijn met opzet onregelmatig
+     (7, 13, 23): een nette verdeling leest als een raster. */
+  left: calc(12% + (var(--i) * 17%) + (var(--i) * var(--i) * 3%));
+  animation-delay: calc(var(--i) * 0.19s);
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+.tegel-fx .icon { width: 100%; height: 100%; }
+
+/* **Muzieknoten die opblinken.** Ze stijgen op en doven; de lichte draaiing
+   voorkomt dat het vijf keer dezelfde noot lijkt.
+   Ze beginnen op 40% en niet onderaan: daar staat de naamband, en deeltjes die
+   dwars door de titel drijven lezen als vuil op het scherm in plaats van als
+   een gebaar. Boven die band is het beeldvlak, en daar mag het. */
+.tegel-fx--noten i {
+  bottom: 40%;
+  width: 19px; height: 19px;
+  color: #7a6aa8;
+  animation-name: fx-noot;
+  animation-duration: 2.4s;
+  animation-timing-function: cubic-bezier(.3, .5, .4, 1);
+}
+@keyframes fx-noot {
+  0%   { opacity: 0;   transform: translateY(14px) rotate(-8deg) scale(.6); }
+  22%  { opacity: 1; }
+  60%  { opacity: .8;  transform: translateY(-28px) rotate(6deg) scale(1.05); }
+  100% { opacity: 0;   transform: translateY(-62px) rotate(-4deg) scale(.9); }
+}
+
+/* **Belletjes uit een drankje**: kleiner, sneller, en ze wiebelen. */
+.tegel-fx--bellen i {
+  bottom: 38%;
+  width: 11px; height: 11px;
+  color: #3f7f6a;
+  animation-name: fx-bel;
+  animation-duration: 2.1s;
+  animation-timing-function: ease-out;
+}
+@keyframes fx-bel {
+  0%   { opacity: 0;   transform: translate(0, 10px) scale(.5); }
+  20%  { opacity: .85; }
+  60%  { transform: translate(6px, -30px) scale(1); }
+  100% { opacity: 0;   transform: translate(-4px, -62px) scale(.8); }
+}
+
+/* **Inkt bij een scroll**: stofjes die oplichten en blijven hangen. */
+.tegel-fx--inkt i {
+  top: 30%;
+  width: 10px; height: 10px;
+  color: #6a5030;
+  animation-name: fx-stof;
+  animation-duration: 2.6s;
+  animation-timing-function: ease-in-out;
+}
+@keyframes fx-stof {
+  0%   { opacity: 0;   transform: translateY(8px) scale(.6); }
+  30%  { opacity: .7;  transform: translateY(0) scale(1); }
+  70%  { opacity: .5;  transform: translateY(-10px) scale(.95); }
+  100% { opacity: 0;   transform: translateY(-20px) scale(.7); }
+}
+
+/* **Een zegen**: gouden motjes die van onder naar boven drijven, trager dan
+   de rest — dit is het enige effect dat niet uit de wereld maar van erbuiten
+   komt. */
+.tegel-fx--zegen i {
+  bottom: 36%;
+  width: 14px; height: 14px;
+  color: #c4a87a;
+  animation-name: fx-zegen;
+  animation-duration: 3.2s;
+  animation-timing-function: ease-in-out;
+}
+@keyframes fx-zegen {
+  0%   { opacity: 0;   transform: translateY(12px) scale(.5) rotate(0deg); }
+  25%  { opacity: .95; }
+  100% { opacity: 0;   transform: translateY(-70px) scale(1.05) rotate(40deg); }
+}
+
+/* **Arcaan**: twinkelingen die ter plekke opkomen en doven, zonder te
+   bewegen — een ring of amulet gloeit, hij borrelt niet. */
+.tegel-fx--arcaan i {
+  top: calc(18% + (var(--i) * 11%));
+  width: 12px; height: 12px;
+  color: #5a2e8a;
+  animation-name: fx-twinkel;
+  animation-duration: 2.6s;
+  animation-timing-function: ease-in-out;
+}
+@keyframes fx-twinkel {
+  0%, 100% { opacity: 0; transform: scale(.4); }
+  45%      { opacity: .85; transform: scale(1.1); }
+}
+
+/* **Munten**: korte glinsteringen laag in het kaartje. */
+.tegel-fx--munt i {
+  bottom: calc(40% + (var(--i) * 6%));
+  width: 13px; height: 13px;
+  color: #b08a2a;
+  animation-name: fx-twinkel;
+  animation-duration: 2.2s;
+}
+
+/* **Een glans over een wapen** en **een schild dat oplicht** hebben geen
+   deeltjes nodig: dat is één veeg, en die tekent een gradiënt. */
+.tegel-fx--glans::after,
+.tegel-fx--schild::after {
+  content: '';
+  position: absolute;
+  inset: -20% -60%;
+  animation-fill-mode: forwards;
+  animation-iteration-count: 1;
+}
+.tegel-fx--glans::after {
+  background: linear-gradient(105deg, transparent 42%, rgba(255, 255, 255, .55) 50%, transparent 58%);
+  animation: fx-veeg 1.5s cubic-bezier(.4, 0, .3, 1) .15s;
+  transform: translateX(-100%);
+}
+@keyframes fx-veeg {
+  from { transform: translateX(-100%); }
+  to   { transform: translateX(100%); }
+}
+/* Een schild licht op vanuit het midden in plaats van te vegen: het weert af,
+   het snijdt niet. */
+.tegel-fx--schild::after {
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 55%, rgba(120, 170, 220, .38), transparent 62%);
+  animation: fx-weer 1.9s ease-out .1s;
+  opacity: 0;
+}
+@keyframes fx-weer {
+  0%   { opacity: 0;   transform: scale(.75); }
+  35%  { opacity: 1; }
+  100% { opacity: 0;   transform: scale(1.15); }
+}
+
+/* **Minder beweging betekent geen beweging.** Niet trager, niet korter: uit.
+   Deze effecten zijn versiering, dus er valt niets te missen. */
+@media (prefers-reduced-motion: reduce) {
+  .tegel-fx { display: none; }
+}
