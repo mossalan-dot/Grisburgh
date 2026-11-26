@@ -35608,3 +35608,21 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 }
 .vd-statblok-elders .icon { width: 15px; height: 15px; flex: none; opacity: .8; }
 .vd-statblok-elders .vd-se-srd { flex-basis: 100%; opacity: .85; }
+
+/* ── Van het Heldenboek naar het bestiarium ─────────────────────────────────
+   De knop die een wezen klaarzet is de hoofdhandeling op zo'n kaartje, geen
+   voetnoot: dit is waarvoor je hier komt als je hem in een gevecht of als
+   Wild Shape-gedaante nodig hebt. Hij krijgt daarom het gouden accent dat de
+   rest van de app aan "doen" geeft, terwijl `.vd-vorm` neutraal blijft.
+   Bij een gedaante staan twee knoppen naast elkaar — bekijken en klaarzetten;
+   `.vd-vormpaar` houdt ze aan elkaar zodat ze niet over twee regels breken. */
+.vd-vorm--doen {
+  border-color: rgba(196, 168, 122, .7);
+  background: rgba(196, 168, 122, .16);
+  color: #4a3410;
+  font-weight: 600;
+}
+.vd-vorm--doen:hover { background: rgba(196, 168, 122, .28); }
+.vd-vormpaar { display: inline-flex; align-items: stretch; gap: 2px; white-space: nowrap; }
+.vd-vormpaar .vd-vorm--klein { padding-inline: 6px; }
+.vd-vormpaar .vd-vorm--klein .icon { width: 13px; height: 13px; }

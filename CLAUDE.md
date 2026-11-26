@@ -348,17 +348,17 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1399  sound-manager.js?v=15  theme.css?v=1017
+index.html  : app.js?v=1400  sound-manager.js?v=15  theme.css?v=1018
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
               media-picker.js?v=22  personage-maken.js?v=87  rage.js?v=11
               render-archief.js?v=158  render-bestiarium.js?v=48
-              render-campagne.js?v=476  render-dungeon.js?v=83
+              render-campagne.js?v=477  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=83
               render-relatiemap.js?v=45  render-spreuken.js?v=70
-              render-statblock.js?v=10  render-vaardigheden.js?v=226
+              render-statblock.js?v=10  render-vaardigheden.js?v=227
               socket-client.js?v=114  stemronde.js?v=9  summons.js?v=5
               tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
 dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
@@ -1919,6 +1919,15 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > figurines in de SRD-presets) en de **dier-kaartjes** van de campagne zelf.
 > Die laatste dragen géén `herkomst: overgenomen` — ze komen niet uit een boek,
 > en dat is precies het verschil dat die groep maakt.
+> **En de richting is omgedraaid.** *Laad in het bestiarium* is de
+> hoofdhandeling geworden in plaats van een voorwaarde: er stond *"wil je hem
+> aanpassen, dan hoort hij eerst in je bestiarium te staan"*, en dat leest als
+> een hindernis terwijl het precies is wat je hier komt doen. Bij een
+> **gedaante** van een metgezel staat nu een **+** naast elke vorm die we
+> kennen (`laadInBestiarium`): dat was twee sprongen — eerst naar de deur
+> Beasts, daar zoeken, dán overnemen — voor iets wat je hier al wist. Staat
+> het wezen er al, dan springt hij erheen in plaats van een tweede kopie te
+> maken.
 > **Valkuil bij het verbouwen van de filterbalk:** `_filterBar` gebruikt
 > `soorten`/`_filters.soort` op vier plekken, niet één. Twee ervan stonden
 > dertig regels verderop (de controle *valt de bron samen met de soort* en

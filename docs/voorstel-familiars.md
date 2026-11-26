@@ -9,8 +9,15 @@
 > kaart draagt een `oproep`. De keuzes 1 en 3 onderaan zijn daarmee beantwoord
 > zoals voorgesteld; voor 2 is het *Van deze wereld* geworden, want er staan
 > ook dier-kaartjes bij die niemand geadopteerd heeft.
-> **Nog niet gedaan:** de overschrijflaag om hier te sleutelen, en de knop
-> *laad in het bestiarium* als hoofdhandeling. Die staan hieronder.
+> **De knop is daarna de hoofdhandeling geworden** (zelfde dag): *Laad in het
+> bestiarium* met het gouden accent, en onder de knop in één zin waaróm — hij
+> staat dan klaar voor een gevecht en voor Wild Shape. Bij een **gedaante** van
+> een metgezel staat er nu een **+** naast elke vorm die we kennen
+> (`laadInBestiarium`), zodat je niet eerst naar de deur Beasts hoeft om hem
+> daar op te zoeken. Dat was twee sprongen voor iets wat je hier al wist.
+>
+> **Nog niet gedaan:** de overschrijflaag om de familiar zélf aan te passen —
+> zijn naam, zijn gedaantes, wat hem oproept. Zie hieronder.
 
 De deur **Familiars** in het Heldenboek klopt niet, en de DM wees precies aan
 waarom: *"het filter maakt onderscheid tussen Beasts en Metgezellen, maar ook

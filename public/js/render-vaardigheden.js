@@ -914,9 +914,15 @@ function _metgezelBladen(it) {
     html: `<dl class="vk-training">${rijen.map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl>${roep}` }];
   if (c.vormen?.length) {
     bladen.push({ soort: 'beschrijving', label: 'Gedaantes', tekst: c.vormen.map(v => v.naam).join(' '),
+      // Een gedaante die we kennen krijgt er voor de DM een tweede knop bij:
+      // zet hem klaar in het bestiarium. Dat was twee sprongen — eerst naar de
+      // deur Beasts, daar zoeken, en dán overnemen — terwijl je hier al weet
+      // welk wezen je bedoelt.
       html: `<div class="vd-vormen">${c.vormen.map(v => v.bekend
-        ? `<button type="button" class="vd-vorm" onclick="event.stopPropagation();window.vaardigheden.naarBeest('${escA(v.naam)}')"
-             title="Bekijk het statblok">${icon('paw-print')} ${esc(v.naam)}</button>`
+        ? `<span class="vd-vormpaar"><button type="button" class="vd-vorm" onclick="event.stopPropagation();window.vaardigheden.naarBeest('${escA(v.naam)}')"
+             title="Bekijk het statblok">${icon('paw-print')} ${esc(v.naam)}</button>${isDM()
+          ? `<button type="button" class="vd-vorm vd-vorm--klein" title="Zet hem klaar in het bestiarium"
+              onclick="event.stopPropagation();window.vaardigheden.laadInBestiarium('${escA(v.naam)}')">${icon('plus')}</button>` : ''}</span>`
         : `<span class="vd-vorm vd-vorm--onbekend" title="Dit statblok staat niet in de vrij te gebruiken bronnen">${esc(v.naam)}</span>`
       ).join('')}</div>` });
   }
@@ -1024,10 +1030,10 @@ function _statblokElders(it) {
       ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
           onclick="window.app.closeModal();window.vaardigheden.naarBestiarium('${escA(it.monsterId)}')">
           ${icon('skull')} Open hem in het bestiarium</button>`
-      : `<span class="vd-se-srd">Dit wezen komt uit de SRD; neem hem eerst over, dan kun je hem aanpassen.</span>
-         ${key ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+      : `${key ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
           onclick="window.app.closeModal();window.vaardigheden.beestOvernemen('${escA(key)}')">
-          ${icon('plus')} Neem over in het bestiarium</button>` : ''}`}
+          ${icon('plus')} Laad hem in het bestiarium</button>` : ''}
+         <span class="vd-se-srd">Dan staat hij klaar voor een gevecht en voor Wild Shape.</span>`}
   </div>`;
 }
 
@@ -1057,15 +1063,20 @@ function _kaartBladen(it) {
     // naast de gedaantes van Wild Shape en de metgezellen — dat is waarvoor je
     // hem hier opzoekt — maar zijn statblok hoort bij het bestiarium, en dat
     // hoort er dan ook bij te staan in plaats van dat je het moet weten.
+    // **De knop is de hoofdhandeling, niet een voorwaarde.** Er stond
+    // *"wil je hem aanpassen, dan hoort hij eerst in je bestiarium te staan"* —
+    // dat leest als een hindernis terwijl het precies is wat je hier komt
+    // doen: dit wezen heb ik nodig in een gevecht of als Wild Shape-gedaante,
+    // zet hem klaar. De uitleg over wáár de editor leeft staat er nog, maar
+    // onder de knop en in één zin.
     const naarBest = it.monsterId
       ? `<p><button type="button" class="vd-vorm" onclick="event.stopPropagation();window.vaardigheden.naarBestiarium('${escA(it.monsterId)}')">
-          ${icon('skull')} Bekijk in het bestiarium</button></p>`
-      : `<p class="dm-hint">Dit statblok komt uit de SRD. Wil je hem aanpassen, dan hoort hij
-          eerst in je bestiarium te staan — daar leeft de editor, en twee plekken met hetzelfde
-          statblok lopen uit elkaar.</p>
-        ${b.statblock?.key ? `<p><button type="button" class="vd-vorm"
+          ${icon('skull')} Open in het bestiarium</button></p>`
+      : `${b.statblock?.key ? `<p><button type="button" class="vd-vorm vd-vorm--doen"
           onclick="event.stopPropagation();window.vaardigheden.beestOvernemen('${escA(b.statblock.key)}')">
-          ${icon('plus')} Neem over in het bestiarium</button></p>` : ''}`;
+          ${icon('plus')} Laad in het bestiarium</button></p>` : ''}
+        <p class="dm-hint">Dan staat hij klaar voor een gevecht en voor Wild Shape, en kun je zijn
+          statblok daar aanpassen — dat is de ene plek waar hij woont.</p>`;
     return eigen([
       { soort: 'eigenschappen', label: 'Kort', tekst: rijen.map(([k, v]) => `${k} ${v}`).join(' '),
         html: `<dl class="vk-training">${rijen.map(([k, v]) =>
@@ -5128,6 +5139,21 @@ window.vaardigheden = {
     _bandHerteken(); _refreshFilterBar(); _paint();
     setTimeout(() => document.querySelector(`#vaardig-grid .tegel[data-sleutel="${CSS.escape(it.key)}"]`)
       ?.scrollIntoView({ block: 'center', behavior: 'smooth' }), 200);
+  },
+
+  // **Van hier naar het bestiarium, in één klik.** Dit is de richting die de
+  // DM wil: het Heldenboek is het naslagwerk, en als hij een wezen nodig heeft
+  // voor een gevecht of voor Wild Shape, zet hij het van hieruit klaar. Stond
+  // het er al, dan springt hij erheen in plaats van een tweede kopie te maken
+  // — twee plekken met hetzelfde statblok lopen uit elkaar.
+  async laadInBestiarium(naam) {
+    await _load();
+    const it = (_all || []).find(x => x.soort === 'beest' && x.naam === naam);
+    if (!it) { window._showToast?.(`${naam} staat niet in de lijst`); return; }
+    if (it.monsterId) { this.naarBestiarium(it.monsterId); return; }
+    const key = it.beest?.statblock?.key;
+    if (!key) { window._showToast?.(`Van ${naam} hebben we geen statblok om over te nemen`); return; }
+    return this.beestOvernemen(key);
   },
 
   // Een SRD-beest overnemen: de monster-editor opent leeg en vult zichzelf uit
