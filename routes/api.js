@@ -5456,6 +5456,15 @@ const _crGetal = (cr) => {
 // De platte vorm blijft meegelezen: hij komt uit oudere data.
 const _monsterStatblok = (m) => (m?.statblock && typeof m.statblock === 'object') ? m.statblock : m;
 const _isBeest = (m) => /beast/i.test(String(_monsterStatblok(m)?.type || m?.type || ''));
+// **`inBestiarium: false` betekent: dit is geen encyclopedie-item.** Zo staat
+// het statblok van een NPC bij zijn kaartje (de 19 losse NPC-statblokken die
+// zijn samengevoegd) en zo ligt de Mimic klaar als verrassing. Élke lezer
+// filtert daarop — het bestiarium, het archief, de monsterbibliotheek — behalve
+// deze twee. Daardoor stonden **Barthen** (een NPC) en **Xerxes en Sarabi**
+// (het statblok achter een dier-kaartje) achter de deur Familiars, en konden
+// ze als gedaante voor Wild Shape gekozen worden. Gemeld door de DM op
+// 26 nov 2026, en hij had gelijk: die horen daar niet.
+const _losStatblok = (m) => m?.inBestiarium === false;
 
 function _beesten() {
   if (!_beestOmgeving) { try { _beestOmgeving = require('../bronnen/beest-omgevingen.json'); } catch { _beestOmgeving = {}; } }
@@ -5476,7 +5485,7 @@ function _beesten() {
     for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
       // `kort()` leest cr/ac/hp/speed, en die staan in het statblok — niet
       // bovenaan. Plat meegeven gaf een beest zonder cijfers.
-      if (_isBeest(m) && m.name) {
+      if (_isBeest(m) && m.name && !_losStatblok(m)) {
         const sb = _monsterStatblok(m);
         uit.set(m.name.toLowerCase(), kort(m.name, { ...sb, cr: sb.cr ?? m.cr, hp: sb.hp ?? m.maxHp }, true));
       }
@@ -13126,7 +13135,7 @@ router.get('/bron/beesten', attachRole, (req, res) => {
   try {
     for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
       // `renderStatblock` wil het statblok genest; dat ís het ook al.
-      if (_isBeest(m) && m.name) {
+      if (_isBeest(m) && m.name && !_losStatblok(m)) {
         const sb = _monsterStatblok(m);
         zet({ name: m.name, cr: sb.cr ?? m.cr, statblock: sb }, m.id || '');
       }

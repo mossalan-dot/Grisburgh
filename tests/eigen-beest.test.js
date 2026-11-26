@@ -126,6 +126,25 @@ describe('Een eigen beest in het bestiarium', () => {
     assert.match(aanbod, /Veenwolf/, 'een eigen beest hoort bij de gedaantes te staan');
   });
 
+  it('laat een los statblok erbuiten, ook als het een Beast is', async () => {
+    // `inBestiarium: false` betekent: dit is geen encyclopedie-item. Zo staat
+    // het statblok van een NPC bij zijn kaartje en zo ligt de Mimic klaar als
+    // verrassing. Élke andere lezer filtert daarop; deze twee deden dat niet,
+    // en daardoor stonden Barthen (een NPC) en Xerxes en Sarabi (het statblok
+    // achter een dier-kaartje) achter de deur Familiars — en konden ze als
+    // gedaante voor Wild Shape gekozen worden.
+    const r = await req(server, 'POST', '/api/monsters', {
+      name: 'Barthen', maxHp: 55, inBestiarium: false,
+      statblock: { type: 'Beast', cr: '3', ac: '15' },
+    }, dm);
+    assert.ok(r.status === 200 || r.status === 201, JSON.stringify(r.body));
+
+    const lijst = await beesten();
+    assert.ok(!lijst.some(b => b.naam === 'Barthen'),
+      'een statblok dat bij een kaartje hoort is geen beest om uit te kiezen');
+    assert.ok(lijst.some(b => b.naam === 'Veenwolf'), 'en de echte beesten staan er nog');
+  });
+
   it('leest ook de oude platte vorm nog', async () => {
     // Die komt uit oudere data; hij mag niet wegvallen door de reparatie.
     const r = await req(server, 'POST', '/api/monsters',
