@@ -40,7 +40,15 @@ const doeWeg = args.includes('--weg');
 const HOUD   = Math.max(1, parseInt(args.includes('--houd') ? args[args.indexOf('--houd') + 1] : '5', 10) || 5);
 const basisArg = args.includes('--basis') ? args[args.indexOf('--basis') + 1] : null;
 
-const wortel = basisArg || path.join(__dirname, '..', 'data', 'campaigns');
+// Waar de campagnes staan. `--basis` wint, daarna `GRISBURGH_DATA_DIR` — dat
+// is de env-var waarmee elk ander script in deze map tegen de live data van de
+// server draait, en hij stond hier als enige niet in. Juist bij het script dat
+// bestanden **weghaalt** is "per ongeluk de verkeerde map" de fout die je niet
+// wilt maken; nu doet hij wat je op grond van de andere scripts verwacht.
+const DATA = process.env.GRISBURGH_DATA_DIR
+  ? path.join(process.env.GRISBURGH_DATA_DIR, 'campaigns')
+  : path.join(__dirname, '..', 'data', 'campaigns');
+const wortel = basisArg || DATA;
 if (!alle && !vrij[0]) {
   console.error('Gebruik: node scripts/backups-opruimen.js <campagne|--alle> [--houd n] [--weg]');
   process.exit(1);

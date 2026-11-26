@@ -3023,6 +3023,29 @@ data/
 > geluiden. Komt er een derde soort bij die op zijn naam gevonden wordt, dan
 > hoort hij in dezelfde lus onderaan `scanUsage()`.
 
+> **Twee lijsten met standaardwaarden, en ze waren het niet eens** (26 nov
+> 2026). In `lib/storage.js` **schrijft** `createCampaign` de bestanden van een
+> nieuwe campagne en is `DEFAULTS` wat `readJSON` **teruggeeft** als een bestand
+> er niet is of leeg is. Twee lijsten van hetzelfde lopen uit elkaar, en dat
+> was hier ook gebeurd:
+> - `DEFAULTS['meta.json'].appTitle` stond op `'Grisburgh'`. Een campagne
+>   zonder `meta.json` heette daarmee Grisburgh — op de landingspagina, in de
+>   paginatitel én in het PWA-manifest. `createCampaign` deed het wél goed
+>   (`appTitle: id`). Nu haalt één helper (`naamUitId`) de naam uit het id, aan
+>   allebei de kanten.
+> - **`readJSON` gaf het object uit `DEFAULTS` zélf terug**, niet een kopie.
+>   Wie daar iets in schreef — en dat doet de helft van de routes, die
+>   `data.x = …` doen — veranderde de standaard voor elke campagne die daarna
+>   las. Eén spread in `_terugval()` lost dat op.
+> - Die spread is ook nodig voor de **getter**: `huidigeCampagne()` leest het
+>   pad uit de AsyncLocalStorage, en buiten `runInCampaign` valt dat terug op de
+>   standaardcampagne. Een lui uitgelezen getter gaf dus de verkeerde naam —
+>   gevonden doordat de eigen toets erop omviel. **Lees een getter uit zolang je
+>   nog in de goede context zit.**
+> Bewaakt door `tests/verse-campagne.test.js`, dat ook de vórm van elk
+> aangemaakt bestand toetst: `monsters.json` was ooit een platte lijst `[]`
+> terwijl elke lezer `.monsters || []` doet.
+
 ---
 
 ## Icon-systeem
