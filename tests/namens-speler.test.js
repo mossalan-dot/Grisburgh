@@ -362,4 +362,30 @@ describe('De Gock leest de geheimenlijst', () => {
     assert.match(derde, /Ursûn de Stille/,
       'een tidbit noemt de persoon bij naam: ' + derde);
   });
+
+  // **Deze staat met opzet achteraan.** De toetsen in dit blok delen één
+  // doelwit en één speler; een extra onderzoek verschuift de telling van wie
+  // erna komt (dat liep de eerste keer ook echt mis).
+  //
+  // **De detective onderzoekt zichzelf niet.** `meta.gock.imageId` wijst naar
+  // zijn eigen kaartje — let op de naam: het veld heet `imageId` maar houdt een
+  // **entiteit**-id, omdat een kaartje zijn beeld onder zijn eigen id draagt
+  // (`data.imageId || e.id`). Wie dat voor een bestands-id aanziet, denkt dat
+  // deze controle nooit afgaat.
+  it('weigert een onderzoek naar de detective zelf', async () => {
+    const gock = (await req(server, 'POST', '/api/entities/personages',
+      { name: 'Juliaan de Gock' }, dm)).body.id;
+    await req(server, 'PUT', '/api/meta/gock', { naam: 'Juliaan de Gock', imageId: gock }, dm);
+
+    const r = await req(server, 'POST', '/api/gock/opdracht',
+      { entityId: gock, entityType: 'personages' }, spelerC);
+    assert.strictEqual(r.status, 400, JSON.stringify(r.body));
+    assert.match(r.body.error, /zichzelf/i);
+
+    // En een ánder kaartje mag gewoon: anders zou deze toets ook slagen als
+    // de detective helemaal niets meer onderzoekt.
+    const ander = await req(server, 'POST', '/api/gock/opdracht',
+      { entityId: doelwit, entityType: 'personages' }, spelerC);
+    assert.strictEqual(ander.status, 200, JSON.stringify(ander.body));
+  });
 });

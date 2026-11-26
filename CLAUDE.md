@@ -1237,6 +1237,23 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > `tests/dode-ids.test.js`; `node scripts/dode-ids.js` zoekt dezelfde vorm
 > elders (52 kandidaten, met vals alarm — zie de kop van dat script).
 
+> **De poort op de diensten wordt nu ook geteld** (26 nov 2026).
+> `vereistDienst('<naam>')` zit als middleware op de spelers-schrijfroutes van
+> de acht diensten, en `tests/diensten-toegang.test.js` toetst dat hij wérkt.
+> Wat ontbrak was de **telling**: een middleware die je per route moet
+> onthouden, vergeet je bij de volgende. `tests/diensten-poort.test.js` leest
+> de routetabel en eist dat elke schrijfroute onder een dienstpad die een
+> speler mag aanroepen hem draagt, dat hij de **júiste** dienst noemt
+> (`vereistDienst('tempel')` op een herbergroute leest de verkeerde schakelaar
+> en dat merk je pas als een DM er een omzet), en dat elke dienst met
+> spelersroutes er minstens één heeft. Gemeten: zestien dragen hem — het waren
+> er veertien toen dat opgeschreven werd.
+> De ene uitzondering staat in die toets **bij naam met de reden**:
+> `POST /tweespalt/aflossen` draagt bewust geen poort, want een bestaande
+> schuld moet je kunnen afbetalen ook als de DM het gokhuis uitzet. Wie er een
+> toevoegt, schrijft daarmee op waarom — en een uitzondering die intussen wél
+> een poort kreeg, valt er juist uit.
+
 > **De arena-uitslag valt niet meer stil terug op een nederlaag.** Er stond
 > `req.body?.uitkomst === 'overwinning' ? 'overwinning' : 'nederlaag'`, en die
 > route is onomkeerbaar: de inschrijving verdwijnt, de speler krijgt een brief

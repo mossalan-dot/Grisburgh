@@ -339,4 +339,26 @@ describe('Brieven: wie hem krijgt, en wie niet', () => {
       { tekst: 'Van mij aan de buurman', characterId: buur }, spelerC);
     assert.strictEqual(r.status, 403, JSON.stringify(r.body));
   });
+
+  // **Een bezoeker zonder sessie leest niemands post.**
+  // `attachRole` zet `req.role` standaard op `'player'` — dat is in dit project
+  // al twee keer een gat geweest (`/api/files/:id`, de bron-route), want
+  // `if (!req.role)` gaat dan nooit af. Hier hangt het aan `req.characterId`,
+  // en de toets staat op wat er uit de deur komt: een lege lijst, en niet de
+  // post van de eerste de beste speler.
+  it('geeft een bezoeker zonder sessie geen enkele brief', async () => {
+    await req(server, 'POST', '/api/post', {
+      titel: 'Onder vier ogen', tekst: 'Kom alleen.', characterId: speler,
+    }, dm);
+    assert.ok((await postVan(spelerC)).some(m => m.titel === 'Onder vier ogen'), 'hij kreeg hem');
+
+    // Geen cookie: precies wat een incognitovenster op de landingspagina doet.
+    const kaal = await req(server, 'GET', '/api/berichten', null, null);
+    assert.strictEqual(kaal.status, 200, JSON.stringify(kaal.body));
+    assert.deepStrictEqual(kaal.body.berichten, [], 'zonder sessie is er niets te lezen');
+    assert.strictEqual(kaal.body.spelers, undefined,
+      'en zeker niet de DM-weergave met de post van iedereen');
+    assert.ok(!JSON.stringify(kaal.body).includes('Kom alleen'),
+      'nergens in het antwoord mag de inhoud van een brief staan');
+  });
 });
