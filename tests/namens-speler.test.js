@@ -335,4 +335,31 @@ describe('De Gock leest de geheimenlijst', () => {
     assert.notStrictEqual(rapporten[0].note, rapporten[1].note,
       'twee keer onderzoek naar dezelfde man hoort iets nieuws op te leveren');
   });
+
+  // **En als ze op zijn.** Dit doelwit heeft er twee; een derde ronde onderzoek
+  // vindt er dus geen meer. De detective komt dan niet met lege handen terug
+  // maar met een tidbit — een losse waarneming. Dat is een eigen tak in de
+  // route (`tidbits[...]` in `POST /gock/opdracht`), en die stond ongetoetst:
+  // zonder deze toets kon hij een rapport zónder tekst gaan afleveren zonder
+  // dat iets erover klaagde.
+  it('valt terug op een tidbit zodra de geheimen op zijn', async () => {
+    const geheimen = ['Hij betaalt de wacht om weg te kijken.', 'Zijn broer leeft nog.'];
+    const r = await onderzoek();
+    assert.strictEqual(r.status, 200, JSON.stringify(r.body));
+
+    const items = (await req(server, 'GET', `/api/player-items/${speler}`, null, dm)).body;
+    const lijst = Array.isArray(items) ? items : (items?.items || []);
+    const rapporten = lijst.filter(i => String(i.id || '').startsWith('gock_')
+                                     && /Ursûn de Stille/.test(i.name || ''));
+    assert.strictEqual(rapporten.length, 3, 'de derde ronde hoort ook een rapport op te leveren');
+
+    const derde = rapporten[2].note || '';
+    assert.ok(derde.trim(), 'een rapport zonder tekst is erger dan een tidbit');
+    assert.ok(!geheimen.some(g => derde.includes(g)),
+      'de twee geheimen zijn al verteld; dit hoort een waarneming te zijn: ' + derde);
+    // En de naam van het doelwit zit erin — zo is een tidbit geschreven
+    // (`{naam}` wordt ingevuld), en dat onderscheidt hem van een lege regel.
+    assert.match(derde, /Ursûn de Stille/,
+      'een tidbit noemt de persoon bij naam: ' + derde);
+  });
 });
