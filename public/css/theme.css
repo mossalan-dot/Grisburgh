@@ -35481,3 +35481,108 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 .lijst-regel-alias input { accent-color: #7a6aa8; margin: 0; }
 .lijst-regel-alias .icon { width: 13px; height: 13px; opacity: .75; }
 .lijst-regel-alias:hover { color: #c4a87a; }
+
+/* ── *X is eigenlijk Y!* op het tafelscherm ──────────────────────────────────
+   Eén rond portret met twee platen erin: de schuilnaam bovenop, het echte
+   gezicht eronder. `.is-af` laat het masker weglichten en zet de zin erbij.
+   Alle tijden staan hier en niet in JS: één timer in de module (het sluiten),
+   de rest is CSS, zodat een scherm dat midden in de reeks sluit geen
+   achtergebleven stap meer kan tekenen. Zelfde les als bij de terugblik.
+   Onderaan de stylesheet, zoals elke nieuwe regel — `.levelup-display` staat
+   op 26469 en wint anders op volgorde. */
+.alias-cin {
+  position: fixed; inset: 0; z-index: 2000;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 42px;
+  /* Op .9 schemerde het raster met kaartjes er nog doorheen (gemeten op
+     productie, 26 nov 2026): de doorgestreepte oude naam liep over de namen
+     van twee kaartjes heen en las niet. Een tafelscherm hoort hier één beeld
+     te tonen, niet een laagje over wat er toevallig onder lag — vandaar bijna
+     dicht, mét een blur zodat het weinige dat doorkomt geen vorm meer heeft. */
+  background: rgba(10, 6, 2, .965);
+  backdrop-filter: blur(7px);
+  opacity: 0; transition: opacity .5s ease;
+  cursor: pointer;
+}
+.alias-cin.is-open { opacity: 1; }
+
+.alias-cin-ring {
+  /* Meegroeien met het scherm: 320 px vast is op een 4K-tafelscherm een
+     postzegel en op een telefoon te groot. */
+  position: relative; width: clamp(200px, 24vw, 420px); aspect-ratio: 1; border-radius: 50%;
+  overflow: hidden; flex: none;
+  border: 3px solid #c4a87a;
+  box-shadow: 0 0 0 10px rgba(196, 168, 122, .12), 0 18px 60px rgba(0, 0, 0, .75);
+}
+.alias-cin-plaat {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: cover; object-position: center;
+  display: flex; align-items: center; justify-content: center;
+}
+.alias-cin-initiaal {
+  font-family: 'Cinzel', serif; font-size: 7rem; color: #e3cfa6;
+  background: #2a1a08;
+}
+/* Het masker gaat af: groter, waziger, weg. Een lange curve (geen `ease`)
+   zodat het eerst nauwelijks beweegt en dan loslaat. */
+.alias-cin.is-af .alias-cin-plaat--masker {
+  opacity: 0; transform: scale(1.22); filter: blur(14px);
+  transition: opacity 1.5s cubic-bezier(.6, 0, .4, 1),
+              transform 1.9s cubic-bezier(.6, 0, .4, 1),
+              filter 1.5s cubic-bezier(.6, 0, .4, 1);
+}
+/* En het gezicht eronder komt scherp. */
+.alias-cin-plaat--echt { transform: scale(1.06); filter: brightness(.72); }
+.alias-cin.is-af .alias-cin-plaat--echt {
+  transform: none; filter: none;
+  transition: transform 2.1s ease-out, filter 1.7s ease-out;
+}
+
+.alias-cin-zin {
+  display: flex; flex-direction: column; align-items: center; gap: 10px;
+  text-align: center; max-width: min(90vw, 900px);
+}
+.alias-cin-zin > span { opacity: 0; }
+.alias-cin.is-af .alias-cin-zin > span {
+  animation: alias-cin-op .8s ease forwards;
+}
+@keyframes alias-cin-op { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* De oude naam eerst, dan het tussenstuk, dan de nieuwe — met pauzes ertussen,
+   want dit is het moment waarop aan tafel iemand "wát?" roept. */
+.alias-cin-oud {
+  font-family: 'IM Fell English', serif; font-style: italic;
+  /* Meeschalen met het scherm, net als de nieuwe naam: op 1920 stond hij op
+     27 px tegenover 76 px, en vanaf de tafel las je de helft van de zin niet.
+     Iets lichter dan `.dm-hint`-grijs om dezelfde reden — hij staat hier op
+     bijna zwart, niet op perkament. */
+  font-size: clamp(1.25rem, 2.4vw, 2.1rem); color: #b59a72;
+  text-decoration: line-through; text-decoration-thickness: 1.5px;
+  text-decoration-color: rgba(181, 154, 114, .55);
+  animation-delay: .1s !important;
+}
+.alias-cin-tussen {
+  font-family: 'Crimson Text', serif; font-size: clamp(.95rem, 1.35vw, 1.35rem);
+  letter-spacing: .18em; text-transform: uppercase; color: #8d7350;
+  animation-delay: .9s !important;
+}
+.alias-cin-nieuw {
+  font-family: 'Cinzel', serif; font-size: clamp(2rem, 5.5vw, 3.4rem);
+  letter-spacing: .06em; color: #f2e8d2; line-height: 1.15;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, .8), 0 0 40px rgba(196, 168, 122, .22);
+  animation-delay: 1.7s !important;
+}
+
+/* Een tafelscherm staat soms rechtop, en een telefoon die als display dient
+   kan dit ook tonen. */
+@media (max-width: 700px) {
+  .alias-cin { gap: 28px; }
+  .alias-cin-ring { width: 210px; }
+  .alias-cin-initiaal { font-size: 4.5rem; }
+  .alias-cin-oud { font-size: 1.15rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .alias-cin.is-af .alias-cin-plaat--masker,
+  .alias-cin.is-af .alias-cin-plaat--echt { transition-duration: .01s; }
+  .alias-cin.is-af .alias-cin-zin > span { animation-duration: .01s; }
+}

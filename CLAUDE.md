@@ -348,18 +348,18 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1382  sound-manager.js?v=15  theme.css?v=1008
+index.html  : app.js?v=1394  sound-manager.js?v=15  theme.css?v=1016
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
-              conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=441
+              conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
               media-picker.js?v=22  personage-maken.js?v=81  rage.js?v=11
               render-archief.js?v=158  render-bestiarium.js?v=48
-              render-campagne.js?v=465  render-dungeon.js?v=83
+              render-campagne.js?v=473  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=82
               render-relatiemap.js?v=45  render-spreuken.js?v=70
               render-statblock.js?v=10  render-vaardigheden.js?v=220
-              socket-client.js?v=113  stemronde.js?v=9  summons.js?v=5
+              socket-client.js?v=114  stemronde.js?v=9  summons.js?v=5
               tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
 dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
               conditions.js?v=7  render-statblock.js?v=10
@@ -3506,6 +3506,49 @@ elkaar in één veld:
 
 De "geheime antagonist"-schakelaar zet nu de **rol** in plaats van het subtype
 om te gooien bij het onthullen van een geheim.
+
+> **Twee kaartjes die iemand anders blijken te zijn** (26 nov 2026). Harmen
+> Jonker ís in het geheim Hugo Grisburgh II. De DM heeft daar twee kaartjes
+> voor — het pseudoniem dat de party kent en het echte dat ze nog niet kennen —
+> en op een onthulling vallen ze samen. Plan: `docs/voorstel-alias.md`.
+> - **`data.aliasVan` staat op het pseudoniem** en wijst naar het echte
+>   kaartje. Eén kant, want twee kanten die hetzelfde moeten zeggen lopen uit
+>   elkaar (zelfde afspraak als bij `betrokkenen`); de server leidt de andere
+>   kant af als `_ookBekendAls` (`_aliassenVan`). Niet alleen voor personen: een
+>   herberg kan een dekmantel zijn — `ALIAS_TYPES` is personages, locaties en
+>   organisaties.
+> - **Samenvallen is een stand per party**: `groups[gid].aliasOnthuld[aliasId]`.
+>   Onthullen gaat per party, en een kaartje weggooien zou de waard ook weghalen
+>   bij de tafel die hem nog gewoon kent.
+> - **Twee momenten, per kaartje te kiezen** (`data.aliasMoment`, helper
+>   `_aliasMoment`): een geheimregel met de vlag `alias` die opengaat
+>   (`_aliasUitGeheim`; staat er op geen enkele regel een vlag, dan telt elke
+>   onthulde regel — één alias per kaartje), of het échte kaartje dat zichtbaar
+>   wordt. Gaat dat kaartje weer dicht, dan ook de verwijzing: anders blijft er
+>   een knop staan naar iets wat ze niet mogen zien.
+> - **Wat een speler krijgt**: `_alias` ({id, type, naam, kent}) en
+>   `_ookBekendAls`, en alleen als zijn eigen party het weet. `aliasVan` en
+>   `aliasMoment` gaan er voor iedereen af — **dát die velden er staan verklapt
+>   al dat dit een pseudoniem is**. Zelfde redenering als bij een geheime
+>   verbinding, waar ook geen "onbekend"-regel in de plaats komt.
+> - **De editor** heeft een zoekbare kiezer die alleen het **id** bewaart
+>   (`type: 'alias-picker'`). Bewust niet `type: 'entiteit'`, dat een
+>   leesbare naam náást het id zet: bij een pseudoniem ís die naam het geheim.
+>   Het moment hangt eronder met `showWhen`, en per geheimregel staat er een
+>   vinkje *Onthullen verklapt wie dit werkelijk is* dat alleen verschijnt als
+>   het iets kán doen (er is een pseudoniem én het moment is het geheim) —
+>   twee voorwaarden, dus die ene regel staat in `_showWhenBijwerken` zelf.
+> - **Het moment aan tafel**: `alias:display` naar de **display-room**, getekend
+>   door `window._aliasDisplay` in `app.js` (`.alias-cin` onderaan `theme.css`).
+>   Eén ronde lijst met twee platen erin: het masker licht weg, het echte
+>   gezicht komt scherp, en de zin komt in drie stappen. Alleen bij de
+>   **overgang** van dicht naar open — een volgend geheim op datzelfde kaartje
+>   mag de onthulling niet nog eens afspelen. Klank: `momenten.aliasOnthuld`.
+> Bewaakt door `tests/alias.test.js` (de regel per party),
+> `tests/alias-editor.test.js` (de twee lezers van de vlag, en de velden) en
+> `tests/alias-tafelscherm.test.js` (de grens met de spelers, en één keer
+> spelen). Zeventien kanaries nagelopen; die op *de secret-trigger negeert het
+> moment* ging eerst níét af, waarna de toets erbij geschreven is.
 
 > **En het verraad is per party** (26 nov 2026). Die schakelaar schrijft rol,
 > kant en alignment in het **kaartje**, en dat is van de hele campagne —

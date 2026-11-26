@@ -9247,7 +9247,8 @@ async function _renderGeluiden() {
     ${momentRow('terugblik', 'Terugblik', 'speelt onder de terugblik op het tafelscherm')}
     ${momentRow('rage', 'Rage', 'de brul als een Barbarian in Rage gaat')}
     ${momentRow('gevechtOpening', 'Roll Initiative', 'de opening van een gevecht op het tafelscherm')}
-    ${momentRow('genadeslag', 'How do you want to do this?', 'onder de beschrijving van de laatste klap, op het tafelscherm')}`;
+    ${momentRow('genadeslag', 'How do you want to do this?', 'onder de beschrijving van de laatste klap, op het tafelscherm')}
+    ${momentRow('aliasOnthuld', 'Een masker af', 'als twee kaartjes samenvallen: X is eigenlijk Y, op het tafelscherm')}`;
 
   // De klanken bij een tafelscherm-effect. Ze maken zichzelf in de browser, dus
   // hier staat niets leeg te wachten: wat je kiest vervángt de gemaakte klank.

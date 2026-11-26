@@ -861,6 +861,12 @@ function _ververOpenKaartje(id) {
   socket.on('levelup:display', (data = {}) => {
     if (window._isDisplayMode) window._levelUpDisplay?.(data);
   });
+  // Twee kaartjes die samenvallen: *X is eigenlijk Y!* De server stuurt dit
+  // alleen naar de display-room, dus deze vlag is een tweede slot en niet het
+  // enige — zoals bij de brief en de kist.
+  socket.on('alias:display', (data = {}) => {
+    if (window._isDisplayMode) window._aliasDisplay?.(data);
+  });
   socket.on('loot:claim-update', ({ itemId, claimCount } = {}) => {
     if (window.app?.isDM?.()) { window.dmPanel?.refreshLoot?.(); return; }
     window._renderPlayerLoot?.();

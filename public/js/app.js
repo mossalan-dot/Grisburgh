@@ -12,8 +12,8 @@ import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=223';
 import { renderStatblock } from './render-statblock.js?v=10';
-import { initSocket } from "./socket-client.js?v=113";
-import { initDmPanel } from "./dm-panel.js?v=444";
+import { initSocket } from "./socket-client.js?v=114";
+import { initDmPanel } from "./dm-panel.js?v=445";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=8';
 import './media-picker.js?v=22';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.
@@ -8695,6 +8695,66 @@ window._luNaarBibliotheek = function (niveau, klasse) {
 // eerste portret opent het paneel, wie erna komt schuift ernaast, en pas als er
 // een halve minuut niemand meer bijkomt gaat het dicht.
 let _luDisplayTimer = null;
+// ── *X is eigenlijk Y!* ─────────────────────────────────────────────────────
+// Twee kaartjes die samenvallen is een scène, niet een regel die ergens
+// bijkomt. Alleen op het **tafelscherm** (zoals de verzegelde brief en de kist
+// die opengaat): de spelers horen het van hun DM, ze hoeven het niet op hun
+// telefoon mee te lezen.
+//
+// Het beeld is één rond portret met twee platen erin — de schuilnaam bovenop,
+// het échte gezicht eronder. Na een tel lícht de bovenste weg (groter, waziger,
+// doorzichtig): een masker dat afgaat, en daar staat iemand anders. Daaronder
+// komt de zin in drie stukken: de oude naam, *is in werkelijkheid*, de nieuwe.
+// Bewust in die volgorde en met die pauzes — het is het soort moment waarop
+// aan tafel iemand "wát?" roept, en dat heeft een tel nodig.
+//
+// Geen `requestAnimationFrame` voor het openen: die staat stil in een tabblad
+// dat niet op de voorgrond ligt, en een tafelscherm ligt soms minuten stil.
+let _aliasDisplayTimer = null;
+window._aliasDisplay = function (d) {
+  if (!d?.alias?.naam || !d?.echt?.naam) return;
+  document.getElementById('alias-display')?.remove();
+  clearTimeout(_aliasDisplayTimer);
+
+  const plaat = (p, cls) => p.thumb
+    ? `<img class="${cls}" src="${api.thumbUrl(p.thumb)}" alt=""${
+        p.focus ? ` style="object-position:${esc(p.focus)}"` : ''} onerror="this.remove()">`
+    // Zonder plaat de initiaal, net als bij de level-up en de party-portretten:
+    // een gebroken plaatje op een tafelscherm van een meter breed is erger dan
+    // geen plaatje.
+    : `<span class="${cls} alias-cin-initiaal">${esc(p.naam.trim().charAt(0).toUpperCase())}</span>`;
+
+  const ov = document.createElement('div');
+  ov.id = 'alias-display';
+  ov.className = 'alias-cin';
+  ov.innerHTML = `
+    <div class="alias-cin-ring">
+      ${plaat(d.echt, 'alias-cin-plaat alias-cin-plaat--echt')}
+      ${plaat(d.alias, 'alias-cin-plaat alias-cin-plaat--masker')}
+    </div>
+    <div class="alias-cin-zin">
+      <span class="alias-cin-oud">${esc(d.alias.naam)}</span>
+      <span class="alias-cin-tussen">is in werkelijkheid</span>
+      <span class="alias-cin-nieuw">${esc(d.echt.naam)}</span>
+    </div>`;
+  document.body.appendChild(ov);
+  void ov.offsetWidth;
+  ov.classList.add('is-open');
+  // De stappen zitten in CSS (`animation-delay` per deel); hier alleen de vlag
+  // die de reeks start, zodat er geen rij timers loopt die een sluitend scherm
+  // kan overleven.
+  setTimeout(() => ov.classList.add('is-af'), 1500);
+
+  const weg = () => {
+    ov.classList.remove('is-open');
+    setTimeout(() => ov.remove(), 500);
+  };
+  // Tikken slaat hem over, zoals bij de terugblik — de DM staat naast het
+  // scherm en wil door.
+  ov.addEventListener('click', weg);
+  _aliasDisplayTimer = setTimeout(weg, 15000);
+};
+
 window._levelUpDisplay = function (d) {
   if (!d?.characterId) return;
   let ov = document.getElementById('levelup-display');

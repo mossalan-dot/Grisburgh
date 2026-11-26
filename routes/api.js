@@ -1039,6 +1039,28 @@ function _aliasZoek(entities, id) {
   return null;
 }
 
+// **Het moment aan tafel: *X is eigenlijk Y!*** Alleen naar de display-room,
+// zoals de verzegelde brief en de kist die opengaat: de spelers hóren het van
+// hun DM, ze hoeven het niet op hun telefoon mee te lezen. En alleen bij de
+// **overgang** van dicht naar open — een tweede opslagbeurt op hetzelfde
+// kaartje mag de onthulling niet nog eens afspelen.
+//
+// De portretten gaan als thumb-id mee met hun focuspunt, net als bij de
+// terugblik: `/api/thumb/<imageId|entityId>` kent allebei de vormen.
+function _aliasDisplay(req, aliasEntity, echtEntity) {
+  if (!aliasEntity || !echtEntity) return;
+  const beeld = (e) => (storage.bestandIsBeeld(e.data?.imageId || e.id) ? (e.data?.imageId || e.id) : '');
+  // De klank gaat óók alleen naar het tafelscherm, anders dan bij de buit: die
+  // zien de spelers zelf, dit is een moment dat hun DM uitspreekt.
+  const klank = (storage.readJSON('sounds.json') || {}).momenten?.aliasOnthuld;
+  if (klank) req.app.get('io')?.to(_displayRoom(req))
+    .emit('sound:reveal', { fileId: String(klank), label: 'Een masker af', loop: false });
+  req.app.get('io')?.to(_displayRoom(req)).emit('alias:display', {
+    alias: { id: aliasEntity.id, naam: aliasEntity.name, thumb: beeld(aliasEntity), focus: aliasEntity.data?.imgFocus || '' },
+    echt:  { id: echtEntity.id,  naam: echtEntity.name,  thumb: beeld(echtEntity),  focus: echtEntity.data?.imgFocus  || '' },
+  });
+}
+
 // De aliaskaartjes die naar dit kaartje wijzen.
 function _aliassenVan(entities, echtId) {
   const uit = [];
@@ -2130,14 +2152,18 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
   // moment gekozen hebben er voor deze party mee samen. Gaat hij weer dicht,
   // dan ook de alias: anders blijft er een verwijzing staan naar een kaartje
   // dat ze niet meer mogen zien.
+  const _aliasNu = [];   // wat er in deze beurt is gaan samenvallen
   try {
-    const aliassen = _aliassenVan(storage.readJSON('entities.json'), id)
+    const _alleEnts = storage.readJSON('entities.json');
+    const aliassen = _aliassenVan(_alleEnts, id)
       .filter(a => _aliasMoment(a) === 'zichtbaar');
     if (aliassen.length) {
       if (!g.aliasOnthuld) g.aliasOnthuld = {};
       for (const a of aliassen) {
-        if (next === 'visible') g.aliasOnthuld[a.id] = true;
-        else delete g.aliasOnthuld[a.id];
+        if (next === 'visible') {
+          if (!g.aliasOnthuld[a.id]) _aliasNu.push(a);
+          g.aliasOnthuld[a.id] = true;
+        } else delete g.aliasOnthuld[a.id];
       }
     }
   } catch { /* geen kaartjes, geen aliassen */ }
@@ -2146,6 +2172,9 @@ router.put('/entities/:type/:id/visibility', requireDM, (req, res) => {
   const entities = storage.readJSON('entities.json');
   const entity   = (entities[type] || []).find(e => e.id === id);
   req.app.get('io').to(_campagneRoom(req)).emit('entity:visibility', { id, type, name: entity?.name || '', visibility: next });
+  // Dit kaartje blijkt onder nóg een naam bekend te hebben gestaan: *X is
+  // eigenlijk Y!* op het tafelscherm. Eén per pseudoniem dat nu samenviel.
+  for (const a of _aliasNu) _aliasDisplay(req, a, entity);
 
   if (type === 'locaties' && next !== 'hidden') {
     const mapData = storage.readJSON('map.json');
@@ -2243,10 +2272,14 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
   const ietsOnthuld = stand.some(Boolean);
   // Valt hiermee een pseudoniem samen met zijn echte kaartje? Dat is een stand
   // per party, dus hij hoort bij de groep en niet bij het kaartje.
+  let _aliasNu = null;   // wat er in deze beurt is gaan samenvallen
   if (entity?.data?.aliasVan && _aliasMoment(entity) === 'geheim') {
     if (!g.aliasOnthuld) g.aliasOnthuld = {};
-    if (_aliasUitGeheim(entity, open)) g.aliasOnthuld[id] = true;
-    else delete g.aliasOnthuld[id];
+    const _was = !!g.aliasOnthuld[id];
+    if (_aliasUitGeheim(entity, open)) {
+      g.aliasOnthuld[id] = true;
+      if (!_was) _aliasNu = _aliasZoek(entities, String(entity.data.aliasVan));
+    } else delete g.aliasOnthuld[id];
   }
   // Geheime antagonist: hangt per geheim, niet aan het hele kaartje — niet elk
   // geheim is een verraad. Sinds antagonist een rol is, zetten we de rol om en
@@ -2281,6 +2314,7 @@ router.put('/entities/:type/:id/secret', requireDM, (req, res) => {
     storage.writeJSON('entities.json', entities);
   }
   storage.writeJSON('dm-state.json', dmState);
+  if (_aliasNu) _aliasDisplay(req, entity, _aliasNu);
   req.app.get('io').to(_campagneRoom(req)).emit('entity:secret', {
     id, type,
     name:         entity?.name || '',
@@ -12550,6 +12584,7 @@ const _DIENST_SVC_KEYS = ['herberg', 'tweespalt', 'gock', 'ursula', 'tempel', 'm
 // komt uit de catalogus — anders is er een tweede plek waar een effect bestaat.
 const _MOMENT_SOUND_KEYS = new Set([
   'lootReveal', 'levelUp', 'terugblik', 'rage', 'gevechtOpening', 'genadeslag',
+  'aliasOnthuld',
   ...DISPLAY_FX.filter(f => f.klank).map(f => 'fx-' + f.id),
 ]);
 const _REST_SVC_KEYS = ['rust-veld', 'rust-herberg', 'rust-kort'];
