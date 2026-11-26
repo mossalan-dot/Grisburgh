@@ -119,6 +119,36 @@ describe('De Tweespalt: wedden, arena en lenen', () => {
       'wat er al ligt valt terug op zijn oude type');
   });
 
+  // **De kansen zijn de verdeling van één uitkomst.** Telden ze op tot 90, dan
+  // viel er tien procent van de tijd niets — en niemand die dat zag, want een
+  // weddenschap die nergens op uitkomt ziet eruit als een weddenschap die nog
+  // loopt. De server weigert het nu, mét het getal dat je wél hebt, zodat de
+  // DM niet hoeft te zoeken waar het misging.
+  it('weigert kansen die niet op honderd uitkomen', async () => {
+    const maak = (kansen) => req(server, 'POST', '/api/tweespalt/events', {
+      naam: 'De hanenren', soort: 'Hanen',
+      opties: kansen.map((k, i) => ({ id: 'o' + i, label: 'Haan ' + i, kans: k, payout: 2 })),
+    }, dm);
+
+    const tekort = await maak([40, 50]);
+    assert.strictEqual(tekort.status, 400, JSON.stringify(tekort.body));
+    assert.match(tekort.body.error, /90%/, 'het getal dat je wél hebt hoort in de melding: ' + tekort.body.error);
+
+    const teveel = await maak([70, 50]);
+    assert.strictEqual(teveel.status, 400);
+    assert.match(teveel.body.error, /120%/);
+
+    const goed = await maak([40, 60]);
+    assert.ok(goed.status === 200 || goed.status === 201, JSON.stringify(goed.body));
+
+    // Eén optie is geen weddenschap, hoe mooi de honderd ook uitkomt.
+    const alleen = await req(server, 'POST', '/api/tweespalt/events', {
+      naam: 'De zekerheid', opties: [{ id: 'o0', label: 'Altijd', kans: 100, payout: 1 }],
+    }, dm);
+    assert.strictEqual(alleen.status, 400);
+    assert.match(alleen.body.error, /twee opties/);
+  });
+
   it('neemt een inzet aan en schrijft die meteen af', async () => {
     await vulBeurs(50);
     const ev = await maakEvent();
