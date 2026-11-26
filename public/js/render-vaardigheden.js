@@ -963,6 +963,33 @@ function _penAanroep(it) {
   return `bewerk('${escA(it.key)}')`;
 }
 
+// **Zeggen wat je hier níét bewerkt.** Achter de deur Familiars staat een
+// beest met zijn hele statblok op het kaartje, maar dit formulier biedt alleen
+// een beschrijving en een plaat — want het statblok hoort bij het bestiarium
+// en twee plekken met hetzelfde statblok lopen uit elkaar. Dat is een goede
+// regel en een slecht scherm: je klikt op bewerken, ziet twee velden, en
+// concludeert dat de app stuk is. (Zo is het ook gemeld, 26 nov 2026.)
+//
+// Dus staat het er nu, mét de weg erheen — dezelfde twee knoppen als op de
+// tegel zelf, zodat je niet hoeft te weten waar je moet zijn.
+function _statblokElders(it) {
+  if (!it?.beest || !isDM()) return '';
+  const key = it.beest?.statblock?.key || '';
+  return `<div class="dm-hint vd-statblok-elders">
+    ${icon('skull')} Het <strong>statblok</strong> van ${esc(it.naam)} bewerk je niet hier maar in het
+    bestiarium — dat is de ene plek waar hij staat, ook voor een gevecht en voor Wild Shape.
+    Hieronder gaat alleen over hoe hij er op dit kaartje uitziet.
+    ${it.monsterId
+      ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window.app.closeModal();window.vaardigheden.naarBestiarium('${escA(it.monsterId)}')">
+          ${icon('skull')} Open hem in het bestiarium</button>`
+      : `<span class="vd-se-srd">Dit wezen komt uit de SRD; neem hem eerst over, dan kun je hem aanpassen.</span>
+         ${key ? `<button type="button" class="dm-btn dm-btn-ghost dm-btn-sm"
+          onclick="window.app.closeModal();window.vaardigheden.beestOvernemen('${escA(key)}')">
+          ${icon('plus')} Neem over in het bestiarium</button>` : ''}`}
+  </div>`;
+}
+
 function _kaartBladen(it) {
   // **Een plaat en een eigen aantekening horen bij élk kaartje.** De drie die
   // hun eigen bladen bouwen (een keuze, een beest, een metgezel) begonnen bij
@@ -4898,6 +4925,7 @@ window.vaardigheden = {
             `<option value="${w}"${(bak.verdwijnt || '') === w ? ' selected' : ''}>${esc(l)}</option>`).join('')}
         </select>
       </div>` : ''}
+      ${_statblokElders(it)}
       <div class="dm-form-row">
         <label class="dm-form-label" for="cond-desc">Beschrijving</label>
         <textarea class="dm-input" id="cond-desc" rows="6"

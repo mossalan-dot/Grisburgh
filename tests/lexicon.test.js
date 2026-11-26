@@ -5,6 +5,7 @@ const { describe, it } = require('node:test');
 const assert = require('node:assert');
 const fs = require('fs');
 const path = require('path');
+const JS = path.join(__dirname, '..', 'public', 'js');
 
 const APP = fs.readFileSync(path.join(__dirname, '..', 'public', 'js', 'app.js'), 'utf8');
 
@@ -19,6 +20,29 @@ describe('Het lexicon', () => {
     // In een definitielijst is `dt` het label: "ABILITY SCORES" kreeg een
     // stippellijn omdat het toevallig ook een term is.
     assert.ok(tags.includes('DT'), 'een dt is een label, geen zin om uit te leggen');
+  });
+
+  // **Een titel krijgt geen uitleg.** Dit is nu drie keer dezelfde fout op een
+  // andere plek geweest: *Fire Bolt* kreeg een stippellijn onder "Fire" (dat is
+  // ook een schadesoort), "SAVE DC" onder "SAVE", en op 26 nov 2026 de feat
+  // *Ember of the Fire Giant* onder "Giant" (ook een creature type) — die
+  // laatste op de **tegel**, waar de lexicon-loper over het hele raster gaat.
+  // In een naam lees je wát je voor je hebt, niet wat een woord betekent.
+  it('legt niets uit in de naam van een kaartje', () => {
+    const m = APP.match(/const _GLOSS_SKIP = \[([\s\S]*?)\n\];/);
+    assert.ok(m, '_GLOSS_SKIP niet gevonden');
+    const klassen = [...m[1].matchAll(/'([^']+)'/g)].map(x => x[1]);
+    for (const k of ['card-name', 'tegel-ondertitel', 'tegel-vel-naam', 'vd-tegel-naam']) {
+      assert.ok(klassen.includes(k), `${k} draagt een kaartjesnaam en hoort overgeslagen te worden`);
+    }
+    // En de klassen die de app écht gebruikt voor een naam staan er ook in —
+    // anders dekt deze lijst straks namen die niet meer zo heten.
+    const js = ['app.js', 'render-campagne.js', 'render-vaardigheden.js', 'render-spreuken.js']
+      .map(f => { try { return fs.readFileSync(path.join(JS, f), 'utf8'); } catch { return ''; } }).join('\n');
+    for (const k of ['card-name', 'tegel-ondertitel']) {
+      assert.ok(js.includes(`class="${k}"`) || js.includes(`${k} `),
+        `${k} staat in de overslaanlijst maar wordt nergens meer uitgestuurd`);
+    }
   });
 
   // De achttien skills komen uit `_SKILLS`, zodat er één lijst is. Zou iemand

@@ -5443,6 +5443,20 @@ const _crGetal = (cr) => {
   if (t.includes('/')) { const [a, b] = t.split('/').map(Number); return b ? a / b : 0; }
   return parseFloat(t) || 0;
 };
+// **Een eigen monster bewaart zijn statblok genest.** In `monsters.json`
+// staan naam, id en beeld bovenaan en de rest onder `statblock` — zo schrijft
+// de monster-editor het weg, en zo staat het in élke campagne (nagemeten
+// 26 nov 2026: 0 monsters met een plat `type`, 80 met een geneste). De twee
+// plekken die beesten uitzochten lazen `m.type`, en dat bestaat niet: ze
+// matchten dus **nul** eigen monsters. Gevolg: Grisburghs eigen Wolf stond
+// niet achter de deur Familiars (de SRD-Wolf wel), je kon er geen Wild Shape
+// in, en het kaartje kreeg geen `monsterId` — dus ook geen knop naar het
+// bestiarium, waar het statblok wél te bewerken is. Negen beesten in
+// Grisburgh, drie in Test.
+// De platte vorm blijft meegelezen: hij komt uit oudere data.
+const _monsterStatblok = (m) => (m?.statblock && typeof m.statblock === 'object') ? m.statblock : m;
+const _isBeest = (m) => /beast/i.test(String(_monsterStatblok(m)?.type || m?.type || ''));
+
 function _beesten() {
   if (!_beestOmgeving) { try { _beestOmgeving = require('../bronnen/beest-omgevingen.json'); } catch { _beestOmgeving = {}; } }
   const uit = new Map();
@@ -5460,7 +5474,12 @@ function _beesten() {
   } catch { /* geen SRD */ }
   try {
     for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
-      if (/beast/i.test(m.type || '') && m.name) uit.set(m.name.toLowerCase(), kort(m.name, m, true));
+      // `kort()` leest cr/ac/hp/speed, en die staan in het statblok — niet
+      // bovenaan. Plat meegeven gaf een beest zonder cijfers.
+      if (_isBeest(m) && m.name) {
+        const sb = _monsterStatblok(m);
+        uit.set(m.name.toLowerCase(), kort(m.name, { ...sb, cr: sb.cr ?? m.cr, hp: sb.hp ?? m.maxHp }, true));
+      }
     }
   } catch { /* geen eigen monsters */ }
   return [...uit.values()].sort((a, b) => a.crGetal - b.crGetal || a.naam.localeCompare(b.naam));
@@ -13106,8 +13125,11 @@ router.get('/bron/beesten', attachRole, (req, res) => {
   } catch { /* geen SRD */ }
   try {
     for (const m of (storage.readJSON('monsters.json')?.monsters || [])) {
-      // Een eigen monster bewaart zijn velden plat; het statblok is het monster.
-      if (/beast/i.test(m.type || '') && m.name) zet({ name: m.name, cr: m.cr, statblock: m }, m.id || '');
+      // `renderStatblock` wil het statblok genest; dat ís het ook al.
+      if (_isBeest(m) && m.name) {
+        const sb = _monsterStatblok(m);
+        zet({ name: m.name, cr: sb.cr ?? m.cr, statblock: sb }, m.id || '');
+      }
     }
   } catch { /* geen eigen monsters */ }
   res.json({ beesten: [...uit.values()].sort((a, b) => a.crGetal - b.crGetal || a.naam.localeCompare(b.naam)) });

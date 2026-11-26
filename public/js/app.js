@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=327';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=474";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=475";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=158";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=42';
 import { renderDungeon } from './render-dungeon.js?v=83';
@@ -10,7 +10,7 @@ import { renderBestiarium } from './render-bestiarium.js?v=48';
 import { renderSpreuken } from './render-spreuken.js?v=70';
 import './render-handleiding.js?v=2';
 import './render-melding.js?v=4';
-import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=224';
+import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=225';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=114";
 import { initDmPanel } from "./dm-panel.js?v=445";
@@ -1882,7 +1882,7 @@ async function _landingNieuwTegel() {
   if (!host || !_groepsWachtwoord || document.getElementById('landing-nieuw')) return;
   let stand = null;
   try {
-    await import('./personage-maken.js?v=85');
+    await import('./personage-maken.js?v=86');
     stand = await window.personageMaken.stand();
   } catch { return; }
   if (stand?.instellingen && stand.instellingen.aan === false) return;
@@ -1904,7 +1904,7 @@ async function _landingNieuwTegel() {
 
 async function _landingNieuw() {
   try {
-    await import('./personage-maken.js?v=85');
+    await import('./personage-maken.js?v=86');
     const stand = await window.personageMaken.stand();
     // Ook als hij al bij de DM ligt: dan zie je dat, en kun je hem nog
     // terughalen om iets te veranderen.
@@ -4699,7 +4699,18 @@ const _GLOSS_SKIP = ['sb-gloss', 'sb-hl-dice', 'sb-hl-dmg', 'sb-hl-save', 'sb-hl
   // Ook de labels van de gegevenstabel: "SAVE DC" kreeg een stippellijn onder
   // "SAVE". Dat is een kolomkop, geen zin waarin een term valt uit te leggen —
   // en dat geldt net zo voor het blokje met Save DC en Attack ernaast.
-  'sb-meta-key', 'sb-spell-meta-row', 'sb-badge', 'sb-stat-label', 'sb-spell-stats'];
+  'sb-meta-key', 'sb-spell-meta-row', 'sb-badge', 'sb-stat-label', 'sb-spell-stats',
+  // **De naam van een kaartje.** Gemeld op 26 nov 2026: bij de feat *Ember of
+  // the Fire Giant* stond er een stippellijn onder "Giant", omdat dat ook een
+  // creature type is. Dat is dezelfde fout als "Fire Bolt" hierboven, alleen
+  // op de tegel in plaats van in het spreukenboek: in een titel lees je wát je
+  // voor je hebt, niet wat een woord betekent. `card-name` is de naam op elke
+  // tegel in de app, `tegel-ondertitel` en `tegel-vel-naam` de regels die hem
+  // herhalen, en `vd-tegel-naam` de naam op een deurkaart in het Heldenboek.
+  'card-name', 'tegel-ondertitel', 'tegel-vel-naam', 'vd-tegel-naam',
+  // De naam in de kop van een detailvenster valt hier ook onder; die staat in
+  // een H-tag en wordt al door `_GLOSS_SKIP_TAGS` overgeslagen.
+];
 // `DT` hoort in dit rijtje: in een definitielijst is dat per definitie het
 // label en niet de tekst. "ABILITY SCORES" kreeg een stippellijn omdat het
 // toevallig ook een term is — maar daar lees je welk veld het is, niet wat het

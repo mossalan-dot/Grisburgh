@@ -348,17 +348,17 @@ De app gebruikt querystring cache-busting (`?v=N`). **Vergeten = browser haalt o
 **Huidige versies (bij te houden):**
 
 ```
-index.html  : app.js?v=1396  sound-manager.js?v=15  theme.css?v=1016
+index.html  : app.js?v=1398  sound-manager.js?v=15  theme.css?v=1017
 app.js      : ac-rekenen.js?v=1  api.js?v=327  bastion.js?v=11
               conditions.js?v=7  dagkeuze.js?v=8  dm-panel.js?v=445
               gevecht-regie.js?v=10  kaartsfeer.js?v=5  klassekracht.js?v=15
-              media-picker.js?v=22  personage-maken.js?v=81  rage.js?v=11
+              media-picker.js?v=22  personage-maken.js?v=86  rage.js?v=11
               render-archief.js?v=158  render-bestiarium.js?v=48
-              render-campagne.js?v=473  render-dungeon.js?v=83
+              render-campagne.js?v=475  render-dungeon.js?v=83
               render-handleiding.js?v=2  render-kaart.js?v=42
               render-melding.js?v=4  render-progressie.js?v=83
               render-relatiemap.js?v=45  render-spreuken.js?v=70
-              render-statblock.js?v=10  render-vaardigheden.js?v=220
+              render-statblock.js?v=10  render-vaardigheden.js?v=225
               socket-client.js?v=114  stemronde.js?v=9  summons.js?v=5
               tafels.js?v=2  terugblik.js?v=10  wizard.js?v=18
 dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
@@ -1906,6 +1906,36 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > Wat er al wél was en dus níét hoefde: de vouwschaduw bij de rug staat als
 > `.sb-page-left::before` (30 px, tot `rgba(0,0,0,0.95)`) — niet als box-shadow,
 > dus een zoektocht op `box-shadow` mist hem.
+
+> **Een eigen beest stond nergens** (26 nov 2026). Achter de deur *Familiars*
+> horen de SRD-beesten én wat de campagne zelf als Beast in haar bestiarium
+> heeft; datzelfde lijstje voedt de gedaantes van Wild Shape. De twee plekken
+> die ze uitzochten (`_beesten()` en `GET /bron/beesten`) lazen `m.type` —
+> maar `monsters.json` bewaart het statblok **genest**: naam, id en beeld
+> bovenaan, de rest onder `statblock`. Gemeten over alle campagnes: nul
+> monsters met een plat `type`, tachtig met een geneste. Die filters matchten
+> dus structureel niets. Gevolg: Grisburghs eigen Wolf ontbrak terwijl de
+> SRD-Wolf er stond, je kon er geen Wild Shape in, en het kaartje kreeg geen
+> `monsterId` — dus ook geen knop naar het bestiarium, de enige plek waar zijn
+> statblok te bewerken is. Zo werd het ook gemeld: *"ik kan alleen de
+> beschrijving en een afbeelding wijzigen"*. `_monsterStatblok()` en
+> `_isBeest()` zijn nu de ene plek die weet hoe een monster is opgeslagen; de
+> platte vorm blijft meegelezen voor oudere data. Na de reparatie: 94 beesten
+> in Grisburgh, 8 met een knop naar het bestiarium.
+> **En de editor zei niet wat hij níét bewerkt.** Het statblok hoort bij het
+> bestiarium — goede regel, slecht scherm: je klikt op bewerken, ziet twee
+> velden en denkt dat de app stuk is. `_statblokElders()` in
+> `render-vaardigheden.js` zet er nu een regel boven mét de weg erheen,
+> dezelfde twee knoppen als op de tegel. Bewaakt door `tests/eigen-beest.test.js`.
+
+> **Een titel krijgt geen lexicon-uitleg** — nu drie keer dezelfde fout op een
+> andere plek: *Fire Bolt* kreeg een stippellijn onder "Fire" (ook een
+> schadesoort), "SAVE DC" onder "SAVE", en de feat *Ember of the Fire Giant*
+> onder "Giant" (ook een creature type). Die laatste op de **tegel**, want
+> `glossary.applyDom(grid)` loopt over het hele raster. `_GLOSS_SKIP` in
+> `app.js` kent daarom nu ook `card-name`, `tegel-ondertitel`, `tegel-vel-naam`
+> en `vd-tegel-naam`. In een naam lees je wát je voor je hebt, niet wat een
+> woord betekent. Bewaakt door `tests/lexicon.test.js`.
 
 > **Glossary/hover-uitleg:** geen los `glossary.js`-bestand (die revert staat hieronder). De
 > hover-uitleg van D&D-termen leeft **inline in app.js**: `_SB_GLOSSARY` (termen + tips),
