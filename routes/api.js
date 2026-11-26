@@ -880,6 +880,23 @@ function _linksVoorSpeler(links, g, entities) {
 // tussenuit halen mag de stand van een party niet verzetten. Kaartjes die nog
 // geen id hebben krijgen `t0`, `t1`…, precies de positie waar hun stand al
 // naar wees.
+// Een tier krijgt bij het opslaan een blijvend id. De editor stuurt ze terug
+// zoals ze op het scherm stonden; zonder id zou de stand van een party
+// meeschuiven met de volgorde.
+//
+// **Eén helper, twee routes.** `PUT /entities/:type/:id` doet
+// `{ ...bestaand, ...body }` en neemt dus álles over; `POST /entities/:type`
+// bouwt het kaartje uit een vaste lijst van zeven velden en liet
+// `statblockTiers` vallen — zonder foutmelding. In de app viel dat niet op
+// (de editor maakt eerst een leeg kaartje en bewaart daarna), maar een script
+// of een import die een kaartje mét gedaantes aanmaakt raakte ze stil kwijt.
+function _tiersMetId(lijst) {
+  return (Array.isArray(lijst) ? lijst : []).map((t, i) => ({
+    ...t,
+    id: t?.id || `t_${Date.now().toString(36)}_${i}${Math.random().toString(36).slice(2, 5)}`,
+  }));
+}
+
 function _tierRegels(entity) {
   const lijst = Array.isArray(entity?.statblockTiers) ? entity.statblockTiers : [];
   return lijst.map((t, i) => ({ ...t, id: t?.id || `t${i}` }));
@@ -1788,6 +1805,10 @@ router.post('/entities/:type', requireDM, (req, res) => {
       data:    req.body.data    || {},
       links:   req.body.links   || { personages: [], locaties: [], organisaties: [], voorwerpen: [], archief: [] },
       stats:   req.body.stats   || null,
+      // Alleen meenemen als er iets is: een leeg veld op elk kaartje zou
+      // suggereren dat er gedaantes zijn.
+      ...(Array.isArray(req.body.statblockTiers) && req.body.statblockTiers.length
+        ? { statblockTiers: _tiersMetId(req.body.statblockTiers) } : {}),
     };
     entities[type].push(entity);
     // Nieuw entiteit begint verborgen in ALLE groepen
@@ -1840,15 +1861,7 @@ router.put('/entities/:type/:id', requireDM, (req, res) => {
       }
     }
   }
-  // Een tier krijgt bij het opslaan een blijvend id. De editor stuurt ze terug
-  // zoals ze op het scherm stonden; zonder id zou de stand van een party
-  // meeschuiven met de volgorde.
-  if (Array.isArray(updated.statblockTiers)) {
-    updated.statblockTiers = updated.statblockTiers.map((t, i) => ({
-      ...t,
-      id: t?.id || `t_${Date.now().toString(36)}_${i}${Math.random().toString(36).slice(2, 5)}`,
-    }));
-  }
+  if (Array.isArray(updated.statblockTiers)) updated.statblockTiers = _tiersMetId(updated.statblockTiers);
   // Zijn de geheimen van dit kaartje veranderd, dan verschuift alles wat naar
   // een regelnummer wijst mee: de onthulstand per party en geheime verbindingen.
   if (req.body.data) {

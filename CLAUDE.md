@@ -1741,6 +1741,20 @@ dm-panel.js : akte-schrijven.js?v=48  api.js?v=327  combat-canvas.js?v=45
 > blijft staan. Bewaakt door `tests/bronnen.test.js` (samengestelde zinnen heel,
 > en er wordt niets verzonnen voor wie niets te verbergen heeft).
 
+> **Aanmaken en bewerken namen niet hetzelfde aan** (26 nov 2026).
+> `PUT /entities/:type/:id` doet `{ ...bestaand, ...req.body, id }` en neemt dus
+> élk veld over; `POST /entities/:type` bouwt het kaartje uit een **vaste lijst
+> van zeven** (`id, name, icon, subtype, data, links, stats`) en liet
+> `statblockTiers` stilzwijgend vallen. In de app viel dat niet op — de editor
+> maakt eerst een leeg kaartje aan en bewaart daarna — maar een script of een
+> import die een kaartje mét gedaantes aanmaakt raakte ze kwijt zonder
+> foutmelding. `_tiersMetId()` is nu de ene plek die de ids stempelt, voor
+> allebei de routes. Komt er een nieuw veld op een kaartje bovenáán (niet in
+> `data`), kijk dan of POST het ook aanneemt.
+> Bewaakt door `tests/kaartje-per-party.test.js`, dat ook de **stand per party**
+> vastlegt: `groups[gid].tierStand` stond nergens in een toets, terwijl daar al
+> eens het hele statblok door lekte.
+
 > **Meerdere statblokken op één kaartje (tiers).** Dezelfde man is niet elke akte
 > dezelfde tegenstander. `statblockTiers` op een personage-kaartje bewaart de
 > extra versies; `stats` blijft de **basis** en ligt onder elke tier, dus een tier
