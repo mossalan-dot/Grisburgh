@@ -15323,8 +15323,12 @@ router.get('/map/pins/available-locations', attachRole, (req, res) => {
   const mapData  = storage.readJSON('map.json');
   const mapId    = req.query.mapId || _eersteKaartId(mapData);
   const dmState  = readDmState();
-  const g        = getGroup(dmState);
   const groupId  = _playerGroup(entities, charId);
+  // Alleen een speler komt hier (de DM krijgt hierboven een lege lijst), dus
+  // geldt altijd zijn eigen party. Met de actieve groep kon hij een speld
+  // zetten op een plek die zijn party nooit ontdekt heeft — en zag hij de naam
+  // ervan al in de kiezer staan.
+  const g        = getGroup(dmState, groupId);
 
   // Locaties die al een pin hebben op deze kaart (goedgekeurd of pending voor dezelfde groep)
   const takenLocIds = new Set(
@@ -15347,10 +15351,18 @@ router.get('/map/pins', attachRole, (req, res) => {
   const mapId   = req.query.mapId || _eersteKaartId(mapData);
   const entities= storage.readJSON('entities.json');
   const dmState = readDmState();
-  const g       = getGroup(dmState);
   const locaties = entities.locaties || [];
   const charId  = req.characterId;
   const groupId = charId ? _playerGroup(entities, charId) : null;
+  // **De party van de speler, niet die van de DM.** Hier stond
+  // `getGroup(dmState)`, en dat is de *actieve* groep: een speler kreeg de
+  // ontdekkingen van de party waar de DM toevallig naar keek. Gemeten op
+  // 25 nov 2026 zag Cleopas' party acht spelden op de hoofdkaart, waarvan twee
+  // plekken die voor hen verborgen zijn (De Coöperatie, De Schunnige Egel) en
+  // één die vaag hoort te zijn maar mét naam binnenkwam (De Tweespalt).
+  // `groupId` werd al berekend en nergens gebruikt — de bedoeling stond er,
+  // alleen de aansluiting niet.
+  const g       = getGroup(dmState, req.role === 'dm' ? null : groupId);
 
   const pins = (mapData.pins || [])
     .filter(pin => _kaartVanPin(pin, mapData) === mapId)
@@ -19422,7 +19434,10 @@ router.get('/facties', attachRole, (req, res) => {
   }
   const entities = storage.readJSON('entities.json');
   const voorwerpen = entities.voorwerpen || [];
-  const g = getGroup(dmState);
+  // Aanzien en factiezichtbaarheid staan per party; ook hier stond de actieve
+  // groep, dus las een speler het aanzien van een andere tafel.
+  const g = getGroup(dmState, req.role === 'dm'
+    ? null : _playerGroupId(dmState, req.session?.characterId));
   const factieZichtbaar = g.factieZichtbaar || {};
   const factieRenown    = g.factieRenown    || {};
   const isDM = req.role === 'dm';

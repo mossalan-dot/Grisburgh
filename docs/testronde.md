@@ -378,7 +378,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 `public/js/render-archief.js` · `render-kaart.js` · `render-dungeon.js` · `render-relatiemap.js`
 
 - [ ] **Sessieverslagen** (ALL) — entries per akte, afbeeldingen in een carousel, per beeld onthullen zodat het pas dán bij de speler verschijnt
-- [ ] **Missies** (ALL) — status open/voltooid/gefaald; een speler vraagt er een aan, de DM keurt goed of af, beide kanten krijgen een melding
+- [x] **Missies** (ALL) — status open/voltooid/gefaald; een speler vraagt er een aan, de DM keurt goed of af, beide kanten krijgen een melding
 - [ ] **Prikbord / relatiemap** (ALL) — netwerk van personages en organisaties, slepen bewaart de positie, onthulde relaties verschijnen bij de speler
 - [x] Prikbord: de knoppenbalk staat in perkamentstijl met *Kaartje · Draad · Organogram* links en de hulpknop rechts (niet meer in een eigen grijze balk) *(nagelopen 24 nov 2026: de drie knoppen staan er, de hulpknop ook, en geen emoji in de balk)*
 - [x] Klik op *Organogram*, kies een organisatie die de party kent → de organisatie staat bovenaan op het bord met haar leden eronder, met draden die de rol als label dragen *(nagelopen 25 nov 2026 met de Druïden van het Amberwoud: de organisatie op y60, de drie leden op y240, drie draden met "Lobbyist voor milieuwetgeving" en twee keer "Brutale lobbyist" als label.)*
@@ -478,7 +478,7 @@ een speler ziet, **TAB** = het tafelscherm (`?display=1`), **ALL** = alle drie.
 - [ ] *Voorbeeld* toont de blokken als kader: Voorlezen op perkament, Notitie gedempt, Gevecht rood
 - [ ] *Kopiëren* zet de markdown op het klembord; *Inlezen* vraagt eerst of de huidige tekst weg mag
 - [ ] **Speler**: `/api/meta` bevat geen `tekst`, `script` of `monsters` van een akte (netwerktab), wel `num`, `title` en `short`
-- [ ] **Export** (DM) — download een snapshot (Instellingen → exporteren) en zoek in het bestand met een teksteditor naar een geheim dat deze party níét kent: dat hoort er niet in te staan. Een geheim dat wél onthuld is staat er wel
+- [x] **Export** (DM) — download een snapshot (Instellingen → exporteren) en zoek in het bestand met een teksteditor naar een geheim dat deze party níét kent: dat hoort er niet in te staan. Een geheim dat wél onthuld is staat er wel
 - [ ] Plak een heel hoofdstuk uit Obsidian: koppen tot `######` staan in het overzicht (en ingesprongen naar niveau), `|`-tabellen worden echte tabellen, `- `-lijsten worden lijsten
 - [ ] Elke `![[bestand.png]]` wordt een slot met de naam en een knop *Bestand kiezen*; kiezen vervangt álle verwijzingen met diezelfde naam
 - [ ] Een `![[…mp3]]` of `.wav` opent de geluidenbibliotheek in plaats van de afbeeldingen
@@ -3925,3 +3925,57 @@ Die toets heeft zelf ook een slot: hij telt hoeveel routes hij onderzocht en
 valt om onder de 25. *Een toets die nul routes bekijkt slaagt altijd* — dezelfde
 val als een controle op een veld dat niet bestaat, en die kwam vandaag al vier
 keer langs.
+
+## Blok 3: de kaart liet de verkeerde party zien (26 nov 2026)
+
+Blok 3 is het minst nagelopen grote blok (11% klaar), en juist daar zit veel dat
+de server afdwingt. Missies en dungeons bleken zwaar gedekt (`missies-brieven`
+14 toetsen, `dungeon` 18) en zijn afgevinkt. Maar de **kaartspelden** hadden
+geen enkele toets, en daar zat een lek.
+
+### Wat er mis was
+
+`getGroup(dmState)` zonder tweede argument is de **actieve** groep — die van de
+DM. Drie routes die een speler kan bereiken gebruikten die:
+
+| route | gevolg |
+|---|---|
+| `GET /map/pins` | de spelden van de party waar de DM naar kijkt |
+| `GET /map/pins/available-locations` | je kunt een speld zetten op iets wat je party niet kent |
+| `GET /facties` | het aanzien en de factiezichtbaarheid van een andere tafel |
+
+In `/map/pins` stond `groupId` — de party van het **personage** — al berekend,
+en werd nergens gebruikt. De bedoeling stond er dus; alleen de aansluiting niet.
+
+### Gemeten op productie, vóór de reparatie
+
+De actieve groep stond op de Testgroep, die bijna alles kent. Een speler van
+Cleopas' party kreeg acht spelden op de hoofdkaart:
+
+| plek | zijn party kent hem als | wat hij kreeg |
+|---|---|---|
+| De Coöperatie | **verborgen** | zichtbaar, mét naam |
+| De Schunnige Egel | **verborgen** | zichtbaar, mét naam |
+| De Tweespalt | **vaag** | zichtbaar, mét naam |
+| de andere vijf | zichtbaar | klopt |
+
+Na de reparatie: **zes spelden**, de twee verborgen weg, en De Tweespalt komt
+binnen als `(zonder naam)` met stand *vague* — precies zoals het hoort.
+
+- [x] **Kaartspelden volgen je eigen party** — bewaakt door
+      `tests/kaart-per-party.test.js`, met een kanarie per route.
+
+### De vijfde keer vandaag
+
+De derde toets (de kiezer) sloeg **ook aan op de kapotte versie**: die route
+laat alles weg waar al een speld op staat, en in mijn opzet gold dat voor élke
+locatie — dus was de lijst sowieso leeg en bewees "staat er niet in" niets.
+Opgelost met een plek zónder speld, die voor de ándere party zichtbaar is.
+Pas toen viel de kanarie om.
+
+*En een reeks misgrepen in de opzet zelf, het opschrijven waard omdat ze tijd
+kostten:* de route heet `/map/maps` (niet `/maps`) en wil een **`label`**;
+`GET /map/pins` valt zonder `mapId` terug op de eerste kaart van de campagne;
+zichtbaarheid zetten gaat met **`{target}`** en altijd voor de **actieve**
+groep (die route kent geen party-parameter — je wisselt dus van groep); en de
+actieve groep wissel je met `PUT /groups/active`, niet `/active-group`.
