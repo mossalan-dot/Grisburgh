@@ -102,9 +102,26 @@ function sluitAanVoor(f) {
   return { lijst: [...uit].sort(), waarom: [...new Set(waarom)] };
 }
 
+// ── Uit welk boek? ─────────────────────────────────────────────────────────
+// **Een naam en een boek mogen wél.** De tekst van een feat uit het Player's
+// Handbook mag hier niet staan — dat is de grens die de hele app aanhoudt —
+// maar wáár hij staat is geen beschermd werk, en juist dat heeft de DM nodig:
+// het veld *Uit welk boek?* voedt de code rechtsonder op het kaartje en de
+// wegwijzer *Naslag elders*. Zonder bron wijst die nergens heen.
+// `bronnen/feats-2024.json` is de namenlijst van de PHB 2024; wat daarin staat
+// en in deze campagne nog geen bron heeft, krijgt hem. Wat er niet in staat
+// blijft leeg — een verkeerd boek is erger dan geen boek.
+const PHB2024 = (() => {
+  try {
+    const l = require('../bronnen/feats-2024.json');
+    return new Set([...(l.general || []), ...(l.epic || [])].map(n => String(n).toLowerCase()));
+  } catch { return new Set(); }
+})();
+const BOEK_PHB = "Player's Handbook (2024)";
+
 // ── Doorlopen ───────────────────────────────────────────────────────────────
-const rapport = { categorie: {}, sluitAan: [], overgeslagen: 0 };
-let gedaanCat = 0, gedaanSluit = 0;
+const rapport = { categorie: {}, sluitAan: [], overgeslagen: 0, boek: [] };
+let gedaanCat = 0, gedaanSluit = 0, gedaanBoek = 0;
 
 for (const [bak, epic] of [['general', false], ['epic', true]]) {
   for (const f of (prog.feats?.[bak] || [])) {
@@ -114,6 +131,11 @@ for (const [bak, epic] of [['general', false], ['epic', true]]) {
       f._nieuweCategorie = cat;
       rapport.categorie[cat] = (rapport.categorie[cat] || 0) + 1;
       gedaanCat++;
+    }
+    if (!String(f.bron || '').trim() && PHB2024.has(String(f.name).toLowerCase())) {
+      f._nieuweBron = BOEK_PHB;
+      rapport.boek.push(f.name);
+      gedaanBoek++;
     }
     if (!(f.sluitAan || []).length) {
       const { lijst, waarom } = sluitAanVoor(f);
@@ -137,6 +159,11 @@ for (const [cat, n] of Object.entries(rapport.categorie).sort((a, b) => b[1] - a
   console.log(`  ${String(n).padStart(4)}  ${cat}`);
 }
 
+console.log(`\n── uit welk boek ── ${gedaanBoek} lege bronvelden, herkend als PHB 2024`);
+if (rapport.boek.length) {
+  console.log('  ' + rapport.boek.slice(0, 30).join(', ') + (rapport.boek.length > 30 ? ` … en nog ${rapport.boek.length - 30}` : ''));
+}
+
 console.log(`\n── hoort bij ── ${gedaanSluit} af te leiden, ${rapport.overgeslagen} blijven leeg`);
 for (const [naam, lijst, waarom] of rapport.sluitAan.slice(0, 40)) {
   console.log(`  ${naam.padEnd(34)} ${lijst.length > 60 ? lijst.slice(0, 57) + '…' : lijst}`);
@@ -153,10 +180,11 @@ for (const bak of ['general', 'epic']) {
   for (const f of (prog.feats?.[bak] || [])) {
     if (f._nieuweCategorie) { f.categorie = f._nieuweCategorie; delete f._nieuweCategorie; }
     if (f._nieuweSluitAan)  { f.sluitAan  = f._nieuweSluitAan;  delete f._nieuweSluitAan; }
+    if (f._nieuweBron)      { f.bron      = f._nieuweBron;      delete f._nieuweBron; }
   }
 }
 
 const stempel = new Date().toISOString().slice(0, 19).replace(/[:T]/g, '');
 fs.copyFileSync(PAD, PAD.replace(/\.json$/, `.voor-featvelden.${stempel}.json`));
 fs.writeFileSync(PAD, JSON.stringify(prog, null, 2));
-console.log(`\nGeschreven: ${gedaanCat} categorieën en ${gedaanSluit} koppelingen. Kopie ernaast gezet.`);
+console.log(`\nGeschreven: ${gedaanCat} categorieën, ${gedaanSluit} koppelingen en ${gedaanBoek} bronnen. Kopie ernaast gezet.`);
