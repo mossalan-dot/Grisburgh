@@ -6061,6 +6061,47 @@ function _summonCombatant(combat, s, charId) {
   };
 }
 
+// ── Wat je oproept, komt in de monsterbibliotheek ──────────────────────────
+// Gevraagd door de DM: *"als een speler beschikking krijgt over een feature,
+// spell of item waaraan een familiar gekoppeld is, moet dat automatisch naar
+// het bestiarium."* Bij het **krijgen** weet de app nog niet wélk wezen het
+// wordt — van de 25 summons heeft er één een vast statblok, zeven hebben
+// meerdere gedaantes (Find Familiar alleen al veertien) en zeventien geen. Bij
+// het **oproepen** weet ze het precies: daar is de gedaante al opgelost naar
+// één statblok. Dus hangt het daaraan. Zie `docs/voorstel-summons-automatisch.md`.
+//
+// **Met `inBestiarium: false`**, want dat is in deze app precies "wél
+// bruikbaar, geen encyclopedie-item" — zo staat het statblok van een NPC bij
+// zijn kaartje en zo ligt de Mimic klaar als verrassing. Een uil die een
+// speler oproept is zijn eigen beest en geen ontdekking van de party; hem als
+// onontdekt kaartje in het bestiarium zetten zou een verkeerde belofte zijn.
+// Waar hij wél voor dient: een encounter vooraf bouwen.
+//
+// Stil, met een regel in het logboek. De DM heeft op dat moment een gevecht of
+// een scène te doen; dit is administratie die hij later terugvindt.
+function _summonNaarBibliotheek(naam, sb, hp) {
+  const schoon = String(naam || '').trim();
+  if (!schoon || !sb) return null;
+  const d = storage.readJSON('monsters.json');
+  if (!Array.isArray(d.monsters)) d.monsters = [];
+  // Op naam ontdubbelen, hoofdletterongevoelig: staat hij er al — ook als
+  // encyclopedie-item — dan is dát zijn statblok en komt er niets bij.
+  const al = d.monsters.find(m => String(m.name || '').toLowerCase() === schoon.toLowerCase());
+  if (al) return al.id || null;
+  const monster = {
+    id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+    name: schoon,
+    maxHp: _getalUit(hp) ?? _getalUit(sb.hp) ?? _getalUit(sb.maxHp) ?? 1,
+    initiative: 0,
+    statblock: { ...sb },
+    inBestiarium: false,
+    description: '',
+  };
+  d.monsters.push(monster);
+  storage.writeJSON('monsters.json', d);
+  return monster.id;
+}
+
 // De staande summons van iedereen die meedoet op de kaart zetten. Wie er al
 // staat blijft staan — twee keer drukken mag niets dubbelen.
 function _summonsNaarCombat(combat, dmState) {
@@ -6169,6 +6210,19 @@ router.post('/characters/:characterId/summons', attachRole, (req, res) => {
     bak[def.id] = { naam: s.naam, hp, ac, vorm };
   }
   storage.writeJSON('dm-state.json', dmState);
+
+  // **En hij komt in de monsterbibliotheek te staan.** Niet bij het krijgen van
+  // de spreuk — dan weet de app nog niet welk wezen het wordt — maar hier, waar
+  // de gedaante al opgelost is naar één statblok. Zie `_summonNaarBibliotheek`.
+  // De naam is die van het **wezen**, niet het koosnaampje van de speler: in de
+  // bibliotheek staat een Owl, geen "Pluisje".
+  // **Stil, en geen regel in het logboek.** `archief.logEntries` is de
+  // onthul-geschiedenis van documenten (vandaar `docId` op elke regel); een
+  // bibliotheek-mutatie hoort daar niet tussen — dat zou de lijst iets anders
+  // laten betekenen voor iedereen die hem leest. De DM ziet het vanzelf in de
+  // monsterbibliotheek, en daar hoort het.
+  const wezenNaam = vorm || eigen?.name || bron?.name || def.naam;
+  _summonNaarBibliotheek(wezenNaam, sb, hp);
 
   // Loopt er een gevecht waarin zijn baasje staat, dan hoort hij er meteen bij.
   let opKaart = false;

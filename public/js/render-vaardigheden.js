@@ -2450,9 +2450,14 @@ const _DEUREN = [
   // honderd namen zoek je op naam; waar iets vandaan komt staat als penning op
   // de tegel en als chip erboven.
   //
-  // De deur heet **Familiars**; het id blijft `beest`, want daar hangen de
-  // sleutel van zijn deurbeeld en de link vanaf Wild Shape aan.
-  { id: 'beest',      label: 'Familiars',          soorten: ['beest', 'metgezel'],
+  // **De deur heet *Summons & Animal Forms*.** Hij heette Familiars, en dat was
+  // te smal: een familiar is één spreuk, en hier staan summons uit spreuken,
+  // features en voorwerpen, de dieren van deze wereld én de CR-ladder voor Wild
+  // Shape. Allebei de helften van de naam zijn PHB-termen, dus Engels —
+  // dezelfde regel als waarom *Spell Slots* en *Epic Boon* hier Engels blijven.
+  // Het id blijft `beest`: daar hangen de sleutel van zijn deurbeeld en de link
+  // vanaf Wild Shape aan, en hernoemen kost een migratie zonder winst.
+  { id: 'beest',      label: 'Summons & Animal Forms', soorten: ['beest', 'metgezel'],
     icoon: 'paw-print', kleur: '#3a7a2a' },
 ];
 const _DEUR = id => _DEUREN.find(d => d.id === id);

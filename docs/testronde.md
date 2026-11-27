@@ -4149,3 +4149,12 @@ van de tegel; `ITEM_FX` in `render-campagne.js` koppelt type aan effect.
 - [ ] **Het effect speelt ook in het grote venster** (ALL) — vergroot een kaartje naar het detailvenster: het gebaar speelt daar óók, groter en met een ruimere baan. Het zat eerst alleen in de open tegel, en dat is precies waar de DM níét ging kijken.
 - [ ] **Deeltjes over een foto zijn licht, niet donker** (ALL) — open een voorwerp met een donkere foto: de noten/belletjes zijn lichtgekleurd met een gloed, niet de inktkleur van een tegel. In inkt verdwenen ze volledig in het beeld (gemeten: dekking klopte, zichtbaarheid niet).
 - [ ] **Het type-icoon rechtsboven is leesbaar** (ALL) — op een donkere foto staat het als licht perkament met een dubbele schaduw; het erfde de inktkleur en was op een bosbeeld onvindbaar.
+
+### Wat je oproept, komt in de bibliotheek (27 nov 2026)
+
+- [ ] **Een opgeroepen wezen staat erna in de monsterbibliotheek** (SP+DM) — laat een speler met Find Familiar een uil oproepen en kijk in Meesterkamer → Monsters: *Owl* staat erin, met zijn statblok en HP. Nog eens oproepen voegt er geen tweede toe.
+- [ ] **In de bibliotheek staat het wezen, niet het koosnaampje** (DM) — noem je uil *Pluisje*: in de bibliotheek heet hij *Owl*. Anders groeit de lijst met namen die niemand terugvindt.
+- [ ] **Hij staat níét in het bestiarium** (DM) — het bestiarium gaat over wat de party ontdekt heeft; een uil die je zelf oproept is je eigen beest. Hij draagt `inBestiarium: false`: wél bruikbaar in een gevecht, geen encyclopedie-item.
+- [ ] **Een wezen dat de DM zelf toevoegde blijft zoals het was** (DM) — zet *Raven* in het bestiarium en laat een speler er een oproepen: er komt geen tweede Raven naast, en zijn plek in het bestiarium blijft.
+- [ ] **Het logboek blijft over onthullingen gaan** (DM) — er komt geen regel in `logEntries` bij; dat is de onthulgeschiedenis van documenten, geen administratie.
+- [ ] **De deur heet Summons & Animal Forms** (ALL) — in het Naslag-menu én in de kop boven de lijst. *Familiars* was te smal: een familiar is één spreuk, en hier staan ook de summons uit features en voorwerpen, de dieren van deze wereld en de CR-ladder voor Wild Shape.

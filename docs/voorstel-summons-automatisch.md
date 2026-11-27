@@ -2,6 +2,13 @@
 
 *Voorstel, 27 november 2026. Gevraagd door de DM.*
 
+> **Akkoord en gebouwd op 27 november 2026**, behalve het Wild Shape-verzoek
+> (keuze 2 hieronder) — dat is een eigen stuk werk en staat nog open.
+> Wat er staat: een opgeroepen wezen komt in `monsters.json` met
+> `inBestiarium: false`, op naam ontdubbeld, met het wezen als naam en niet het
+> koosnaampje van de speler. De deur heet nu **Summons & Animal Forms**.
+> Bewaakt door `tests/summon-bibliotheek.test.js`.
+
 > *"Als een speler beschikking krijgt over een feature, spell of item waaraan
 > een familiar gekoppeld is, moet dat automatisch naar het bestiarium worden
 > geïmporteerd."*
