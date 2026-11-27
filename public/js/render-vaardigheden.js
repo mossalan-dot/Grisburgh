@@ -4386,18 +4386,67 @@ const _KEUZE_UIT = [
   { v: 'class', label: 'De skills van deze class' },
 ];
 
+// **Niet elke vraag hoort bij elke soort.** Beide keuzelijsten stonden bij
+// álle soorten, en dan vraagt het formulier dingen die nergens op slaan: *"hoe
+// kun je proficiency in een spell hebben?"* — zo meldde de DM het, en hij had
+// gelijk. Een `+1` bij een taal is net zo min iets, en *"de skills van deze
+// class"* is geen bron voor een cantrip.
+//
+// Hier staat per soort wát er te kiezen valt. Een lijst waar maar één optie in
+// overblijft (het kale "—") verdwijnt helemaal: een keuzelijst die niets kan
+// zeggen is erger dan geen keuzelijst — dan vraag je je af wat je mist.
+const _KEUZE_PASSEND = {
+  skill:    { geeft: ['proficiency', 'expertise'], uit: ['', 'lijst', 'eigen', 'class'] },
+  tool:     { geeft: ['proficiency', 'expertise'], uit: ['', 'lijst', 'eigen'] },
+  // Een taal is geen proficiency waar je expertise in kunt hebben, en een
+  // bonus erop bestaat niet. Je kiest hem gewoon.
+  language: { geeft: [],                           uit: ['', 'lijst'] },
+  spell:    { geeft: [],                           uit: ['', 'lijst'] },
+  feat:     { geeft: [],                           uit: ['', 'lijst'] },
+  // Hier zijn `+1` en `+2` juist het hele punt, en proficiency bestaat niet.
+  ability:  { geeft: ['+1', '+2'],                 uit: ['', 'lijst'] },
+  vrij:     { geeft: [],                           uit: [] },
+  variant:  { geeft: [],                           uit: [] },
+};
+const _keuzePassend = (soort) => _KEUZE_PASSEND[soort] || { geeft: [], uit: ['', 'lijst'] };
+// Waar komt de keuze uit? Een string is de keuze zelf, een gevulde array is
+// een eigen lijst. Eén lezer hiervan, want de rij en de opruiming hieronder
+// moeten het over hetzelfde eens zijn.
+function _keuzeUitStand(k) {
+  if (typeof k.uit === 'string' && k.uit) return k.uit;
+  return Array.isArray(k.uit) && k.uit.length ? 'lijst' : '';
+}
+// **Een waarde die niet meer past, gaat weg.** Zet je een skill-keuze om naar
+// een spreuk, dan verdwijnt de keuzelijst *Proficiency* — en zonder deze
+// opruiming blijft `geeft: 'proficiency'` stil in de data staan, op een plek
+// waar het niets betekent en waar je het niet meer weg kúnt halen omdat het
+// veld er niet meer is. Staat hier en niet in de knophandler, zodat er een
+// toets op kan.
+function _keuzeOpruimen(lijst) {
+  for (const k of (lijst || [])) {
+    const past = _keuzePassend(k.soort);
+    if (k.geeft && !past.geeft.includes(k.geeft)) delete k.geeft;
+    const stand = _keuzeUitStand(k);
+    if (stand && !past.uit.includes(stand)) delete k.uit;
+  }
+  return lijst;
+}
+// Alleen de opties die bij deze soort horen, met het kale "—" vooraan zolang
+// er iets te kiezen valt.
+const _keuzeOpties = (alle, toegestaan) =>
+  alle.filter(o => o.v === '' || toegestaan.includes(o.v));
+
 // De blokken zoals ze nú in het formulier staan. `_edit.keuze` is altijd een
 // lijst zolang je bewerkt; bij het opslaan wordt één blok weer een object,
 // zodat alles wat er al stond onveranderd terugkomt.
 const _keuzeLijst = () => Array.isArray(_edit?.keuze) ? _edit.keuze : (_edit?.keuze ? [_edit.keuze] : []);
 
-function _keuzeUitStand(k) {
-  if (typeof k.uit === 'string' && k.uit) return k.uit;
-  return Array.isArray(k.uit) && k.uit.length ? 'lijst' : '';
-}
 
 function _keuzeRijHtml(k, i) {
   const stand = _keuzeUitStand(k);
+  const past  = _keuzePassend(k.soort);
+  const geeftOpties = _keuzeOpties(_KEUZE_GEEFT, past.geeft);
+  const uitOpties   = _keuzeOpties(_KEUZE_UIT, past.uit);
   const sel = (id, opties, waarde) => `<select class="dm-input dm-input-sm" data-keuze="${i}" data-veld="${id}"
       onchange="window.vaardigheden.keuzeHerteken()">
       ${opties.map(o => `<option value="${esc(o.v)}"${String(waarde || '') === o.v ? ' selected' : ''}>${esc(o.label)}</option>`).join('')}
@@ -4407,7 +4456,7 @@ function _keuzeRijHtml(k, i) {
       ${sel('soort', _KEUZE_SOORTEN, k.soort)}
       <input class="dm-input dm-input-sm vd-keuze-aantal" type="number" min="1" max="10"
         data-keuze="${i}" data-veld="aantal" value="${Number(k.aantal) || 1}" title="Hoeveel je er kiest">
-      ${k.soort === 'variant' ? '' : sel('geeft', _KEUZE_GEEFT, k.geeft)}
+      ${geeftOpties.length > 1 ? sel('geeft', geeftOpties, k.geeft) : ''}
       <button type="button" class="dm-btn dm-btn-ghost dm-btn-sm dm-btn-icon" title="Deze keuze weghalen"
         onclick="window.vaardigheden.keuzeWeg(${i})">${icon('x')}</button>
     </div>
@@ -4428,7 +4477,7 @@ function _keuzeRijHtml(k, i) {
       </div>`
     : `
       <div class="vd-keuze-uit">
-        ${sel('uitstand', _KEUZE_UIT, stand)}
+        ${uitOpties.length > 1 ? sel('uitstand', uitOpties, stand) : ''}
         ${stand === 'lijst' ? `
           <input class="dm-input dm-input-sm" data-keuze="${i}" data-veld="uit"
             value="${esc(Array.isArray(k.uit) ? k.uit.join(', ') : '')}"
@@ -4938,7 +4987,7 @@ window.vaardigheden = {
   // tekent opnieuw: zo gaat er niets verloren wat je net intikte.
   keuzeErbij() { _editorLees(); _edit.keuze = [..._keuzeLijst(), { soort: 'skill', aantal: 1, geeft: 'proficiency' }]; _editorHerteken(); },
   keuzeWeg(i)  { _editorLees(); const l = _keuzeLijst(); l.splice(i, 1); _edit.keuze = l; _editorHerteken(); },
-  keuzeHerteken() { _editorLees(); _editorHerteken(); },
+  keuzeHerteken() { _editorLees(); _keuzeOpruimen(_keuzeLijst()); _editorHerteken(); },
   variantErbij(i) {
     _editorLees();
     const l = _keuzeLijst();

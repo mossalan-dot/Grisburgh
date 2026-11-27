@@ -4158,3 +4158,17 @@ van de tegel; `ITEM_FX` in `render-campagne.js` koppelt type aan effect.
 - [ ] **Een wezen dat de DM zelf toevoegde blijft zoals het was** (DM) — zet *Raven* in het bestiarium en laat een speler er een oproepen: er komt geen tweede Raven naast, en zijn plek in het bestiarium blijft.
 - [ ] **Het logboek blijft over onthullingen gaan** (DM) — er komt geen regel in `logEntries` bij; dat is de onthulgeschiedenis van documenten, geen administratie.
 - [ ] **De deur heet Summons & Animal Forms** (ALL) — in het Naslag-menu én in de kop boven de lijst. *Familiars* was te smal: een familiar is één spreuk, en hier staan ook de summons uit features en voorwerpen, de dieren van deze wereld en de CR-ladder voor Wild Shape.
+
+### De keuzelijsten volgen de soort (27 nov 2026)
+
+Gemeld door de DM: *"dit veld is erg verwarrend en soms ook gek (hoe kun je
+proficiency in een spell hebben?)"*. Het veld *Wat laat deze feature kiezen?*
+zette bij élke soort dezelfde twee keuzelijsten neer, en bood daarmee dingen aan
+die in 5e niet bestaan. `_KEUZE_PASSEND` in `render-vaardigheden.js` zegt nu per
+soort wat er te kiezen valt.
+
+- [ ] **Geen proficiency bij een spreuk** (DM) — Heldenboek → een feature bewerken → *Keuze erbij* → soort **Spreuk of cantrip**: de keuzelijst met Proficiency/Expertise is er helemaal niet. Zelfde bij **Taal** en **Feat**: dat zijn dingen die je kiest, er zit geen proficiency of bonus aan.
+- [ ] **Proficiency en expertise bij een skill, geen bonus** (DM) — soort **Skill** of **Gereedschap**: *Proficiency* en *Expertise* staan er, een `+1` niet. Bij **Ability score** precies omgekeerd: alleen `+1` en `+2`.
+- [ ] **De skills van een class zijn alleen een bron voor een skill** (DM) — bij soort **Skill** staat *De skills van deze class* in de bronlijst; bij elke andere soort niet. Een cantrip komt niet uit de skills van je class.
+- [ ] **Een keuzelijst die niets kan zeggen staat er niet** (DM) — soort **Vrije keuze**: beide lijsten verdwijnen; bij **Een vorm, met eigen vervolgkeuzes** ook de bronlijst. Een lijst waarin alleen het kale "—" overblijft laat je afvragen wat je mist.
+- [ ] **Een waarde die niet meer past, gaat weg** (DM) — zet een keuze op **Skill** met *Expertise*, wissel naar **Spreuk of cantrip** en terug: het veld staat weer op "—". Zonder die opruiming bleef `expertise` stil in de data staan, op een plek waar je het niet meer weg kón halen omdat het veld er niet meer is.
