@@ -4414,8 +4414,19 @@ async function _srdImport(key) {
     const sb = m.statblock || {};
     const v = (k, val) => { const el = document.getElementById('dm-mon-sb-' + k); if (el) el.value = val ?? ''; };
     v('size',                  sb.size);
-    v('type',                  sb.type);
+    // **Het formulier heet `creatureType`, de bron heet `type`.** Hier stond
+    // `v('type', …)`, en dat veld bestaat niet: élk monster dat uit de SRD
+    // werd overgenomen kwam binnen **zonder creature type**. Niemand merkte
+    // het — tot de deur Familiars erop ging filteren en een net overgenomen
+    // Hawk niet als eigen beest terugkwam. Dezelfde vertaling als in
+    // `_readStatblockFromForm`, en die staat daar met dezelfde reden erbij.
+    v('creatureType',          sb.type);
     v('alignment',             sb.alignment);
+    // Deze twee staan bij alle 331 wezens in de bron en werden niet
+    // overgenomen; dan moest de DM ze overtikken uit een blok dat hij juist
+    // niet hoefde over te tikken.
+    v('initiative',            sb.initiative);
+    v('profBonus',             sb.profBonus);
     v('ac',                    sb.ac);
     v('hp',                    sb.hp);
     v('speed',                 sb.speed);

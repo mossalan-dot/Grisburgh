@@ -6915,6 +6915,11 @@ window._openDetail = async (tab, id, isBack = false, openTabKey = null) => {
           style="${_d.imgFocus ? `object-position:${_d.imgFocus}` : ''}"
           onerror="this.closest('#detail-img-wrap-${e.id}').style.display='none'">
         <div class="detail-hero-overlay"></div>
+        <!-- **Het gebaar hoort ook hier.** De DM vroeg om een animatie "bij het
+             vergroten van het kaartje", en dat is dit venster — niet alleen de
+             open tegel. Hij ging er kijken en zag niets; dat was een
+             terechte melding over een halve oplevering. -->
+        ${_tegelFxHtml(tab, e)}
         ${_detailAcResult
           ? `<span class="detail-hero-ac-badge" data-wptip="${escJS(_detailAcResult.tooltip)}">${esc(_detailAcResult.pill)}</span>`
           : `<div class="detail-hero-icon">${getAutoIconSvg(tab, e)}</div>`}

@@ -4146,3 +4146,6 @@ van de tegel; `ITEM_FX` in `render-campagne.js` koppelt type aan effect.
 - [ ] **Het speelt één keer** (ALL) — laat een kaartje openstaan: na een paar seconden is het stil. Een lus in een kaartje waar je in leest gaat irriteren.
 - [ ] **Het zit de tekst niet in de weg** (ALL) — klik midden in het effect op de tegel: hij bladert gewoon door. Het ligt achter de tekst en vangt geen klikken.
 - [ ] **Minder beweging betekent uit** (ALL) — zet in je systeem *minder beweging* aan en klap een kaartje open: er beweegt niets, en er ontbreekt ook niets — het is versiering.
+- [ ] **Het effect speelt ook in het grote venster** (ALL) — vergroot een kaartje naar het detailvenster: het gebaar speelt daar óók, groter en met een ruimere baan. Het zat eerst alleen in de open tegel, en dat is precies waar de DM níét ging kijken.
+- [ ] **Deeltjes over een foto zijn licht, niet donker** (ALL) — open een voorwerp met een donkere foto: de noten/belletjes zijn lichtgekleurd met een gloed, niet de inktkleur van een tegel. In inkt verdwenen ze volledig in het beeld (gemeten: dekking klopte, zichtbaarheid niet).
+- [ ] **Het type-icoon rechtsboven is leesbaar** (ALL) — op een donkere foto staat het als licht perkament met een dubbele schaduw; het erfde de inktkleur en was op een bosbeeld onvindbaar.

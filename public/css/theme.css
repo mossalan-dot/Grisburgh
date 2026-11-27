@@ -1686,7 +1686,15 @@ html {
   right: 12px;
   z-index: 3;
   font-size: 1.6rem;
-  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.55));
+  /* **Licht, niet donker.** Hij erfde de inktkleur (`#2a1a08`) en lag daarmee
+     als bijna-zwart op een foto die zelf donker kan zijn — op een bosbeeld was
+     hij niet te zien (gemeld door de DM, 27 nov 2026; nagemeten: color
+     rgb(42,26,8), dekking 1). Alles wat hier óver een beeld ligt is perkament
+     met een donkere rand eromheen — de badges linksboven doen het al zo. Twee
+     schaduwen in plaats van één: een harde voor de rand en een zachte voor de
+     diepte, zodat hij ook op een licht beeld blijft staan. */
+  color: #f2e8d2;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .9)) drop-shadow(0 2px 6px rgba(0, 0, 0, .6));
   pointer-events: none;
   line-height: 1;
 }
@@ -35653,6 +35661,11 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
   position: absolute;
   display: block;
   opacity: 0;
+  /* Een randje schaduw, zodat een deeltje ook op een foto of op perkament
+     leest. Zonder dit verdween een noot in een licht beeld: hij was er wel
+     (gemeten: dekking 0,69) maar je zag hem niet, en dat is voor een gebaar
+     dat moet opvallen hetzelfde als niet werken. */
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .45));
   /* `--i` komt uit de markup en geeft elk deeltje zijn eigen start, zodat ze
      niet als één rij omhoog schuiven. De breuken zijn met opzet onregelmatig
      (7, 13, 23): een nette verdeling leest als een raster. */
@@ -35670,8 +35683,8 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
    een gebaar. Boven die band is het beeldvlak, en daar mag het. */
 .tegel-fx--noten i {
   bottom: 40%;
-  width: 19px; height: 19px;
-  color: #7a6aa8;
+  width: 26px; height: 26px;
+  color: #6a56a0;
   animation-name: fx-noot;
   animation-duration: 2.4s;
   animation-timing-function: cubic-bezier(.3, .5, .4, 1);
@@ -35686,15 +35699,15 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 /* **Belletjes uit een drankje**: kleiner, sneller, en ze wiebelen. */
 .tegel-fx--bellen i {
   bottom: 38%;
-  width: 11px; height: 11px;
-  color: #3f7f6a;
+  width: 16px; height: 16px;
+  color: #2f7560;
   animation-name: fx-bel;
   animation-duration: 2.1s;
   animation-timing-function: ease-out;
 }
 @keyframes fx-bel {
   0%   { opacity: 0;   transform: translate(0, 10px) scale(.5); }
-  20%  { opacity: .85; }
+  20%  { opacity: 1; }
   60%  { transform: translate(6px, -30px) scale(1); }
   100% { opacity: 0;   transform: translate(-4px, -62px) scale(.8); }
 }
@@ -35702,16 +35715,16 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
 /* **Inkt bij een scroll**: stofjes die oplichten en blijven hangen. */
 .tegel-fx--inkt i {
   top: 30%;
-  width: 10px; height: 10px;
-  color: #6a5030;
+  width: 15px; height: 15px;
+  color: #5a4020;
   animation-name: fx-stof;
   animation-duration: 2.6s;
   animation-timing-function: ease-in-out;
 }
 @keyframes fx-stof {
   0%   { opacity: 0;   transform: translateY(8px) scale(.6); }
-  30%  { opacity: .7;  transform: translateY(0) scale(1); }
-  70%  { opacity: .5;  transform: translateY(-10px) scale(.95); }
+  30%  { opacity: .95;  transform: translateY(0) scale(1); }
+  70%  { opacity: .7;  transform: translateY(-10px) scale(.95); }
   100% { opacity: 0;   transform: translateY(-20px) scale(.7); }
 }
 
@@ -35720,15 +35733,15 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
    komt. */
 .tegel-fx--zegen i {
   bottom: 36%;
-  width: 14px; height: 14px;
-  color: #c4a87a;
+  width: 21px; height: 21px;
+  color: #d8b878;
   animation-name: fx-zegen;
   animation-duration: 3.2s;
   animation-timing-function: ease-in-out;
 }
 @keyframes fx-zegen {
   0%   { opacity: 0;   transform: translateY(12px) scale(.5) rotate(0deg); }
-  25%  { opacity: .95; }
+  25%  { opacity: 1; }
   100% { opacity: 0;   transform: translateY(-70px) scale(1.05) rotate(40deg); }
 }
 
@@ -35736,22 +35749,22 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
    bewegen — een ring of amulet gloeit, hij borrelt niet. */
 .tegel-fx--arcaan i {
   top: calc(18% + (var(--i) * 11%));
-  width: 12px; height: 12px;
-  color: #5a2e8a;
+  width: 19px; height: 19px;
+  color: #6b35a5;
   animation-name: fx-twinkel;
   animation-duration: 2.6s;
   animation-timing-function: ease-in-out;
 }
 @keyframes fx-twinkel {
   0%, 100% { opacity: 0; transform: scale(.4); }
-  45%      { opacity: .85; transform: scale(1.1); }
+  45%      { opacity: 1; transform: scale(1.25); }
 }
 
 /* **Munten**: korte glinsteringen laag in het kaartje. */
 .tegel-fx--munt i {
   bottom: calc(40% + (var(--i) * 6%));
-  width: 13px; height: 13px;
-  color: #b08a2a;
+  width: 19px; height: 19px;
+  color: #c79a20;
   animation-name: fx-twinkel;
   animation-duration: 2.2s;
 }
@@ -35793,4 +35806,52 @@ body:has(#sb-overlay.sb-open) .spreuk-detail-overlay { z-index: 9200; }
    Deze effecten zijn versiering, dus er valt niets te missen. */
 @media (prefers-reduced-motion: reduce) {
   .tegel-fx { display: none; }
+}
+
+/* In het **detailvenster** ligt het effect over de **foto** in plaats van op
+   perkament, en dat verandert alles aan de kleur.
+
+   De deeltjes dragen op een tegel een inktkleur — een teal belletje, een
+   paarse noot — en dat leest prima op zand. Over een donkere foto verdwijnen
+   ze volledig: gemeten op een paarse toverdrank waren twee belletjes "zichtbaar"
+   volgens hun dekking en met het blote oog geen van beide. Precies dezelfde
+   fout als het icoon rechtsboven, dat de inktkleur erfde en op een bosbeeld
+   onvindbaar was.
+
+   Hier zijn ze dus **licht met een donkere rand**, zoals alles wat in deze app
+   over een beeld ligt: de kleur blijft herkenbaar (lavendel voor noten, mint
+   voor belletjes, goud voor een zegen) maar dan als licht in plaats van als
+   inkt. Plus een gekleurde gloed, zodat het oplicht in plaats van opvalt. */
+.detail-hero .tegel-fx i {
+  transform-origin: center;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .95)) drop-shadow(0 0 7px currentColor);
+}
+.detail-hero .tegel-fx--noten i  { color: #e3d6ff; }
+.detail-hero .tegel-fx--bellen i { color: #cdf0e3; }
+.detail-hero .tegel-fx--inkt i   { color: #f4e8cf; }
+.detail-hero .tegel-fx--zegen i  { color: #ffe6a8; }
+.detail-hero .tegel-fx--arcaan i { color: #e8d2ff; }
+.detail-hero .tegel-fx--munt i   { color: #ffe08a; }
+/* En de twee vegen: over een foto moet een glans wit zijn en een schild-licht
+   koeler, anders gaan ze op in het beeld eronder. */
+.detail-hero .tegel-fx--glans::after {
+  background: linear-gradient(105deg, transparent 40%, rgba(255, 255, 255, .78) 50%, transparent 60%);
+}
+.detail-hero .tegel-fx--schild::after {
+  background: radial-gradient(ellipse at 50% 55%, rgba(170, 215, 255, .5), transparent 62%);
+}
+.detail-hero .tegel-fx--noten i { width: 34px; height: 34px; bottom: 18%; }
+.detail-hero .tegel-fx--bellen i { width: 22px; height: 22px; bottom: 12%; }
+.detail-hero .tegel-fx--zegen i { width: 28px; height: 28px; bottom: 14%; }
+.detail-hero .tegel-fx--inkt i,
+.detail-hero .tegel-fx--arcaan i { width: 24px; height: 24px; }
+.detail-hero .tegel-fx--munt i { width: 25px; height: 25px; }
+/* De banen zijn in de tegel op pixels gezet omdat die klein en vast is; hier
+   is het vlak twee keer zo hoog, dus reiken ze verder. */
+.detail-hero .tegel-fx--noten i { animation-name: fx-noot-groot; }
+@keyframes fx-noot-groot {
+  0%   { opacity: 0; transform: translateY(24px) rotate(-8deg) scale(.6); }
+  22%  { opacity: 1; }
+  60%  { opacity: .85; transform: translateY(-60px) rotate(6deg) scale(1.05); }
+  100% { opacity: 0; transform: translateY(-130px) rotate(-4deg) scale(.9); }
 }

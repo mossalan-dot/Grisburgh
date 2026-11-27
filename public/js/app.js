@@ -1,5 +1,5 @@
 import { api, campagneUitUrl, zetCampagne } from './api.js?v=328';
-import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=480";
+import { initCampagne, renderArchiefDeuren, renderAvontuurDeuren, renderDienstenDeuren, renderPersonages, renderLocaties, renderOrganisaties, renderVoorwerpen, renderDocumenten, openEditor, WEAPON_PROPERTIES, PARAMETERIZABLE_PROPS } from "./render-campagne.js?v=481";
 import { initArchief, renderLogboek, openLogboekEditor } from "./render-archief.js?v=159";
 import { renderKaart, queueFlyTo, verversPins, nieuweKaart } from './render-kaart.js?v=43';
 import { renderDungeon } from './render-dungeon.js?v=84';
@@ -13,7 +13,7 @@ import './render-melding.js?v=4';
 import { renderVaardigheden, zoekVaardigheden, heldenboekTekst } from './render-vaardigheden.js?v=229';
 import { renderStatblock } from './render-statblock.js?v=10';
 import { initSocket } from "./socket-client.js?v=115";
-import { initDmPanel } from "./dm-panel.js?v=446";
+import { initDmPanel } from "./dm-panel.js?v=447";
 import { COND_INFO, COND_LABEL, COND_MET_PLAATJE, COND_ICON } from './conditions.js?v=8';
 import './media-picker.js?v=23';
 // Sfeer bij het vergroten van een kaart; hangt zichzelf op aan window.

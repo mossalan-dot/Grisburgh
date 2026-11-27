@@ -597,3 +597,34 @@ describe('Het Heldenboek per sectie', () => {
       'het raster krijgt die klasse niet, dus de regel hierboven doet niets');
   });
 });
+
+// **Het menu en de deur noemen hetzelfde ding.** De Naslag-dropdown staat als
+// vaste knoppen in `index.html` en de deuren zelf in `_DEUREN`; dat zijn twee
+// lijsten van hetzelfde, en die lopen uit elkaar. Zo heette de deur *Feats &
+// Epic Boons* terwijl het menu *Feats & Boons* bleef zeggen — gemeld door de
+// DM op 27 nov 2026. Je ziet het alleen als je de twee naast elkaar legt.
+describe('De deuren van het Heldenboek', () => {
+  it('noemt elke deur in het menu zoals de deur zelf heet', () => {
+    const fs = require('fs');
+    const path = require('path');
+    const wortel = path.join(__dirname, '..');
+    const html = fs.readFileSync(path.join(wortel, 'public', 'index.html'), 'utf8');
+    const rv = fs.readFileSync(path.join(wortel, 'public', 'js', 'render-vaardigheden.js'), 'utf8');
+
+    const van = rv.indexOf('const _DEUREN');
+    assert.ok(van > 0, '_DEUREN staat niet meer waar het stond');
+    const blok = rv.slice(van, rv.indexOf('\n];', van));
+    const deuren = Object.fromEntries([...blok.matchAll(/\{ id: '([^']+)',\s*label: '([^']+)'/g)]
+      .map(m => [m[1], m[2]]));
+    assert.ok(Object.keys(deuren).length >= 5, `${Object.keys(deuren).length} deuren gevonden`);
+
+    const scheef = [];
+    for (const m of html.matchAll(/data-deur="([^"]+)"[^>]*>(?:<svg[\s\S]*?<\/svg>)?\s*([^<]*)</g)) {
+      const id = m[1];
+      const label = m[2].replace(/&amp;/g, '&').trim();
+      if (!deuren[id]) { scheef.push(`${id} bestaat niet als deur`); continue; }
+      if (label !== deuren[id]) scheef.push(`${id}: menu "${label}" ≠ deur "${deuren[id]}"`);
+    }
+    assert.ok(scheef.length === 0, 'menu en deur zeggen iets anders:\n  ' + scheef.join('\n  '));
+  });
+});
