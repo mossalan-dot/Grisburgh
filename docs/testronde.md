@@ -4172,3 +4172,15 @@ soort wat er te kiezen valt.
 - [ ] **De skills van een class zijn alleen een bron voor een skill** (DM) — bij soort **Skill** staat *De skills van deze class* in de bronlijst; bij elke andere soort niet. Een cantrip komt niet uit de skills van je class.
 - [ ] **Een keuzelijst die niets kan zeggen staat er niet** (DM) — soort **Vrije keuze**: beide lijsten verdwijnen; bij **Een vorm, met eigen vervolgkeuzes** ook de bronlijst. Een lijst waarin alleen het kale "—" overblijft laat je afvragen wat je mist.
 - [ ] **Een waarde die niet meer past, gaat weg** (DM) — zet een keuze op **Skill** met *Expertise*, wissel naar **Spreuk of cantrip** en terug: het veld staat weer op "—". Zonder die opruiming bleef `expertise` stil in de data staan, op een plek waar je het niet meer weg kón halen omdat het veld er niet meer is.
+
+### Wat een feat vraagt (27 nov 2026)
+
+Bij het nalopen van het Prerequisite-veld (zie `docs/voorstel-prerequisites.md`)
+kwamen twee dingen boven die de app als inhoud las. `_eisUit` in
+`render-vaardigheden.js` is sindsdien de enige lezer van dat veld.
+
+- [ ] **Geen plusje waar geen eis is** (ALL) — Heldenboek → Feats & Epic Boons: een feat als *Alert*, *Crafter* of *Lucky* draagt rechtsboven géén plusje. Zestien feats in het meegeleverde koppelbestand hebben letterlijk *"Geen eis"* in dat veld staan, en de tegel zette daar een teken bij dat belooft dat er verderop meer staat. Grisburgh zelf is schoon, dus kijk dit na in een **andere** campagne (Test) — die valt op dat bestand terug.
+- [ ] **Een level staat als getal op de penning** (ALL) — een Epic Boon toont **19** in de penningenhoek, niet een plusje met *Prerequisite: Level 19* in de tooltip. Tik je bij een feat zelf `Level 4` in het tekstveld, dan verschijnt daar een **4**.
+- [ ] **Een level naast een andere eis splitst** (DM) — vul als eis `Level 4, Strength 13` in: de penning zegt **4** en het plusje houdt *Strength 13*. Allebei dus, niet het een óf het ander.
+- [ ] **Een ability score is geen level** (DM) — vul `Strength 13` in: er komt géén penning met 13 op te staan. Het getal in een eis is niet per se een level.
+- [ ] **Een echte eis blijft woordelijk staan** (ALL) — *Medium armor training*, *Strength of Dexterity 13* en *Een spellcasting- of pact magic-feature* staan onveranderd in de tooltip en voluit in het venster.

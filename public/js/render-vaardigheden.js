@@ -1292,12 +1292,41 @@ function _geeftZin(namen) {
   return `geeft de ${_SP_ORD[lvl] || `${lvl}e`} level spell ${namenHtml}`;
 }
 
-// Het level dat een feat vraagt. Staat het niet op de regel zelf, dan kent de
-// meegeleverde koppeling het misschien — daar zit onder meer de 19 van elke
-// Epic Boon in, die niet twaalf keer in het bestand staat.
-function _eisLevel(it) {
-  if (it.soort !== 'feat' && it.soort !== 'boon') return 0;
-  return Number(it.vereistLevel) || Number(_koppelingVan(it)?.vereistLevel) || 0;
+// ── Wat vraagt deze feat? ──────────────────────────────────────────────────
+// **"Geen eis" is geen eis.** In `bronnen/feat-koppelingen.json` dragen
+// **16 van de 51** feats die woorden letterlijk in hun prerequisite-veld
+// (Alert, Crafter, Healer, Lucky, Magic Initiate…). Het is een leeg veld dat
+// is uitgeschreven, en de app las het als inhoud: op de tegel kwam een plusje
+// dat belooft dat er verderop meer staat, en in het venster stond
+// *Prerequisite: Geen eis*. Dat raakt **elke campagne zonder eigen feats** —
+// die valt op dat bestand terug. Grisburgh zelf is schoon (0 van de 251 op
+// productie), dus daar was het onzichtbaar; juist een verse campagne begint
+// er mee.
+//
+// **En een level hoort een getal te zijn.** Elke Epic Boon vraagt level 19; de
+// code heeft daar een eigen penning voor (`vereistLevel`). Schrijft een DM het
+// als tekst ("Level 19"), dan gaat die eigen tekst vóór op de meegeleverde
+// koppeling en komt `vereistLevel` nooit aan de beurt: het level verdwijnt in
+// een tooltip. Gemeten op een datakopie waarin dat zo stond: 60 plusjes en nul
+// eispenningen, erna 34 en 12. Dus leest `_eisUit` het level uit de tekst, en
+// blijft alleen over wat er écht naast staat.
+const _GEEN_EIS = /^\s*(geen(\s+eis(en)?)?|niets|n\.?v\.?t\.?|[-–—])\s*$/i;
+const _EIS_LEVEL = /(?:^|[,;·]\s*)level\s*(\d{1,2})\s*(?=$|[,;·])/i;
+
+function _eisUit(it) {
+  if (it.soort !== 'feat' && it.soort !== 'boon') return { level: 0, rest: '' };
+  const kop = _koppelingVan(it) || {};
+  let tekst = String(kop.vereist || '').trim();
+  if (_GEEN_EIS.test(tekst)) tekst = '';
+  let level = Number(kop.vereistLevel) || 0;
+  const m = tekst.match(_EIS_LEVEL);
+  if (m) {
+    // De tekst wint van het getal: dat is wat de DM zelf opschreef.
+    level = Number(m[1]);
+    tekst = (tekst.slice(0, m.index) + tekst.slice(m.index + m[0].length))
+      .replace(/^\s*[,;·]\s*|\s*[,;·]\s*$/g, '').trim();
+  }
+  return { level, rest: tekst };
 }
 
 // De penningenhoek: gevuld waar je iets krijgt, open waar het verandert, en bij
@@ -1306,15 +1335,14 @@ function _eisLevel(it) {
 function _nivPenningenHtml(it) {
   const vast  = _toontLevel(it.soort, it.level) ? (it.levels || [it.level]) : [];
   const groei = it.groei || [];
-  const eis   = _eisLevel(it);
+  const eis   = _eisUit(it).level;
   // Een feat kan naast een level nog iets anders vragen ("Scion of the Outer
   // Planes feat", "Medium armor training"). Dat paste niet onder de titel —
   // Agent of Order liep daar over de volle breedte — en het hoeft daar ook
   // niet te staan: in het venster staat het voluit. Hier alleen een plusje
   // naast de levelpenning, met de eis in de tooltip. Het teken zegt: er is
   // meer, kijk even verder.
-  const meer = (it.soort === 'feat' || it.soort === 'boon')
-    ? String(it.vereist || _koppelingVan(it)?.vereist || '').trim() : '';
+  const meer = _eisUit(it).rest;
   if (!vast.length && !groei.length && !eis && !meer) return '';
   const titel = eis ? `Vraagt level ${eis}`
     : groei.length ? `Verandert op level ${groei.join(', ')}` : '';
@@ -1787,7 +1815,7 @@ function _featsVoorKlasse(klasse) {
     const k = _koppelingVan(f);
     if (k.sluitAan.includes(klasse)) { aangewezen.push(f); continue; }
     // De eis: noemt hij een armor training die deze klasse geeft?
-    const eis = String(k.vereist || '');
+    const eis = _eisUit(f).rest;
     if (eis) {
       const nodig = _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training);
       if (nodig.length && nodig.every(t => mijnArmor.includes(t.toLowerCase()))) { viaEis.push(f); continue; }
@@ -3276,7 +3304,7 @@ function _klassenVoorFeat(it) {
   const kop = _koppelingVan(it);
   const aangewezen = kop.sluitAan.filter(k => klassen.includes(k));
 
-  const eis = String(kop.vereist || '');
+  const { level: eisLevel, rest: eis } = _eisUit(it);
   const nodig = eis ? _ARMOR_WOORDEN.filter(a => a.re.test(eis)).map(a => a.training) : [];
   const viaEis = nodig.length
     ? klassen.filter(k => {
@@ -3291,7 +3319,6 @@ function _klassenVoorFeat(it) {
       if (klassen.includes(k) && !viaSpreuk.includes(k)) viaSpreuk.push(k);
     }
   }
-  const eisLevel = Number(kop.vereistLevel) || 0;
   if (!aangewezen.length && !viaEis.length && !viaSpreuk.length && !eis && !eisLevel) return null;
   // `geeftSpreuk` gaat mee: de weergave noemt eronder wélke spreuk het is, en
   // die staat niet per se op het item zelf — hij kan uit de meegeleverde
